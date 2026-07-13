@@ -1,0 +1,40 @@
+import { useMaterials } from '../materials/MaterialsContext'
+
+export interface MonitorProps {
+  position?: [number, number, number]
+  rotation?: [number, number, number]
+}
+
+const SCREEN_WIDTH = 0.6
+const SCREEN_HEIGHT = 0.35
+const BODY_THICKNESS = 0.025
+const NECK_HEIGHT = 0.16
+const BASE_RADIUS = 0.12
+
+export function Monitor({ position = [0, 0, 0], rotation = [0, 0, 0] }: MonitorProps) {
+  const materials = useMaterials()
+  const baseY = 0.01
+  const neckY = baseY + 0.01 + NECK_HEIGHT / 2
+  const screenY = neckY + NECK_HEIGHT / 2 + SCREEN_HEIGHT / 2
+
+  return (
+    <group position={position} rotation={rotation}>
+      <mesh position={[0, baseY, 0]}>
+        <cylinderGeometry args={[BASE_RADIUS, BASE_RADIUS, 0.02, 24]} />
+        <meshStandardMaterial {...materials.plasticBlack} />
+      </mesh>
+      <mesh position={[0, neckY, 0]}>
+        <cylinderGeometry args={[0.02, 0.02, NECK_HEIGHT, 12]} />
+        <meshStandardMaterial {...materials.metalChrome} />
+      </mesh>
+      <mesh position={[0, screenY, 0]} castShadow>
+        <boxGeometry args={[SCREEN_WIDTH, SCREEN_HEIGHT, BODY_THICKNESS]} />
+        <meshStandardMaterial {...materials.plasticBlack} />
+      </mesh>
+      <mesh position={[0, screenY, BODY_THICKNESS / 2 + 0.002]}>
+        <boxGeometry args={[SCREEN_WIDTH - 0.03, SCREEN_HEIGHT - 0.03, 0.002]} />
+        <meshStandardMaterial {...materials.screenEmissive} />
+      </mesh>
+    </group>
+  )
+}
