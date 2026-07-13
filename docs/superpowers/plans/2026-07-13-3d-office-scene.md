@@ -21,7 +21,7 @@ All package versions above were verified together in a throwaway spike during pl
 - `@react-three/test-renderer` cannot render (a) a component that itself mounts `@react-three/fiber`'s real `<Canvas>` (no `ResizeObserver`/WebGL in jsdom), or (b) a component that loads a real file/network asset via `useTexture`/`useEnvironment`/`useLoader` (`FileLoader` fails to resolve a relative URL with no real `window.location` in jsdom). Any component with either trait must split its asset-loading/Suspense-triggering part from its plain-synchronous part, export both, and test only the synchronous one — the same way `App`/`PlaceholderScene` (Task 1) and `Lighting`/`SceneLights` (Task 6) do. `OfficeMaterialsProvider` (Task 4) and `Office`'s default `LightingComponent` (Task 23) are the only places the real, untested, asset-loading versions are wired in for production.
 - No code comments explaining *what* code does; only the rare comment for a non-obvious *why*.
 - Real-world furniture proportions (in meters) given in each task must be followed exactly so scale reads correctly next to a 2.8m wall and a 0.75m-high desk.
-- Verification the implementer CAN run: `npx tsc --noEmit`, `npx vite build`, `npx vitest run`. Verification the implementer CANNOT run: looking at the rendered output (no screenshot tool available in this environment). Never claim a task "looks right" — only claim it compiles, builds, and passes its tests. Visual review happens later, by the user, via `npm run dev`.
+- Verification the implementer CAN run: `npx tsc --noEmit`, `npx vite build`, `npx vitest run`. Verification the implementer CANNOT run at plan-writing time: looking at the rendered output (no screenshot tool available in this environment). Never claim a task "looks right" — only claim it compiles, builds, and passes its tests. Visual review happens later, by the user, via `npm run dev`. **Update after Task 24, post-hoc:** a real screenshot path turned out to exist — `npx --yes playwright install chromium` (fetches Chromium into a scratch dir; no project dependency needed) plus a small `chromium.launch()` script that navigates the running dev server and calls `page.screenshot()`. This caught two real bugs invisible to `tsc`/`vitest`/`vite build`: a missing full-viewport CSS reset (Task 1 — `<Canvas>` was sizing itself to a ~150px collapsed parent) and a camera-orientation race between `OrthographicCamera` and `CameraControls` (Task 5 — see its updated Step 3). `preserveDrawingBuffer: true` on the `Canvas` `gl` prop (Task 24) is required for any such screenshot to show real content, since WebGL discards its backbuffer right after compositing otherwise. If revisiting this plan, budget for this screenshot loop rather than treating visual review as user-only.
 
 ---
 
@@ -35,6 +35,7 @@ All package versions above were verified together in a throwaway spike during pl
 - Create: `vite.config.ts`
 - Create: `index.html`
 - Create: `.gitignore`
+- Create: `src/index.css`
 - Create: `src/main.tsx`
 - Create: `src/App.tsx`
 - Test: `src/App.test.tsx`
@@ -146,11 +147,29 @@ dist
 .DS_Store
 ```
 
-- [ ] **Step 6: Create `src/main.tsx`**
+- [ ] **Step 6: Create `src/index.css` and `src/main.tsx`**
+
+`@react-three/fiber`'s `<Canvas>` sizes itself to its parent element via `react-use-measure` — with no explicit height anywhere in the document, `html`/`body`/`#root` collapse to their content's intrinsic height (observed in practice: a ~150px sliver), and the canvas silently renders at that tiny size instead of filling the viewport. A full-viewport CSS reset is required before the first pixel is drawn, not just for polish.
+
+```css
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  overflow: hidden;
+}
+```
 
 ```tsx
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import './index.css'
 import { App } from './App'
 
 createRoot(document.getElementById('root')!).render(
@@ -836,8 +855,10 @@ Expected: FAIL — `Cannot find module './IsometricCamera'`.
 
 - [ ] **Step 3: Implement `src/scene/camera/IsometricCamera.tsx`**
 
+Use a callback ref, not `useRef` + one-shot `useEffect`. `OrthographicCamera` and `CameraControls` both race for `state.camera`/`makeDefault` on mount: `CameraControls`' own `useMemo` (which builds its internal `camera-controls` instance) first sees R3F's stock default camera, because `OrthographicCamera`'s `makeDefault` swap happens in a layout effect that hasn't fired yet during that first render. Once it does fire, `CameraControls` re-renders and rebuilds its instance around the *real* camera — but a `useEffect(() => controlsRef.current?.setLookAt(...), [])` has already fired exactly once, against the discarded first instance, and never runs again. The observable symptom (caught via an actual browser screenshot, not a test — `@react-three/test-renderer` can't catch this since it never drives real frames): the camera renders at the right position with an untouched identity quaternion, so nothing is ever framed. A callback ref re-invokes on every instance swap, so it reapplies `setLookAt` to whichever instance is current:
+
 ```tsx
-import { useEffect, useRef } from 'react'
+import { useCallback } from 'react'
 import { OrthographicCamera, CameraControls } from '@react-three/drei'
 import type CameraControlsImpl from 'camera-controls'
 
@@ -847,17 +868,15 @@ const BASE_AZIMUTH = Math.PI / 4
 const AZIMUTH_SWING = 0.45
 
 export function IsometricCamera() {
-  const controlsRef = useRef<CameraControlsImpl>(null)
-
-  useEffect(() => {
-    controlsRef.current?.setLookAt(...CAMERA_POSITION, ...CAMERA_TARGET, false)
+  const attachControls = useCallback((instance: CameraControlsImpl | null) => {
+    instance?.setLookAt(...CAMERA_POSITION, ...CAMERA_TARGET, false)
   }, [])
 
   return (
     <>
       <OrthographicCamera makeDefault position={CAMERA_POSITION} zoom={28} near={0.1} far={100} />
       <CameraControls
-        ref={controlsRef}
+        ref={attachControls}
         makeDefault
         minZoom={18}
         maxZoom={45}
@@ -4440,7 +4459,11 @@ export function App() {
   })
 
   return (
-    <Canvas shadows dpr={[1, 2]} gl={{ antialias: true, toneMapping: ACESFilmicToneMapping }}>
+    <Canvas
+      shadows
+      dpr={[1, 2]}
+      gl={{ antialias: true, toneMapping: ACESFilmicToneMapping, preserveDrawingBuffer: true }}
+    >
       <ExposureControl exposure={exposure} />
       <Office />
       <EffectComposer>
@@ -4452,6 +4475,8 @@ export function App() {
   )
 }
 ```
+
+`preserveDrawingBuffer: true` keeps the WebGL backbuffer intact after each frame instead of letting the browser discard it right after compositing — without it, any screenshot tool that reads the canvas from outside the render loop (Playwright, `canvas.toDataURL()`, etc.) captures a blank/cleared frame even though the scene is rendering correctly. Small, standard cost for a project whose whole point is being looked at and screenshotted.
 
 - [ ] **Step 3: Type-check**
 
@@ -4509,13 +4534,14 @@ All textures and the HDRI are CC0 from Poly Haven — see `public/CREDITS.md`.
 
 ## Known limitation
 
-This was built without a way to visually preview the render during
-development (no screenshot/browser tool in that environment) — geometry was
-authored from real-world furniture measurements and verified structurally
-(build passes, tests pass, no runtime errors), but has not had a human visual
-pass yet. Run `npm run dev` and look at it; if proportions, spacing, or
-lighting need adjustment, that's the expected next step, not a sign
-something was skipped.
+The full `EffectComposer` stack (`N8AO` + `Bloom` + `Vignette` together) renders
+a blank canvas under this project's headless-Chromium/SwiftShader (software
+WebGL) test setup — each effect works individually, only the chained
+combination fails, which points at a software-rasterizer render-target limit
+rather than a code bug. It has not been confirmed on a real GPU-backed
+browser. If `npm run dev` shows a blank canvas for you too, that's a real bug
+to report; if it renders (expected on real hardware), this note is stale and
+can be deleted.
 ```
 
 - [ ] **Step 7: Commit**

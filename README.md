@@ -36,10 +36,11 @@ All textures and the HDRI are CC0 from Poly Haven — see `public/CREDITS.md`.
 
 ## Known limitation
 
-This was built without a way to visually preview the render during
-development (no screenshot/browser tool in that environment) — geometry was
-authored from real-world furniture measurements and verified structurally
-(build passes, tests pass, no runtime errors), but has not had a human visual
-pass yet. Run `npm run dev` and look at it; if proportions, spacing, or
-lighting need adjustment, that's the expected next step, not a sign
-something was skipped.
+The full `EffectComposer` stack (`N8AO` + `Bloom` + `Vignette` together)
+renders a blank canvas under headless-Chromium/SwiftShader (software WebGL)
+screenshot testing — each effect works individually, only the chained
+combination fails, which points at a software-rasterizer render-target limit
+rather than a code bug. It has not been confirmed on a real GPU-backed
+browser. If `npm run dev` shows a blank canvas for you too on a real machine,
+that's a real bug worth reporting; if it renders with the full bloom/AO/
+vignette look (expected), this note is stale and can be deleted.

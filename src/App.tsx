@@ -21,7 +21,7 @@ export function App() {
   })
 
   return (
-    <Canvas shadows dpr={[1, 2]} gl={{ antialias: true, toneMapping: ACESFilmicToneMapping }}>
+    <Canvas shadows dpr={[1, 2]} gl={{ antialias: true, toneMapping: ACESFilmicToneMapping, preserveDrawingBuffer: true }}>
       <ExposureControl exposure={exposure} />
       <Office />
       <EffectComposer>
