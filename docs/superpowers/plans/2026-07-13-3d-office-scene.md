@@ -18,6 +18,7 @@ All package versions above were verified together in a throwaway spike during pl
 - All furniture/room components are function components that accept `position`/`rotation` props (default `[0,0,0]`) so parents fully control placement — never hardcode a piece's world position inside the piece itself.
 - All material access goes through `useMaterials()` (`src/materials/MaterialsContext.tsx`). No component outside `src/materials/` may call `useTexture` or construct a `THREE.Texture` directly.
 - Every component task ships a smoke test using `@react-three/test-renderer`; tests for furniture/room components must wrap the tree in `StubMaterialsProvider` (from `src/materials/StubMaterialsProvider.tsx`) instead of the real (async, network-dependent) `OfficeMaterialsProvider`.
+- `@react-three/test-renderer` cannot render (a) a component that itself mounts `@react-three/fiber`'s real `<Canvas>` (no `ResizeObserver`/WebGL in jsdom), or (b) a component that loads a real file/network asset via `useTexture`/`useEnvironment`/`useLoader` (`FileLoader` fails to resolve a relative URL with no real `window.location` in jsdom). Any component with either trait must split its asset-loading/Suspense-triggering part from its plain-synchronous part, export both, and test only the synchronous one — the same way `App`/`PlaceholderScene` (Task 1) and `Lighting`/`SceneLights` (Task 6) do. `OfficeMaterialsProvider` (Task 4) and `Office`'s default `LightingComponent` (Task 23) are the only places the real, untested, asset-loading versions are wired in for production.
 - No code comments explaining *what* code does; only the rare comment for a non-obvious *why*.
 - Real-world furniture proportions (in meters) given in each task must be followed exactly so scale reads correctly next to a 2.8m wall and a 0.75m-high desk.
 - Verification the implementer CAN run: `npx tsc --noEmit`, `npx vite build`, `npx vitest run`. Verification the implementer CANNOT run: looking at the rendered output (no screenshot tool available in this environment). Never claim a task "looks right" — only claim it compiles, builds, and passes its tests. Visual review happens later, by the user, via `npm run dev`.
@@ -898,28 +899,20 @@ git commit -m "feat: add fixed isometric camera with clamped orbit"
 - Test: `src/scene/lighting/Lighting.test.tsx`
 
 **Interfaces:**
-- Produces: `Lighting` component (no props). Consumed by `Office.tsx` (Task 23). Must be rendered inside a `<Suspense>` boundary by its parent because it loads the HDRI.
+- Produces: `SceneLights` (ambient + key + fill directional lights, no props, no asset loading — the testable part) and `Lighting` (`SceneLights` + the HDRI `Environment`, no props — the production component). `Office.tsx` (Task 23) uses `Lighting` by default and accepts `SceneLights` as its test substitute, mirroring how it substitutes `StubMaterialsProvider` for `OfficeMaterialsProvider`.
 
 - [ ] **Step 1: Write the failing test**
 
 ```tsx
 import { describe, it, expect } from 'vitest'
-import { Suspense } from 'react'
 import ReactThreeTestRenderer from '@react-three/test-renderer'
-import { Lighting } from './Lighting'
+import { SceneLights } from './Lighting'
 
-describe('Lighting', () => {
-  it('mounts a key directional light and a fill light', async () => {
-    const renderer = await ReactThreeTestRenderer.create(
-      <Suspense fallback={null}>
-        <Lighting />
-      </Suspense>,
-    )
-    await renderer.advanceFrames(2, 16)
-    const directional = renderer.scene.findAllByType('DirectionalLight')
-    const ambient = renderer.scene.findAllByType('AmbientLight')
-    expect(directional.length).toBe(1)
-    expect(ambient.length).toBe(1)
+describe('SceneLights', () => {
+  it('mounts an ambient light and 2 directional lights (key + fill)', async () => {
+    const renderer = await ReactThreeTestRenderer.create(<SceneLights />)
+    expect(renderer.scene.findAllByType('DirectionalLight').length).toBe(2)
+    expect(renderer.scene.findAllByType('AmbientLight').length).toBe(1)
   })
 })
 ```
@@ -934,7 +927,7 @@ Expected: FAIL — `Cannot find module './Lighting'`.
 ```tsx
 import { Environment } from '@react-three/drei'
 
-export function Lighting() {
+export function SceneLights() {
   return (
     <>
       <ambientLight intensity={0.35} />
@@ -952,16 +945,26 @@ export function Lighting() {
         shadow-bias={-0.0005}
       />
       <directionalLight position={[10, 8, 12]} intensity={0.3} />
+    </>
+  )
+}
+
+export function Lighting() {
+  return (
+    <>
+      <SceneLights />
       <Environment files="/hdri/studio.hdr" background={false} environmentIntensity={0.6} />
     </>
   )
 }
 ```
 
+`Environment`'s `useEnvironment` call fails outright in the jsdom test environment (`FileLoader` cannot resolve a relative URL without a real `window.location`), so it — and anything that composes it — cannot go through `@react-three/test-renderer`. `SceneLights` carries no such dependency and is fully testable; `Lighting` is only exercised via `tsc`/`vite build`/manual `npm run dev`.
+
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/scene/lighting/Lighting.test.tsx`
-Expected: `Tests  1 passed (1)`. If the HDRI fetch in jsdom's test environment fails or times out, wrap the `Environment` load assertion isn't necessary — the test only asserts the two `directionalLight`/`ambientLight` elements, which mount synchronously before Suspense resolves; if this still fails, replace `await renderer.advanceFrames(2, 16)` with `await ReactThreeTestRenderer.act(async () => {})` and retry.
+Expected: `Tests  1 passed (1)`.
 
 - [ ] **Step 5: Commit**
 
@@ -4302,8 +4305,8 @@ git commit -m "feat: assemble GameRoom and ServerRoom"
 - Test: `src/scene/Office.test.tsx`
 
 **Interfaces:**
-- Consumes: `OfficeMaterialsProvider` (Task 4), `IsometricCamera` (Task 5), `Lighting` (Task 6), `Building` (Task 7), `OpenSpace`/`MeetingRoom`/`FocusRoom`/`ServerRoom`/`CeoOffice`/`Kitchen`/`GameRoom` (Tasks 19–22).
-- Produces: `Office({ MaterialsProvider? })` — `MaterialsProvider` defaults to the real `OfficeMaterialsProvider` and exists solely so tests can substitute `StubMaterialsProvider` (avoiding real network texture loads in the test environment). Consumed by `src/App.tsx` (Task 24).
+- Consumes: `OfficeMaterialsProvider` (Task 4), `IsometricCamera` (Task 5), `Lighting`/`SceneLights` (Task 6), `Building` (Task 7), `OpenSpace`/`MeetingRoom`/`FocusRoom`/`ServerRoom`/`CeoOffice`/`Kitchen`/`GameRoom` (Tasks 19–22).
+- Produces: `Office({ MaterialsProvider?, LightingComponent? })` — both default to the real, asset-loading production components (`OfficeMaterialsProvider`, `Lighting`) and exist solely so tests can substitute the synchronous doubles (`StubMaterialsProvider`, `SceneLights`), avoiding real network texture/HDRI loads in the test environment (see the Global Constraints note on this pattern). Consumed by `src/App.tsx` (Task 24).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -4311,11 +4314,14 @@ git commit -m "feat: assemble GameRoom and ServerRoom"
 import { describe, it, expect } from 'vitest'
 import ReactThreeTestRenderer from '@react-three/test-renderer'
 import { StubMaterialsProvider } from '../materials/StubMaterialsProvider'
+import { SceneLights } from './lighting/Lighting'
 import { Office } from './Office'
 
 describe('Office', () => {
   it('mounts the full building with all 7 rooms and the camera without throwing', async () => {
-    const renderer = await ReactThreeTestRenderer.create(<Office MaterialsProvider={StubMaterialsProvider} />)
+    const renderer = await ReactThreeTestRenderer.create(
+      <Office MaterialsProvider={StubMaterialsProvider} LightingComponent={SceneLights} />,
+    )
     await renderer.advanceFrames(2, 16)
     expect(renderer.scene.findAllByType('Mesh').length).toBeGreaterThan(400)
     expect(renderer.scene.findAllByType('OrthographicCamera').length).toBe(1)
@@ -4347,14 +4353,15 @@ import { GameRoom } from '../rooms/GameRoom'
 
 export interface OfficeProps {
   MaterialsProvider?: ComponentType<{ children: ReactNode }>
+  LightingComponent?: ComponentType
 }
 
-export function Office({ MaterialsProvider = OfficeMaterialsProvider }: OfficeProps) {
+export function Office({ MaterialsProvider = OfficeMaterialsProvider, LightingComponent = Lighting }: OfficeProps) {
   return (
     <Suspense fallback={null}>
       <MaterialsProvider>
         <IsometricCamera />
-        <Lighting />
+        <LightingComponent />
         <Building />
         <OpenSpace />
         <MeetingRoom />
