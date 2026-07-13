@@ -1,11 +1,14 @@
 import { useMaterials } from '../materials/MaterialsContext'
+import { InteractionTrigger } from '../interaction/InteractionTrigger'
+import type { TriggerTarget } from '../interaction/triggerPayload'
 
 export interface CoffeeMachineProps {
   position?: [number, number, number]
   rotation?: [number, number, number]
+  onSelect?: (target: TriggerTarget) => void
 }
 
-export function CoffeeMachine({ position = [0, 0, 0], rotation = [0, 0, 0] }: CoffeeMachineProps) {
+export function CoffeeMachine({ position = [0, 0, 0], rotation = [0, 0, 0], onSelect }: CoffeeMachineProps) {
   const materials = useMaterials()
   return (
     <group position={position} rotation={rotation}>
@@ -29,6 +32,7 @@ export function CoffeeMachine({ position = [0, 0, 0], rotation = [0, 0, 0] }: Co
         <cylinderGeometry args={[0.012, 0.012, 0.12, 8]} />
         <meshStandardMaterial {...materials.plasticBlack} />
       </mesh>
+      <InteractionTrigger position={[0, 0.3, 0.4]} size={[0.5, 0.8, 0.5]} onTrigger={onSelect} />
     </group>
   )
 }
