@@ -161,18 +161,28 @@ createRoot(document.getElementById('root')!).render(
 
 - [ ] **Step 7: Create placeholder `src/App.tsx`**
 
+`@react-three/test-renderer` provides its own mock renderer with no real DOM/WebGL — it cannot render a component that itself mounts `@react-three/fiber`'s real `<Canvas>` (`<Canvas>` measures its container via `ResizeObserver`, which jsdom doesn't implement, and then tries to acquire a real WebGL context, which jsdom also doesn't provide). So scene *content* is kept in a separate component that does not render `<Canvas>`, and only that content component is unit-tested — the same split every later room/furniture component already follows (they never render `<Canvas>` themselves either, since they're meant to be mounted inside one).
+
 ```tsx
 import { Canvas } from '@react-three/fiber'
 
-export function App() {
+export function PlaceholderScene() {
   return (
-    <Canvas camera={{ position: [4, 4, 4] }}>
+    <>
       <ambientLight intensity={0.6} />
       <directionalLight position={[5, 5, 5]} intensity={1} />
       <mesh>
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial color="orange" />
       </mesh>
+    </>
+  )
+}
+
+export function App() {
+  return (
+    <Canvas camera={{ position: [4, 4, 4] }}>
+      <PlaceholderScene />
     </Canvas>
   )
 }
@@ -183,11 +193,11 @@ export function App() {
 ```tsx
 import { describe, it, expect } from 'vitest'
 import ReactThreeTestRenderer from '@react-three/test-renderer'
-import { App } from './App'
+import { PlaceholderScene } from './App'
 
-describe('App', () => {
+describe('PlaceholderScene', () => {
   it('mounts and renders one mesh', async () => {
-    const renderer = await ReactThreeTestRenderer.create(<App />)
+    const renderer = await ReactThreeTestRenderer.create(<PlaceholderScene />)
     const meshes = renderer.scene.findAllByType('Mesh')
     expect(meshes.length).toBe(1)
   })
@@ -4391,7 +4401,7 @@ git commit -m "feat: compose the full Office scene from building, rooms, camera,
 
 - [ ] **Step 1: Delete the placeholder test**
 
-`src/App.test.tsx` asserted the Task 1 placeholder's single orange cube. `App` now renders the full `Office` scene through the real, network-dependent `OfficeMaterialsProvider` (by design — `App` is the production entry point and is not meant to accept a test double the way `Office` does). Testing it with `@react-three/test-renderer` would require real texture/HDRI fetches to resolve inside the jsdom test environment, which is unreliable. `App`'s correctness is instead verified by `npx tsc --noEmit`, `npx vite build`, and manually via `npm run dev` (see Step 5). Delete the file:
+`src/App.test.tsx` asserted the Task 1 placeholder's single orange cube (via the non-`Canvas` `PlaceholderScene` component — see the Task 1 note on why `@react-three/test-renderer` can't render a component that itself mounts `<Canvas>`). `App` no longer has an equivalent extractable scene component to test in isolation: it renders `<Canvas>` directly wrapping `Office`, and `Office` goes through the real, network-dependent `OfficeMaterialsProvider` by default (by design — `App` is the production entry point and is not meant to accept a test double the way `Office` does). Testing it would require real texture/HDRI fetches to resolve inside the jsdom test environment, which is unreliable. `App`'s correctness is instead verified by `npx tsc --noEmit`, `npx vite build`, and manually via `npm run dev` (see Step 5). Delete the file:
 
 ```bash
 rm src/App.test.tsx
