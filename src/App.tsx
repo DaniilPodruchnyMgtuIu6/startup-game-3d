@@ -1,22 +1,34 @@
-import { Canvas } from '@react-three/fiber'
+import { useEffect } from 'react'
+import { Canvas, useThree } from '@react-three/fiber'
+import { EffectComposer, N8AO, Bloom, Vignette } from '@react-three/postprocessing'
+import { ACESFilmicToneMapping } from 'three'
+import { useControls } from 'leva'
+import { Office } from './scene/Office'
 
-export function PlaceholderScene() {
-  return (
-    <>
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[5, 5, 5]} intensity={1} />
-      <mesh>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color="orange" />
-      </mesh>
-    </>
-  )
+function ExposureControl({ exposure }: { exposure: number }) {
+  const gl = useThree((state) => state.gl)
+  useEffect(() => {
+    gl.toneMappingExposure = exposure
+  }, [gl, exposure])
+  return null
 }
 
 export function App() {
+  const { exposure, aoIntensity, bloomIntensity } = useControls('Render', {
+    exposure: { value: 1.1, min: 0.5, max: 2, step: 0.05 },
+    aoIntensity: { value: 2, min: 0, max: 6, step: 0.1 },
+    bloomIntensity: { value: 0.4, min: 0, max: 2, step: 0.05 },
+  })
+
   return (
-    <Canvas camera={{ position: [4, 4, 4] }}>
-      <PlaceholderScene />
+    <Canvas shadows dpr={[1, 2]} gl={{ antialias: true, toneMapping: ACESFilmicToneMapping }}>
+      <ExposureControl exposure={exposure} />
+      <Office />
+      <EffectComposer>
+        <N8AO aoRadius={1.2} intensity={aoIntensity} />
+        <Bloom intensity={bloomIntensity} luminanceThreshold={0.9} mipmapBlur />
+        <Vignette eskil={false} offset={0.1} darkness={0.6} />
+      </EffectComposer>
     </Canvas>
   )
 }
