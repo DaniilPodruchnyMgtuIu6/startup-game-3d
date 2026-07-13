@@ -5,6 +5,7 @@ import { CoffeeTable } from '../furniture/CoffeeTable'
 import { Signage } from '../furniture/Signage'
 import { TrackLight } from '../furniture/TrackLight'
 import { AcousticCeilingPanel } from '../furniture/AcousticCeilingPanel'
+import { useCharacterStore } from '../character/characterStore'
 import { ROOMS, roomCenter } from '../scene/layout'
 
 const CLUSTER_CENTERS: [number, number][] = [
@@ -25,7 +26,12 @@ function WorkstationCluster({ center }: { center: [number, number] }) {
   return (
     <group position={[center[0], 0, center[1]]}>
       {CLUSTER_DESK_OFFSETS.map(([dx, dz], i) => (
-        <Workstation key={i} position={[dx, 0, dz]} chairColor={CHAIR_COLORS[i % CHAIR_COLORS.length]} />
+        <Workstation
+          key={i}
+          position={[dx, 0, dz]}
+          chairColor={CHAIR_COLORS[i % CHAIR_COLORS.length]}
+          onSelect={(target) => useCharacterStore.getState().clickWorkstation(target)}
+        />
       ))}
     </group>
   )

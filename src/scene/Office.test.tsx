@@ -5,9 +5,9 @@ import { SceneLights } from './lighting/Lighting'
 import { Office } from './Office'
 
 describe('Office', () => {
-  it('mounts the full building with all 7 rooms and the camera without throwing', async () => {
+  it('mounts the full building with all 7 rooms, the camera, and the character without throwing', async () => {
     const renderer = await ReactThreeTestRenderer.create(
-      <Office MaterialsProvider={StubMaterialsProvider} LightingComponent={SceneLights} />,
+      <Office MaterialsProvider={StubMaterialsProvider} LightingComponent={SceneLights} CharacterComponent={() => null} />,
     )
     await renderer.advanceFrames(2, 16)
     expect(renderer.scene.findAllByType('Mesh').length).toBeGreaterThan(400)

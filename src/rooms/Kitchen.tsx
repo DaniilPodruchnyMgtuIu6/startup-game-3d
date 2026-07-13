@@ -5,6 +5,7 @@ import { CoffeeMachine } from '../furniture/CoffeeMachine'
 import { BarStool } from '../furniture/BarStool'
 import { Fridge } from '../furniture/Fridge'
 import { Plant } from '../furniture/Plant'
+import { useCharacterStore } from '../character/characterStore'
 import { ROOMS, roomCenter, roomSize } from '../scene/layout'
 
 const STOOL_X = [-0.7, 0, 0.7]
@@ -27,7 +28,10 @@ export function Kitchen() {
         doorway={{ offset: width / 2, width: 0.9 }}
       />
       <KitchenIsland position={[0, 0, -0.6]} />
-      <CoffeeMachine position={[0.7, 0.9, -0.6]} />
+      <CoffeeMachine
+        position={[0.7, 0.9, -0.6]}
+        onSelect={(target) => useCharacterStore.getState().clickCoffeeMachine(target)}
+      />
       {STOOL_X.map((x) => (
         <BarStool key={x} position={[x, 0, 0.3]} />
       ))}

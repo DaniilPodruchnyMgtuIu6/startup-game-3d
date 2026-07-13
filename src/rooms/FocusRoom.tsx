@@ -1,12 +1,15 @@
 import { Wall } from '../scene/Wall'
 import { GlassPartitionWithDoor } from '../furniture/GlassPartitionWithDoor'
 import { Workstation } from '../furniture/Workstation'
+import { useCharacterStore } from '../character/characterStore'
+import type { TriggerTarget } from '../interaction/triggerPayload'
 import { ROOMS, roomCenter, roomSize } from '../scene/layout'
 
 export function FocusRoom() {
   const bounds = ROOMS.focusRoom
   const center = roomCenter(bounds)
   const { width, depth } = roomSize(bounds)
+  const onSelect = (target: TriggerTarget) => useCharacterStore.getState().clickWorkstation(target)
 
   return (
     <group position={center}>
@@ -20,8 +23,8 @@ export function FocusRoom() {
         material="paint"
         doorway={{ offset: width / 2, width: 0.9 }}
       />
-      <Workstation position={[-1.5, 0, 0]} chairColor="#5c6b78" />
-      <Workstation position={[1.5, 0, 0]} rotation={[0, Math.PI, 0]} chairColor="#5c6b78" />
+      <Workstation position={[-1.5, 0, 0]} chairColor="#5c6b78" onSelect={onSelect} />
+      <Workstation position={[1.5, 0, 0]} rotation={[0, Math.PI, 0]} chairColor="#5c6b78" onSelect={onSelect} />
     </group>
   )
 }

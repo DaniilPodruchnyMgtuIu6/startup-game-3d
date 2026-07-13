@@ -11,19 +11,27 @@ import { ServerRoom } from '../rooms/ServerRoom'
 import { CeoOffice } from '../rooms/CeoOffice'
 import { Kitchen } from '../rooms/Kitchen'
 import { GameRoom } from '../rooms/GameRoom'
+import { Character } from '../character/Character'
+import { FloorClickCatcher } from '../character/FloorClickCatcher'
 
 export interface OfficeProps {
   MaterialsProvider?: ComponentType<{ children: ReactNode }>
   LightingComponent?: ComponentType
+  CharacterComponent?: ComponentType
 }
 
-export function Office({ MaterialsProvider = OfficeMaterialsProvider, LightingComponent = Lighting }: OfficeProps) {
+export function Office({
+  MaterialsProvider = OfficeMaterialsProvider,
+  LightingComponent = Lighting,
+  CharacterComponent = Character,
+}: OfficeProps) {
   return (
     <Suspense fallback={null}>
       <MaterialsProvider>
         <IsometricCamera />
         <LightingComponent />
         <Building />
+        <FloorClickCatcher />
         <OpenSpace />
         <MeetingRoom />
         <FocusRoom />
@@ -31,6 +39,7 @@ export function Office({ MaterialsProvider = OfficeMaterialsProvider, LightingCo
         <CeoOffice />
         <Kitchen />
         <GameRoom />
+        <CharacterComponent />
       </MaterialsProvider>
     </Suspense>
   )
