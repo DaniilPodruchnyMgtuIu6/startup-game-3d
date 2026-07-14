@@ -1,3 +1,7 @@
+import { useRef } from 'react'
+import type { Group } from 'three'
+import { useObstacle } from '../character/useObstacle'
+
 export interface PlantProps {
   position?: [number, number, number]
   rotation?: [number, number, number]
@@ -18,8 +22,10 @@ const FOLIAGE_CLUSTERS: { position: [number, number, number]; radius: number }[]
 ]
 
 export function Plant({ position = [0, 0, 0], rotation = [0, 0, 0], scale = 1 }: PlantProps) {
+  const group = useRef<Group>(null)
+  useObstacle(group)
   return (
-    <group position={position} rotation={rotation} scale={scale}>
+    <group ref={group} position={position} rotation={rotation} scale={scale}>
       <mesh position={[0, POT_HEIGHT / 2, 0]} castShadow receiveShadow>
         <cylinderGeometry args={[POT_TOP_RADIUS, POT_BOTTOM_RADIUS, POT_HEIGHT, 16]} />
         <meshStandardMaterial color="#5c4a3a" roughness={0.85} metalness={0} />

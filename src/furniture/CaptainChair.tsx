@@ -1,8 +1,14 @@
+import { useRef } from 'react'
+import type { Group } from 'three'
 import { useMaterials } from '../materials/MaterialsContext'
+import { useObstacle } from '../character/useObstacle'
+import { InteractionTrigger } from '../interaction/InteractionTrigger'
+import type { TriggerTarget } from '../interaction/triggerPayload'
 
 export interface CaptainChairProps {
   position?: [number, number, number]
   rotation?: [number, number, number]
+  onSelect?: (target: TriggerTarget) => void
 }
 
 const SEAT_SIZE = 0.5
@@ -10,13 +16,15 @@ const SEAT_HEIGHT = 0.48
 const BACK_HEIGHT = 0.75
 const BASE_ARM_LENGTH = 0.3
 
-export function CaptainChair({ position = [0, 0, 0], rotation = [0, 0, 0] }: CaptainChairProps) {
+export function CaptainChair({ position = [0, 0, 0], rotation = [0, 0, 0], onSelect }: CaptainChairProps) {
   const materials = useMaterials()
+  const group = useRef<Group>(null)
+  useObstacle(group)
   const cylinderHeight = SEAT_HEIGHT - 0.1
   const baseArmAngles = [0, 1, 2, 3, 4].map((i) => (i * Math.PI * 2) / 5)
 
   return (
-    <group position={position} rotation={rotation}>
+    <group ref={group} position={position} rotation={rotation}>
       <mesh position={[0, SEAT_HEIGHT, 0]} castShadow receiveShadow>
         <boxGeometry args={[SEAT_SIZE, 0.08, SEAT_SIZE]} />
         <meshStandardMaterial {...materials.leather} />
@@ -45,6 +53,7 @@ export function CaptainChair({ position = [0, 0, 0], rotation = [0, 0, 0] }: Cap
           </mesh>
         </group>
       ))}
+      <InteractionTrigger position={[0, 0.6, 0]} size={[0.6, 1.2, 0.6]} onTrigger={onSelect} kind={onSelect ? 'seat' : undefined} />
     </group>
   )
 }

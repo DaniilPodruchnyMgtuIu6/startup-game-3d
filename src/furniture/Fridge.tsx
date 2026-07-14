@@ -1,4 +1,7 @@
+import { useRef } from 'react'
+import type { Group } from 'three'
 import { useMaterials } from '../materials/MaterialsContext'
+import { useObstacle } from '../character/useObstacle'
 
 export interface FridgeProps {
   position?: [number, number, number]
@@ -11,8 +14,10 @@ const HEIGHT = 1.8
 
 export function Fridge({ position = [0, 0, 0], rotation = [0, 0, 0] }: FridgeProps) {
   const materials = useMaterials()
+  const group = useRef<Group>(null)
+  useObstacle(group)
   return (
-    <group position={position} rotation={rotation}>
+    <group ref={group} position={position} rotation={rotation}>
       <mesh position={[0, HEIGHT / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[WIDTH, HEIGHT, DEPTH]} />
         <meshStandardMaterial {...materials.metalChrome} />

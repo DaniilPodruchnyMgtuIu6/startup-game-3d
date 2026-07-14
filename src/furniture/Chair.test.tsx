@@ -12,4 +12,13 @@ describe('Chair', () => {
     )
     expect(renderer.scene.findAllByType('Mesh').length).toBe(13)
   })
+
+  it('adds a clickable trigger when onSelect is provided', async () => {
+    const renderer = await ReactThreeTestRenderer.create(
+      <StubMaterialsProvider>
+        <Chair position={[0, 0, 0]} color="#c0392b" onSelect={() => {}} />
+      </StubMaterialsProvider>,
+    )
+    expect(renderer.scene.findAllByType('Mesh').length).toBe(14)
+  })
 })

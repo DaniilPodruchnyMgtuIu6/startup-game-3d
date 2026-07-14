@@ -32,7 +32,16 @@ export function CoffeeMachine({ position = [0, 0, 0], rotation = [0, 0, 0], onSe
         <cylinderGeometry args={[0.012, 0.012, 0.12, 8]} />
         <meshStandardMaterial {...materials.plasticBlack} />
       </mesh>
-      <InteractionTrigger position={[0, 0.3, 0.4]} size={[0.5, 0.8, 0.5]} onTrigger={onSelect} />
+      {/* Stand point sits in front of the counter, in the gap between two bar
+          stools (local -0.35 ~ world x 9.35), so the walk-up approach doesn't
+          clip a stool. The hitbox is widened so the machine itself stays easy
+          to click. */}
+      <InteractionTrigger
+        position={[-0.35, 0.3, 0.65]}
+        size={[1.2, 0.8, 0.5]}
+        onTrigger={onSelect}
+        kind={onSelect ? 'coffee' : undefined}
+      />
     </group>
   )
 }

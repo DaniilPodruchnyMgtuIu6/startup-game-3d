@@ -22,11 +22,18 @@ export function Workstation({
     <group position={position} rotation={rotation}>
       <Desk />
       <Chair position={[0, 0, -0.55]} color={chairColor} />
-      <Monitor position={[0, 0.75, 0.2]} rotation={[0, Math.PI, 0]} />
-      <Keyboard position={[0, 0.76, -0.1]} />
-      <Mouse position={[0.28, 0.765, -0.1]} />
-      <Mug position={[-0.25, 0.75, -0.15]} />
-      <InteractionTrigger position={[0, 0.3, -0.55]} size={[0.6, 0.6, 0.6]} onTrigger={onSelect} />
+      <Monitor position={[0, 0.7, 0.2]} rotation={[0, Math.PI, 0]} />
+      {/* Keyboard/mouse pulled closer to the chair (and down to the lowered
+          desktop) to sit under the seated character's hands during typing. */}
+      <Keyboard position={[0, 0.71, -0.05]} />
+      <Mouse position={[-0.28, 0.715, -0.05]} />
+      <Mug position={[0.28, 0.7, -0.05]} />
+      <InteractionTrigger
+        position={[0, 0.3, -0.55]}
+        size={[0.6, 0.6, 0.6]}
+        onTrigger={onSelect}
+        kind={onSelect ? 'workstation' : undefined}
+      />
     </group>
   )
 }

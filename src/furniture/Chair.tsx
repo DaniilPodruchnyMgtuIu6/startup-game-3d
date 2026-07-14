@@ -1,9 +1,15 @@
+import { useRef } from 'react'
+import type { Group } from 'three'
 import { useMaterials } from '../materials/MaterialsContext'
+import { useObstacle } from '../character/useObstacle'
+import { InteractionTrigger } from '../interaction/InteractionTrigger'
+import type { TriggerTarget } from '../interaction/triggerPayload'
 
 export interface ChairProps {
   position?: [number, number, number]
   rotation?: [number, number, number]
   color?: string
+  onSelect?: (target: TriggerTarget) => void
 }
 
 const SEAT_SIZE = 0.46
@@ -13,14 +19,16 @@ const BACK_HEIGHT = 0.5
 const BACK_THICKNESS = 0.06
 const BASE_ARM_LENGTH = 0.28
 
-export function Chair({ position = [0, 0, 0], rotation = [0, 0, 0], color = '#3b3f46' }: ChairProps) {
+export function Chair({ position = [0, 0, 0], rotation = [0, 0, 0], color = '#3b3f46', onSelect }: ChairProps) {
   const materials = useMaterials()
+  const group = useRef<Group>(null)
+  useObstacle(group)
   const fabric = materials.chairFabric(color)
   const cylinderHeight = SEAT_HEIGHT - 0.1
   const baseArmAngles = [0, 1, 2, 3, 4].map((i) => (i * Math.PI * 2) / 5)
 
   return (
-    <group position={position} rotation={rotation}>
+    <group ref={group} position={position} rotation={rotation}>
       <mesh position={[0, SEAT_HEIGHT, 0]} castShadow receiveShadow>
         <boxGeometry args={[SEAT_SIZE, SEAT_THICKNESS, SEAT_SIZE]} />
         <meshStandardMaterial {...fabric} />
@@ -45,6 +53,7 @@ export function Chair({ position = [0, 0, 0], rotation = [0, 0, 0], color = '#3b
           </mesh>
         </group>
       ))}
+      <InteractionTrigger position={[0, 0.5, 0]} size={[0.55, 1.0, 0.55]} onTrigger={onSelect} kind={onSelect ? 'seat' : undefined} />
     </group>
   )
 }

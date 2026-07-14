@@ -1,4 +1,7 @@
+import { useRef } from 'react'
+import type { Group } from 'three'
 import { useMaterials } from '../materials/MaterialsContext'
+import { useObstacle } from '../character/useObstacle'
 
 export interface BarStoolProps {
   position?: [number, number, number]
@@ -10,8 +13,10 @@ const SEAT_RADIUS = 0.16
 
 export function BarStool({ position = [0, 0, 0], rotation = [0, 0, 0] }: BarStoolProps) {
   const materials = useMaterials()
+  const group = useRef<Group>(null)
+  useObstacle(group)
   return (
-    <group position={position} rotation={rotation}>
+    <group ref={group} position={position} rotation={rotation}>
       <mesh position={[0, SEAT_HEIGHT, 0]} castShadow receiveShadow>
         <cylinderGeometry args={[SEAT_RADIUS, SEAT_RADIUS, 0.05, 20]} />
         <meshStandardMaterial {...materials.plasticBlack} />

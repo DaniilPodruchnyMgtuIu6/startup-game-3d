@@ -1,4 +1,7 @@
+import { useRef } from 'react'
+import type { Group } from 'three'
 import { useMaterials } from '../materials/MaterialsContext'
+import { useObstacle } from '../character/useObstacle'
 
 export interface KitchenIslandProps {
   position?: [number, number, number]
@@ -12,10 +15,12 @@ const TOP_THICKNESS = 0.04
 
 export function KitchenIsland({ position = [0, 0, 0], rotation = [0, 0, 0] }: KitchenIslandProps) {
   const materials = useMaterials()
+  const group = useRef<Group>(null)
+  useObstacle(group)
   const doorWidth = WIDTH / 3 - 0.03
 
   return (
-    <group position={position} rotation={rotation}>
+    <group ref={group} position={position} rotation={rotation}>
       <mesh position={[0, HEIGHT - TOP_THICKNESS / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[WIDTH, TOP_THICKNESS, DEPTH]} />
         <meshStandardMaterial {...materials.metalChrome} />

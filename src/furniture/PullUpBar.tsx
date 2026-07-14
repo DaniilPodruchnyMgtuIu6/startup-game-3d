@@ -1,4 +1,7 @@
+import { useRef } from 'react'
+import type { Group } from 'three'
 import { useMaterials } from '../materials/MaterialsContext'
+import { useObstacle } from '../character/useObstacle'
 
 export interface PullUpBarProps {
   position?: [number, number, number]
@@ -12,10 +15,12 @@ const POST_RADIUS = 0.035
 
 export function PullUpBar({ position = [0, 0, 0], rotation = [0, 0, 0] }: PullUpBarProps) {
   const materials = useMaterials()
+  const group = useRef<Group>(null)
+  useObstacle(group)
   const postX = WIDTH / 2
 
   return (
-    <group position={position} rotation={rotation}>
+    <group ref={group} position={position} rotation={rotation}>
       {[-1, 1].map((side) => (
         <mesh key={side} position={[side * postX, HEIGHT / 2, 0]} castShadow>
           <cylinderGeometry args={[POST_RADIUS, POST_RADIUS, HEIGHT, 12]} />

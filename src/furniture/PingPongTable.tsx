@@ -1,4 +1,7 @@
+import { useRef } from 'react'
+import type { Group } from 'three'
 import { useMaterials } from '../materials/MaterialsContext'
+import { useObstacle } from '../character/useObstacle'
 
 export interface PingPongTableProps {
   position?: [number, number, number]
@@ -13,12 +16,14 @@ const NET_HEIGHT = 0.15
 
 export function PingPongTable({ position = [0, 0, 0], rotation = [0, 0, 0] }: PingPongTableProps) {
   const materials = useMaterials()
+  const group = useRef<Group>(null)
+  useObstacle(group)
   const legHeight = HEIGHT - TOP_THICKNESS
   const legX = LENGTH / 2 - 0.1
   const legZ = WIDTH / 2 - 0.1
 
   return (
-    <group position={position} rotation={rotation}>
+    <group ref={group} position={position} rotation={rotation}>
       <mesh position={[0, HEIGHT - TOP_THICKNESS / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[LENGTH, TOP_THICKNESS, WIDTH]} />
         <meshStandardMaterial color="#1d5f8a" roughness={0.5} metalness={0} />

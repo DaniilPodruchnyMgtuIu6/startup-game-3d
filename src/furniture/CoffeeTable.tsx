@@ -1,4 +1,7 @@
+import { useRef } from 'react'
+import type { Group } from 'three'
 import { useMaterials } from '../materials/MaterialsContext'
+import { useObstacle } from '../character/useObstacle'
 
 export interface CoffeeTableProps {
   position?: [number, number, number]
@@ -12,12 +15,14 @@ const TOP_THICKNESS = 0.03
 
 export function CoffeeTable({ position = [0, 0, 0], rotation = [0, 0, 0] }: CoffeeTableProps) {
   const materials = useMaterials()
+  const group = useRef<Group>(null)
+  useObstacle(group)
   const legHeight = HEIGHT - TOP_THICKNESS
   const legX = WIDTH / 2 - 0.06
   const legZ = DEPTH / 2 - 0.06
 
   return (
-    <group position={position} rotation={rotation}>
+    <group ref={group} position={position} rotation={rotation}>
       <mesh position={[0, HEIGHT - TOP_THICKNESS / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[WIDTH, TOP_THICKNESS, DEPTH]} />
         <meshStandardMaterial {...materials.woodDesktop} />

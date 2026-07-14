@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest'
 import ReactThreeTestRenderer from '@react-three/test-renderer'
 import { StubMaterialsProvider } from '../materials/StubMaterialsProvider'
-import { GlassDoor } from './GlassDoor'
+import { ServerRoomDoor } from './ServerRoomDoor'
 
-describe('GlassDoor', () => {
-  it('renders glass + 4 frame members + handle (6 meshes)', async () => {
+describe('ServerRoomDoor', () => {
+  it('renders frame (2 jambs + header), keypad and LED (5 meshes)', async () => {
     const renderer = await ReactThreeTestRenderer.create(
       <StubMaterialsProvider>
-        <GlassDoor />
+        <ServerRoomDoor />
       </StubMaterialsProvider>,
     )
-    expect(renderer.scene.findAllByType('Mesh').length).toBe(6)
+    expect(renderer.scene.findAllByType('Mesh').length).toBe(5)
   })
 })

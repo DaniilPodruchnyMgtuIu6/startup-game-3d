@@ -1,4 +1,7 @@
+import { useRef } from 'react'
+import type { Group } from 'three'
 import { useMaterials } from '../materials/MaterialsContext'
+import { useObstacle } from '../character/useObstacle'
 
 export interface CeoDeskProps {
   position?: [number, number, number]
@@ -12,12 +15,14 @@ const TOP_THICKNESS = 0.05
 
 export function CeoDesk({ position = [0, 0, 0], rotation = [0, 0, 0] }: CeoDeskProps) {
   const materials = useMaterials()
+  const group = useRef<Group>(null)
+  useObstacle(group)
   const pedestalWidth = 0.5
   const pedestalHeight = HEIGHT - TOP_THICKNESS
   const pedestalX = WIDTH / 2 - pedestalWidth / 2 - 0.05
 
   return (
-    <group position={position} rotation={rotation}>
+    <group ref={group} position={position} rotation={rotation}>
       <mesh position={[0, HEIGHT - TOP_THICKNESS / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[WIDTH, TOP_THICKNESS, DEPTH]} />
         <meshStandardMaterial color="#3a2a20" roughness={0.4} metalness={0} />

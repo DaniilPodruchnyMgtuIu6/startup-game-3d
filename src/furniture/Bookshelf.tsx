@@ -1,4 +1,7 @@
+import { useRef } from 'react'
+import type { Group } from 'three'
 import { useMaterials } from '../materials/MaterialsContext'
+import { useObstacle } from '../character/useObstacle'
 
 export interface BookshelfProps {
   position?: [number, number, number]
@@ -35,10 +38,12 @@ function booksFor(shelfIndex: number): Book[] {
 
 export function Bookshelf({ position = [0, 0, 0], rotation = [0, 0, 0] }: BookshelfProps) {
   const materials = useMaterials()
+  const group = useRef<Group>(null)
+  useObstacle(group)
   const sideX = WIDTH / 2 - BOARD_THICKNESS / 2
 
   return (
-    <group position={position} rotation={rotation}>
+    <group ref={group} position={position} rotation={rotation}>
       <mesh position={[-sideX, HEIGHT / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[BOARD_THICKNESS, HEIGHT, DEPTH]} />
         <meshStandardMaterial {...materials.woodDesktop} />
