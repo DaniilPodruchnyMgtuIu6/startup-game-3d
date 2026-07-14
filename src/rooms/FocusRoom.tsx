@@ -14,15 +14,7 @@ export function FocusRoom() {
   return (
     <group position={center}>
       <GlassPartitionWithDoor axis="z" length={depth} position={[width / 2, 0, 0]} />
-      <Wall
-        axis="x"
-        length={width}
-        center={[0, 1.4, depth / 2]}
-        height={2.8}
-        thickness={0.2}
-        material="paint"
-        doorway={{ offset: width / 2, width: 0.9 }}
-      />
+      <Wall axis="x" length={width} center={[0, 1.4, depth / 2]} height={2.8} thickness={0.2} material="paint" />
       <Workstation position={[-1.5, 0, 0]} chairColor="#5c6b78" onSelect={onSelect} />
       <Workstation position={[1.5, 0, 0]} rotation={[0, Math.PI, 0]} chairColor="#5c6b78" onSelect={onSelect} />
     </group>

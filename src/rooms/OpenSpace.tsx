@@ -2,7 +2,6 @@ import { Workstation } from '../furniture/Workstation'
 import { Plant } from '../furniture/Plant'
 import { Sofa } from '../furniture/Sofa'
 import { CoffeeTable } from '../furniture/CoffeeTable'
-import { Signage } from '../furniture/Signage'
 import { TrackLight } from '../furniture/TrackLight'
 import { AcousticCeilingPanel } from '../furniture/AcousticCeilingPanel'
 import { useCharacterStore } from '../character/characterStore'
@@ -38,11 +37,10 @@ function WorkstationCluster({ center }: { center: [number, number] }) {
 }
 
 const PLANT_POSITIONS: [number, number][] = [
-  [-5.4, -6.5],
-  [5.4, -6.5],
-  [-5.4, 6.5],
-  [5.4, 6.5],
-  [0, -7],
+  [-5.4, -7.2],
+  [5.4, -7.2],
+  [-5.4, 7.2],
+  [5.4, 7.2],
 ]
 
 export function OpenSpace() {
@@ -52,12 +50,15 @@ export function OpenSpace() {
       {CLUSTER_CENTERS.map((c, i) => (
         <WorkstationCluster key={i} center={c} />
       ))}
-      <Sofa position={[-1, 0, 0]} rotation={[0, Math.PI / 2, 0]} />
+      <Sofa
+        position={[-1, 0, 0]}
+        rotation={[0, Math.PI / 2, 0]}
+        onSelect={(target) => useCharacterStore.getState().clickSofa(target)}
+      />
       <CoffeeTable position={[0.1, 0, 0]} rotation={[0, Math.PI / 2, 0]} />
       {PLANT_POSITIONS.map(([x, z], i) => (
         <Plant key={i} position={[x, 0, z]} />
       ))}
-      <Signage position={[2, 0.9, 7.8]} rotation={[0, Math.PI, 0]} />
       <TrackLight position={[-3, 2.7, -4]} withSpot />
       <TrackLight position={[3, 2.7, -4]} />
       <TrackLight position={[-3, 2.7, 4]} />

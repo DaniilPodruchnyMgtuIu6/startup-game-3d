@@ -4,7 +4,7 @@ import { StubMaterialsProvider } from '../materials/StubMaterialsProvider'
 import { CeoOffice } from './CeoOffice'
 
 describe('CeoOffice', () => {
-  it('renders the glazed entrance, desk, chair, skyline, bookshelf, and visitor seating', async () => {
+  it('renders the glazed entrance, desk, chair, bookshelf, and visitor seating', async () => {
     const renderer = await ReactThreeTestRenderer.create(
       <StubMaterialsProvider>
         <CeoOffice />

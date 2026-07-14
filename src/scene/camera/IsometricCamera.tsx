@@ -1,11 +1,19 @@
 import { useCallback } from 'react'
 import { OrthographicCamera, CameraControls } from '@react-three/drei'
+import { Box3, Vector3 } from 'three'
 import type CameraControlsImpl from 'camera-controls'
+import { BUILDING } from '../layout'
 
 const CAMERA_POSITION: [number, number, number] = [22, 26, 22]
 const CAMERA_TARGET: [number, number, number] = [0, 0.8, 0]
-const BASE_AZIMUTH = Math.PI / 4
-const AZIMUTH_SWING = 0.45
+const PAN_PADDING = 3
+
+// Keeps orbiting free of the building's footprint - the target can pan
+// anywhere inside, but not drift off into empty space while orbiting.
+const PAN_BOUNDARY = new Box3(
+  new Vector3(BUILDING.minX - PAN_PADDING, 0, BUILDING.minZ - PAN_PADDING),
+  new Vector3(BUILDING.maxX + PAN_PADDING, BUILDING.wallHeight, BUILDING.maxZ + PAN_PADDING),
+)
 
 export function IsometricCamera() {
   // A callback ref (not useEffect + useRef) because CameraControls' internal
@@ -15,22 +23,22 @@ export function IsometricCamera() {
   // instance and leave the real one at its identity rotation.
   const attachControls = useCallback((instance: CameraControlsImpl | null) => {
     instance?.setLookAt(...CAMERA_POSITION, ...CAMERA_TARGET, false)
+    instance?.setBoundary(PAN_BOUNDARY)
   }, [])
 
   return (
     <>
-      <OrthographicCamera makeDefault position={CAMERA_POSITION} zoom={28} near={0.1} far={100} />
+      <OrthographicCamera makeDefault position={CAMERA_POSITION} zoom={28} near={0.1} far={150} />
       <CameraControls
         ref={attachControls}
         makeDefault
-        minZoom={18}
-        maxZoom={45}
-        minPolarAngle={0.75}
-        maxPolarAngle={1.05}
-        minAzimuthAngle={BASE_AZIMUTH - AZIMUTH_SWING}
-        maxAzimuthAngle={BASE_AZIMUTH + AZIMUTH_SWING}
-        minDistance={25}
-        maxDistance={60}
+        minZoom={12}
+        maxZoom={70}
+        minPolarAngle={0.3}
+        maxPolarAngle={1.4}
+        minDistance={14}
+        maxDistance={75}
+        boundaryFriction={0.9}
       />
     </>
   )

@@ -18,15 +18,7 @@ export function Kitchen() {
   return (
     <group position={center}>
       <GlassPartitionWithDoor axis="z" length={depth} position={[-width / 2, 0, 0]} />
-      <Wall
-        axis="x"
-        length={width}
-        center={[0, 1.4, depth / 2]}
-        height={2.8}
-        thickness={0.2}
-        material="paint"
-        doorway={{ offset: width / 2, width: 0.9 }}
-      />
+      <Wall axis="x" length={width} center={[0, 1.4, depth / 2]} height={2.8} thickness={0.2} material="paint" />
       <KitchenIsland position={[0, 0, -0.6]} />
       <CoffeeMachine
         position={[0.7, 0.9, -0.6]}

@@ -66,7 +66,9 @@ export function Wall({ axis, length, center, height, thickness, material, doorwa
         <meshStandardMaterial {...matProps} />
       </mesh>
       <mesh position={lintelCenter} castShadow receiveShadow>
-        <boxGeometry args={size(doorway.width)} />
+        <boxGeometry
+          args={axis === 'x' ? [doorway.width, lintelHeight, thickness] : [thickness, lintelHeight, doorway.width]}
+        />
         <meshStandardMaterial {...matProps} />
       </mesh>
     </group>
