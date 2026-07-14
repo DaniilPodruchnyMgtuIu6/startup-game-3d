@@ -12,18 +12,24 @@ import { CeoOffice } from '../rooms/CeoOffice'
 import { Kitchen } from '../rooms/Kitchen'
 import { GameRoom } from '../rooms/GameRoom'
 import { Character } from '../character/Character'
+import { Npcs } from '../character/Npcs'
 import { FloorClickCatcher } from '../character/FloorClickCatcher'
+import { MeetPmController } from '../game/MeetPmController'
 
 export interface OfficeProps {
   MaterialsProvider?: ComponentType<{ children: ReactNode }>
   LightingComponent?: ComponentType
   CharacterComponent?: ComponentType
+  NpcsComponent?: ComponentType
+  StoryComponent?: ComponentType
 }
 
 export function Office({
   MaterialsProvider = OfficeMaterialsProvider,
   LightingComponent = Lighting,
   CharacterComponent = Character,
+  NpcsComponent = Npcs,
+  StoryComponent = MeetPmController,
 }: OfficeProps) {
   return (
     <Suspense fallback={null}>
@@ -40,6 +46,8 @@ export function Office({
         <Kitchen />
         <GameRoom />
         <CharacterComponent />
+        <NpcsComponent />
+        <StoryComponent />
       </MaterialsProvider>
     </Suspense>
   )

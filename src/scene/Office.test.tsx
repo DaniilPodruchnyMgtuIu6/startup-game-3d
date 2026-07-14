@@ -7,7 +7,13 @@ import { Office } from './Office'
 describe('Office', () => {
   it('mounts the full building with all 7 rooms, the camera, and the character without throwing', async () => {
     const renderer = await ReactThreeTestRenderer.create(
-      <Office MaterialsProvider={StubMaterialsProvider} LightingComponent={SceneLights} CharacterComponent={() => null} />,
+      <Office
+        MaterialsProvider={StubMaterialsProvider}
+        LightingComponent={SceneLights}
+        CharacterComponent={() => null}
+        NpcsComponent={() => null}
+        StoryComponent={() => null}
+      />,
     )
     await renderer.advanceFrames(2, 16)
     expect(renderer.scene.findAllByType('Mesh').length).toBeGreaterThan(400)
