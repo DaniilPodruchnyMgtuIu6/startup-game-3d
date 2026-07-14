@@ -3,6 +3,7 @@ import type { ThreeEvent } from '@react-three/fiber'
 import type { Mesh } from 'three'
 import { computeTriggerPayload, type TriggerTarget } from './triggerPayload'
 import { registerInteraction, type InteractionKind } from './interactionRegistry'
+import { attachHoverOutline } from './hoverOutline'
 
 export interface InteractionTriggerProps {
   position?: [number, number, number]
@@ -20,6 +21,7 @@ export function InteractionTrigger({
   kind,
 }: InteractionTriggerProps) {
   const mesh = useRef<Mesh>(null)
+  const removeOutline = useRef<(() => void) | null>(null)
 
   const handleClick = useCallback(
     (event: ThreeEvent<MouseEvent>) => {
@@ -35,6 +37,11 @@ export function InteractionTrigger({
     return registerInteraction(kind, computeTriggerPayload(mesh.current))
   }, [kind])
 
+  // drop the hover highlight if the trigger unmounts mid-hover
+  useEffect(() => {
+    return () => removeOutline.current?.()
+  }, [])
+
   if (!onTrigger && !kind) return null
 
   return (
@@ -44,9 +51,15 @@ export function InteractionTrigger({
       onClick={handleClick}
       onPointerOver={() => {
         document.body.style.cursor = 'pointer'
+        // highlight the furniture piece this trigger belongs to
+        if (!removeOutline.current && mesh.current?.parent) {
+          removeOutline.current = attachHoverOutline(mesh.current.parent)
+        }
       }}
       onPointerOut={() => {
         document.body.style.cursor = 'auto'
+        removeOutline.current?.()
+        removeOutline.current = null
       }}
     >
       <boxGeometry args={size} />

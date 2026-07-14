@@ -1,5 +1,8 @@
+import { useEffect, useRef } from 'react'
 import type { ThreeEvent } from '@react-three/fiber'
+import type { Group } from 'three'
 import { useMaterials } from '../materials/MaterialsContext'
+import { attachHoverOutline } from '../interaction/hoverOutline'
 
 export interface WhiteboardProps {
   position?: [number, number, number]
@@ -13,6 +16,11 @@ const MARKER_COLORS = ['#1a1a1a', '#c0392b', '#2166c9']
 
 export function Whiteboard({ position = [0, 0, 0], rotation = [0, 0, 0], onSelect }: WhiteboardProps) {
   const materials = useMaterials()
+  const group = useRef<Group>(null)
+  const removeOutline = useRef<(() => void) | null>(null)
+  useEffect(() => {
+    return () => removeOutline.current?.()
+  }, [])
   const handleClick = onSelect
     ? (event: ThreeEvent<MouseEvent>) => {
         event.stopPropagation()
@@ -21,11 +29,29 @@ export function Whiteboard({ position = [0, 0, 0], rotation = [0, 0, 0], onSelec
     : undefined
   return (
     <group
+      ref={group}
       position={position}
       rotation={rotation}
       onClick={handleClick}
-      onPointerOver={onSelect ? () => (document.body.style.cursor = 'pointer') : undefined}
-      onPointerOut={onSelect ? () => (document.body.style.cursor = 'auto') : undefined}
+      onPointerOver={
+        onSelect
+          ? () => {
+              document.body.style.cursor = 'pointer'
+              if (!removeOutline.current && group.current) {
+                removeOutline.current = attachHoverOutline(group.current)
+              }
+            }
+          : undefined
+      }
+      onPointerOut={
+        onSelect
+          ? () => {
+              document.body.style.cursor = 'auto'
+              removeOutline.current?.()
+              removeOutline.current = null
+            }
+          : undefined
+      }
     >
       <mesh castShadow>
         <boxGeometry args={[WIDTH, HEIGHT, 0.02]} />
