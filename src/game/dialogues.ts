@@ -4,10 +4,10 @@ import type { DialogueLine } from './gameStore'
 // The PM's scripted introduction - the first conversation of the game.
 export function pmIntroDialogue(playerName: string): DialogueLine[] {
   const persona = femalePm.persona!
-  const asPm = { speaker: persona.name, speakerRole: persona.role }
+  const asPm = { speaker: persona.name, speakerRole: persona.role, portrait: femalePm.portrait }
   return [
     { ...asPm, text: `${playerName}, наконец-то! Я уже боялась, что нам вообще никого не назначат.` },
-    { ...asPm, text: 'Анна Соколова, продакт-менеджер. Формально — единственный оставшийся человек в отделе.' },
+    { ...asPm, text: 'Соня Соколова, продакт-менеджер. Формально — единственный оставшийся человек в отделе.' },
     {
       ...asPm,
       text: 'Скажу честно: до релиза далеко. Процессы в хаосе, бэклог разросся, а прошлый руководитель просто перестал приходить.',

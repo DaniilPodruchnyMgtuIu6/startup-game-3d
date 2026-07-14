@@ -13,14 +13,17 @@ export function DialoguePanel() {
 
   return (
     <div className="dialogue-panel">
-      <div className="dialogue-speaker">
-        {line.speaker}
-        {line.speakerRole ? <span className="dialogue-role"> · {line.speakerRole}</span> : null}
+      {line.portrait ? <img className="portrait dialogue-portrait" src={line.portrait} alt={line.speaker} /> : null}
+      <div className="dialogue-body">
+        <div className="dialogue-speaker">
+          {line.speaker}
+          {line.speakerRole ? <span className="dialogue-role"> · {line.speakerRole}</span> : null}
+        </div>
+        <p className="dialogue-text">{line.text}</p>
+        <button className="primary" onClick={advance}>
+          {isLast ? 'За работу' : 'Далее'}
+        </button>
       </div>
-      <p className="dialogue-text">{line.text}</p>
-      <button className="primary" onClick={advance}>
-        {isLast ? 'За работу' : 'Далее'}
-      </button>
     </div>
   )
 }

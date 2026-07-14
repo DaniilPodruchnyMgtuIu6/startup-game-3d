@@ -53,7 +53,10 @@ export function IntroOverlay() {
           </>
         ) : (
           <>
-            <h2>{STORY_STEPS[step].title}</h2>
+            <div className="intro-header">
+              <img className="portrait intro-portrait" src="/portraits/board.svg" alt="Совет директоров" />
+              <h2>{STORY_STEPS[step].title}</h2>
+            </div>
             <p>{STORY_STEPS[step].text}</p>
             <button className="primary" onClick={() => setStep(step + 1)}>
               Далее

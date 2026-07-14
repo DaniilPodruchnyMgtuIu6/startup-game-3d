@@ -12,8 +12,8 @@ function fakeStorage(initial: Record<string, string> = {}) {
 }
 
 const LINES: DialogueLine[] = [
-  { speaker: 'Анна Соколова', speakerRole: 'Product Manager', text: 'Первая' },
-  { speaker: 'Анна Соколова', speakerRole: 'Product Manager', text: 'Вторая' },
+  { speaker: 'Соня Соколова', speakerRole: 'Product Manager', text: 'Первая' },
+  { speaker: 'Соня Соколова', speakerRole: 'Product Manager', text: 'Вторая' },
 ]
 
 describe('loadProgress', () => {

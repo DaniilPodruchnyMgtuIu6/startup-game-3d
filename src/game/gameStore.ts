@@ -5,6 +5,8 @@ export type GamePhase = 'intro' | 'meetPm' | 'free'
 export interface DialogueLine {
   speaker: string
   speakerRole?: string
+  // Drawn portrait of the speaker shown beside the line.
+  portrait?: string
   text: string
 }
 

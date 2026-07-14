@@ -129,6 +129,44 @@ button.primary:hover {
   box-shadow: 0 16px 60px rgba(0, 0, 0, 0.45);
   z-index: 90;
   animation: card-in 0.25s ease-out;
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.dialogue-body {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Drawn speaker portraits (DiceBear Lorelei, CC0) */
+.portrait {
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #3d5069, #26313f);
+  border: 2px solid rgba(79, 143, 240, 0.55);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.dialogue-portrait {
+  width: 76px;
+  height: 76px;
+}
+
+.intro-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.intro-portrait {
+  width: 64px;
+  height: 64px;
+}
+
+.intro-header h2 {
+  margin: 0;
 }
 
 .dialogue-speaker {

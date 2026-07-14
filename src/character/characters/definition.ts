@@ -39,6 +39,8 @@ export interface CharacterDefinition {
   id: string
   displayName: string
   model: CharacterModelConfig
+  // Drawn portrait shown next to this character's dialogue lines.
+  portrait?: string
   persona?: Persona
   // Present => the character lives autonomously in the office as an NPC.
   npc?: NpcSettings

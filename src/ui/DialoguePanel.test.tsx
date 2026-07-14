@@ -6,8 +6,8 @@ import { useGameStore, type DialogueLine } from '../game/gameStore'
 afterEach(cleanup)
 
 const LINES: DialogueLine[] = [
-  { speaker: 'Анна Соколова', speakerRole: 'Product Manager', text: 'Первая реплика' },
-  { speaker: 'Анна Соколова', speakerRole: 'Product Manager', text: 'Последняя реплика' },
+  { speaker: 'Соня Соколова', speakerRole: 'Product Manager', text: 'Первая реплика' },
+  { speaker: 'Соня Соколова', speakerRole: 'Product Manager', text: 'Последняя реплика' },
 ]
 
 beforeEach(() => {
@@ -17,7 +17,7 @@ beforeEach(() => {
 describe('DialoguePanel', () => {
   it('shows the speaker, role and current line', () => {
     render(<DialoguePanel />)
-    expect(screen.getByText('Анна Соколова')).toBeTruthy()
+    expect(screen.getByText('Соня Соколова')).toBeTruthy()
     expect(screen.getByText(/Product Manager/)).toBeTruthy()
     expect(screen.getByText('Первая реплика')).toBeTruthy()
   })
