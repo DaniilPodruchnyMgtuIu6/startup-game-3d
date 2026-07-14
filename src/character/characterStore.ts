@@ -1,33 +1,86 @@
 import { create } from 'zustand'
 import { nextState, type CharacterState, type CharacterEvent, type Target } from './characterMachine'
+import { nearestWalkable } from './grid'
+import { claimTarget, releaseClaims, isTargetFree } from '../interaction/interactionRegistry'
 import type { Point } from './navigation'
+
+export const PLAYER_ID = 'player'
 
 const SPAWN_POSITION: Point = [2, 0, 6]
 const SPAWN_ROTATION_Y = Math.PI
 
-interface CharacterStore {
+export interface CharacterEntity {
   state: CharacterState
   position: Point
   rotationY: number
-  dispatch: (event: CharacterEvent) => void
-  setTransform: (position: Point, rotationY: number) => void
+}
+
+interface CharactersStore {
+  // Every walking body in the office - the player and all NPCs - lives here
+  // under its own id and shares the same state machine and pathfinding.
+  characters: Record<string, CharacterEntity>
+  spawnCharacter: (id: string, position: Point, rotationY?: number) => void
+  removeCharacter: (id: string) => void
+  dispatchTo: (id: string, event: CharacterEvent) => void
+  setTransform: (id: string, position: Point, rotationY: number) => void
+  // Convenience actions for the player character, wired to scene clicks.
   clickFloor: (point: Point) => void
   clickWorkstation: (target: Target) => void
   clickCoffeeMachine: (target: Target) => void
+  clickSeat: (target: Target) => void
+  clickSofa: (target: Target) => void
 }
 
-export const useCharacterStore = create<CharacterStore>()((set, get) => ({
-  state: { kind: 'idle' },
-  position: SPAWN_POSITION,
-  rotationY: SPAWN_ROTATION_Y,
-  dispatch: (event) =>
-    set((s) => {
-      const state = nextState(s.state, event, s.position)
-      const rotationY = 'target' in state ? state.target.facing : s.rotationY
-      return { state, rotationY }
-    }),
-  setTransform: (position, rotationY) => set({ position, rotationY }),
-  clickFloor: (point) => get().dispatch({ type: 'CLICK_FLOOR', point }),
-  clickWorkstation: (target) => get().dispatch({ type: 'CLICK_WORKSTATION', target }),
-  clickCoffeeMachine: (target) => get().dispatch({ type: 'CLICK_COFFEE_MACHINE', target }),
-}))
+export const useCharacterStore = create<CharactersStore>()((set, get) => {
+  const playerClick = (type: 'CLICK_WORKSTATION' | 'CLICK_COFFEE_MACHINE' | 'CLICK_SEAT' | 'CLICK_SOFA') => {
+    return (target: Target) => {
+      // one seat, one character - clicks on a spot someone else already took
+      // are ignored instead of stacking two characters on it
+      if (!isTargetFree(target, PLAYER_ID)) return
+      claimTarget(PLAYER_ID, target)
+      get().dispatchTo(PLAYER_ID, { type, target })
+    }
+  }
+
+  return {
+    characters: {
+      [PLAYER_ID]: { state: { kind: 'idle' }, position: SPAWN_POSITION, rotationY: SPAWN_ROTATION_Y },
+    },
+    spawnCharacter: (id, position, rotationY = 0) =>
+      set((s) => ({
+        characters: { ...s.characters, [id]: { state: { kind: 'idle' }, position, rotationY } },
+      })),
+    removeCharacter: (id) =>
+      set((s) => {
+        const characters = { ...s.characters }
+        delete characters[id]
+        return { characters }
+      }),
+    dispatchTo: (id, event) =>
+      set((s) => {
+        const entity = s.characters[id]
+        if (!entity) return s
+        const state = nextState(entity.state, event, entity.position, entity.rotationY)
+        const rotationY = 'target' in state ? state.target.facing : entity.rotationY
+        return { characters: { ...s.characters, [id]: { ...entity, state, rotationY } } }
+      }),
+    setTransform: (id, position, rotationY) =>
+      set((s) => {
+        const entity = s.characters[id]
+        if (!entity) return s
+        return { characters: { ...s.characters, [id]: { ...entity, position, rotationY } } }
+      }),
+    // Floor clicks may land on walls or furniture (the click ray projects onto
+    // the floor beneath them) - clamp to the nearest walkable spot so the
+    // character walks up beside the obstacle instead of into it. Walking away
+    // also frees whatever spot the player had claimed.
+    clickFloor: (point) => {
+      releaseClaims(PLAYER_ID)
+      get().dispatchTo(PLAYER_ID, { type: 'CLICK_FLOOR', point: nearestWalkable(point) })
+    },
+    clickWorkstation: playerClick('CLICK_WORKSTATION'),
+    clickCoffeeMachine: playerClick('CLICK_COFFEE_MACHINE'),
+    clickSeat: playerClick('CLICK_SEAT'),
+    clickSofa: playerClick('CLICK_SOFA'),
+  }
+})

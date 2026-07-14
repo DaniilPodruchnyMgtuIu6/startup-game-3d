@@ -1,11 +1,16 @@
-import { buildPath, type Point } from './navigation'
+import { buildPath, type Point, type PathHints } from './navigation'
 
 export interface Target {
   point: Point
   facing: number
 }
 
-type ArrivalGoal = { kind: 'idle' } | { kind: 'sit'; target: Target } | { kind: 'brew'; target: Target }
+type ArrivalGoal =
+  | { kind: 'idle' }
+  | { kind: 'sit'; target: Target }
+  | { kind: 'brew'; target: Target }
+  | { kind: 'sitIdle'; target: Target }
+  | { kind: 'sofaSit'; target: Target }
 
 export type CharacterState =
   | { kind: 'idle' }
@@ -14,23 +19,41 @@ export type CharacterState =
   | { kind: 'working'; target: Target }
   | { kind: 'brewingCoffee'; target: Target }
   | { kind: 'drinkingCoffee'; target: Target }
+  | { kind: 'sittingIdle'; target: Target }
+  | { kind: 'sofaSitting'; target: Target }
 
 export type CharacterEvent =
   | { type: 'CLICK_FLOOR'; point: Point }
   | { type: 'CLICK_WORKSTATION'; target: Target }
   | { type: 'CLICK_COFFEE_MACHINE'; target: Target }
+  | { type: 'CLICK_SEAT'; target: Target }
+  | { type: 'CLICK_SOFA'; target: Target }
   | { type: 'WAYPOINT_REACHED' }
   | { type: 'SETTLE_ELAPSED' }
   | { type: 'BREW_ELAPSED' }
 
-export function nextState(current: CharacterState, event: CharacterEvent, position: Point): CharacterState {
+// While seated the character's rotation IS the seat's facing - reuse it so a
+// character stands up forward off the seat instead of through its backrest.
+const SEATED_KINDS = new Set(['sittingDown', 'working', 'sittingIdle', 'sofaSitting'])
+
+export function nextState(
+  current: CharacterState,
+  event: CharacterEvent,
+  position: Point,
+  rotationY = 0,
+): CharacterState {
+  const exitFacing = SEATED_KINDS.has(current.kind) ? rotationY : undefined
   switch (event.type) {
     case 'CLICK_FLOOR':
-      return startWalking(position, event.point, { kind: 'idle' })
+      return startWalking(position, event.point, { kind: 'idle' }, { exitFacing })
     case 'CLICK_WORKSTATION':
-      return startWalking(position, event.target.point, { kind: 'sit', target: event.target })
+      return startWalking(position, event.target.point, { kind: 'sit', target: event.target }, { exitFacing, entryFacing: event.target.facing })
     case 'CLICK_COFFEE_MACHINE':
-      return startWalking(position, event.target.point, { kind: 'brew', target: event.target })
+      return startWalking(position, event.target.point, { kind: 'brew', target: event.target }, { exitFacing, entryFacing: event.target.facing })
+    case 'CLICK_SEAT':
+      return startWalking(position, event.target.point, { kind: 'sitIdle', target: event.target }, { exitFacing, entryFacing: event.target.facing })
+    case 'CLICK_SOFA':
+      return startWalking(position, event.target.point, { kind: 'sofaSit', target: event.target }, { exitFacing, entryFacing: event.target.facing })
     case 'WAYPOINT_REACHED':
       return advanceWaypoint(current)
     case 'SETTLE_ELAPSED':
@@ -40,8 +63,8 @@ export function nextState(current: CharacterState, event: CharacterEvent, positi
   }
 }
 
-function startWalking(from: Point, to: Point, onArrive: ArrivalGoal): CharacterState {
-  return { kind: 'walking', path: buildPath(from, to), nextIndex: 0, onArrive }
+function startWalking(from: Point, to: Point, onArrive: ArrivalGoal, hints: PathHints): CharacterState {
+  return { kind: 'walking', path: buildPath(from, to, hints), nextIndex: 0, onArrive }
 }
 
 function advanceWaypoint(current: CharacterState): CharacterState {
@@ -59,5 +82,9 @@ function arrive(goal: ArrivalGoal): CharacterState {
       return { kind: 'sittingDown', target: goal.target }
     case 'brew':
       return { kind: 'brewingCoffee', target: goal.target }
+    case 'sitIdle':
+      return { kind: 'sittingIdle', target: goal.target }
+    case 'sofaSit':
+      return { kind: 'sofaSitting', target: goal.target }
   }
 }
