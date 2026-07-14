@@ -6,6 +6,7 @@ import { useControls } from 'leva'
 import { Office } from './scene/Office'
 import { SceneBackground } from './scene/SceneBackground'
 import { IntroOverlay } from './ui/IntroOverlay'
+import { DialoguePanel } from './ui/DialoguePanel'
 
 function ExposureControl({ exposure }: { exposure: number }) {
   const gl = useThree((state) => state.gl)
@@ -39,6 +40,7 @@ export function App() {
         </EffectComposer>
       </Canvas>
       <IntroOverlay />
+      <DialoguePanel />
     </>
   )
 }
