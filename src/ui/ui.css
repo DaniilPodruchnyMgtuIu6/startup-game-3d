@@ -1,0 +1,172 @@
+/* Game UI layer: intro overlay, dialogue panel, NPC indicator. */
+.overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 15, 22, 0.55);
+  backdrop-filter: blur(6px);
+  z-index: 100;
+}
+
+.intro-card {
+  width: min(520px, calc(100vw - 48px));
+  background: linear-gradient(160deg, #232f3e, #1a2430);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 32px 36px 24px;
+  color: #e8edf4;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  animation: card-in 0.35s ease-out;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.intro-card h2 {
+  margin: 0 0 12px;
+  font: 600 22px/1.3 system-ui, sans-serif;
+}
+
+.intro-card p {
+  margin: 0 0 20px;
+  font: 400 15px/1.65 system-ui, sans-serif;
+  color: #b9c4d1;
+}
+
+.intro-card input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  font: 400 15px system-ui, sans-serif;
+  color: #e8edf4;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  outline: none;
+}
+
+.intro-card input:focus {
+  border-color: #4f8ff0;
+}
+
+button.primary {
+  padding: 11px 22px;
+  font: 600 14px system-ui, sans-serif;
+  color: #fff;
+  background: #3573dd;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+button.primary:hover {
+  background: #4f8ff0;
+}
+
+.intro-card .hint {
+  margin-top: 16px;
+  font-size: 13px;
+  color: #7f8ea0;
+}
+
+.dots {
+  display: flex;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.dot.active {
+  background: #4f8ff0;
+}
+
+.shake {
+  animation: shake 0.35s;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-8px);
+  }
+  75% {
+    transform: translateX(8px);
+  }
+}
+
+.dialogue-panel {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  width: min(680px, calc(100vw - 48px));
+  background: linear-gradient(160deg, #232f3e, #1a2430);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 18px 22px;
+  color: #e8edf4;
+  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.45);
+  z-index: 90;
+  animation: card-in 0.25s ease-out;
+}
+
+.dialogue-speaker {
+  font: 600 14px system-ui, sans-serif;
+  color: #4f8ff0;
+  margin-bottom: 6px;
+}
+
+.dialogue-role {
+  color: #7f8ea0;
+  font-weight: 400;
+}
+
+.dialogue-text {
+  margin: 0 0 14px;
+  font: 400 15px/1.6 system-ui, sans-serif;
+}
+
+.npc-indicator {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: #3573dd;
+  color: #fff;
+  font-size: 19px;
+  line-height: 40px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  animation: indicator-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes indicator-pulse {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.08);
+  }
+}

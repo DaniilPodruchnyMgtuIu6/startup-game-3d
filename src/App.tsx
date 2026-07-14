@@ -5,6 +5,7 @@ import { ACESFilmicToneMapping } from 'three'
 import { useControls } from 'leva'
 import { Office } from './scene/Office'
 import { SceneBackground } from './scene/SceneBackground'
+import { IntroOverlay } from './ui/IntroOverlay'
 
 function ExposureControl({ exposure }: { exposure: number }) {
   const gl = useThree((state) => state.gl)
@@ -22,15 +23,22 @@ export function App() {
   })
 
   return (
-    <Canvas shadows dpr={[1, 2]} gl={{ antialias: true, toneMapping: ACESFilmicToneMapping, preserveDrawingBuffer: true }}>
-      <ExposureControl exposure={exposure} />
-      <SceneBackground />
-      <Office />
-      <EffectComposer>
-        <N8AO aoRadius={1.2} intensity={aoIntensity} />
-        <Bloom intensity={bloomIntensity} luminanceThreshold={0.9} mipmapBlur />
-        <Vignette eskil={false} offset={0.1} darkness={0.6} />
-      </EffectComposer>
-    </Canvas>
+    <>
+      <Canvas
+        shadows
+        dpr={[1, 2]}
+        gl={{ antialias: true, toneMapping: ACESFilmicToneMapping, preserveDrawingBuffer: true }}
+      >
+        <ExposureControl exposure={exposure} />
+        <SceneBackground />
+        <Office />
+        <EffectComposer>
+          <N8AO aoRadius={1.2} intensity={aoIntensity} />
+          <Bloom intensity={bloomIntensity} luminanceThreshold={0.9} mipmapBlur />
+          <Vignette eskil={false} offset={0.1} darkness={0.6} />
+        </EffectComposer>
+      </Canvas>
+      <IntroOverlay />
+    </>
   )
 }
