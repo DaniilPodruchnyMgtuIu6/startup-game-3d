@@ -21,6 +21,7 @@ export type CharacterState =
   | { kind: 'drinkingCoffee'; target: Target }
   | { kind: 'sittingIdle'; target: Target }
   | { kind: 'sofaSitting'; target: Target }
+  | { kind: 'talking' }
 
 export type CharacterEvent =
   | { type: 'CLICK_FLOOR'; point: Point }
@@ -31,6 +32,8 @@ export type CharacterEvent =
   | { type: 'WAYPOINT_REACHED' }
   | { type: 'SETTLE_ELAPSED' }
   | { type: 'BREW_ELAPSED' }
+  | { type: 'TALK_START' }
+  | { type: 'TALK_END' }
 
 // While seated the character's rotation IS the seat's facing - reuse it so a
 // character stands up forward off the seat instead of through its backrest.
@@ -60,6 +63,10 @@ export function nextState(
       return current.kind === 'sittingDown' ? { kind: 'working', target: current.target } : current
     case 'BREW_ELAPSED':
       return current.kind === 'brewingCoffee' ? { kind: 'drinkingCoffee', target: current.target } : current
+    case 'TALK_START':
+      return { kind: 'talking' }
+    case 'TALK_END':
+      return current.kind === 'talking' ? { kind: 'idle' } : current
   }
 }
 

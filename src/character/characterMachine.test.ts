@@ -79,6 +79,14 @@ describe('characterMachine', () => {
     }
   })
 
+  it('TALK_START enters talking from any state; TALK_END returns to idle', () => {
+    const talking = nextState(IDLE, { type: 'TALK_START' }, [0, 0, 0])
+    expect(talking).toEqual({ kind: 'talking' })
+    expect(nextState(talking, { type: 'TALK_END' }, [0, 0, 0])).toEqual({ kind: 'idle' })
+    // TALK_END does not disturb other states
+    expect(nextState(IDLE, { type: 'TALK_END' }, [0, 0, 0])).toEqual(IDLE)
+  })
+
   it('a new click while working interrupts and starts walking to the new target', () => {
     const oldTarget = { point: [1, 0, 1] as [number, number, number], facing: 0 }
     const working: CharacterState = { kind: 'working', target: oldTarget }

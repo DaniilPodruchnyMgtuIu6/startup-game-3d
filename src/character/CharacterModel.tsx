@@ -23,6 +23,7 @@ const CLIP_FOR_STATE: Record<string, ClipName> = {
   drinkingCoffee: 'drink',
   sittingIdle: 'sitIdle',
   sofaSitting: 'sofaSit',
+  talking: 'talk',
 }
 
 // Characters ship different clip subsets - when the preferred clip is missing,
@@ -35,6 +36,7 @@ const CLIP_FALLBACKS: Record<ClipName, ClipName[]> = {
   drink: ['idle'],
   sitIdle: ['sit', 'idle'],
   sofaSit: ['sitIdle', 'idle'],
+  talk: ['idle'],
 }
 
 export function resolveClip(stateKind: string, available: ReadonlySet<string>): ClipName {

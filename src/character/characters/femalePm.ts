@@ -21,6 +21,7 @@ export const femalePm: CharacterDefinition = {
       drink: '/character/female_pm/drink.glb',
       sitIdle: '/character/female_pm/sitIdle.glb',
       sofaSit: '/character/female_pm/sofaSit.glb',
+      talk: '/character/female_pm/talk.glb',
     },
   },
   npc: {

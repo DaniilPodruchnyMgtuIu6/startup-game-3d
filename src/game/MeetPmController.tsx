@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import { useGameStore } from './gameStore'
@@ -27,6 +27,17 @@ function PmMeeting() {
     useCharacterStore.getState().clickFloor(approachPoint(spawn, rotationY))
   }
 
+  // when the conversation ends (phase leaves meetPm and this unmounts),
+  // both participants drop the talking pose
+  useEffect(() => {
+    return () => {
+      if (!opened.current) return
+      const store = useCharacterStore.getState()
+      store.dispatchTo(PLAYER_ID, { type: 'TALK_END' })
+      store.dispatchTo(femalePm.id, { type: 'TALK_END' })
+    }
+  }, [])
+
   useFrame(() => {
     if (opened.current) return
     const characters = useCharacterStore.getState().characters
@@ -35,8 +46,12 @@ function PmMeeting() {
     if (!player || !pm) return
     if (!isWithinMeetDistance(player.position, pm.position)) return
     opened.current = true
-    // she turns to greet the new boss
-    useCharacterStore.getState().setTransform(femalePm.id, pm.position, facingBetween(pm.position, player.position))
+    // face each other and start the talking animations
+    const store = useCharacterStore.getState()
+    store.dispatchTo(PLAYER_ID, { type: 'TALK_START' })
+    store.dispatchTo(femalePm.id, { type: 'TALK_START' })
+    store.setTransform(PLAYER_ID, player.position, facingBetween(player.position, pm.position))
+    store.setTransform(femalePm.id, pm.position, facingBetween(pm.position, player.position))
     const { playerName, startDialogue } = useGameStore.getState()
     startDialogue(pmIntroDialogue(playerName))
   })

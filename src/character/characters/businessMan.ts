@@ -15,6 +15,7 @@ export const businessMan: CharacterDefinition = {
       drink: '/character/business_man/drink.glb',
       sitIdle: '/character/business_man/sitIdle.glb',
       sofaSit: '/character/business_man/sofaSit.glb',
+      talk: '/character/business_man/talk.glb',
     },
   },
 }
