@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
-export type GamePhase = 'intro' | 'meetPm' | 'free'
+// 'fired' is the refusal ending - never persisted, a reload starts over.
+export type GamePhase = 'intro' | 'meetPm' | 'free' | 'fired'
 
 export interface DialogueLine {
   speaker: string
@@ -66,6 +67,8 @@ interface GameStore {
   playerName: string
   activeDialogue: ActiveDialogue | null
   completeIntro: (name: string) => void
+  refuseJob: () => void
+  restartGame: () => void
   startDialogue: (lines: DialogueLine[]) => void
   advanceDialogue: () => void
 }
@@ -81,6 +84,15 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     if (!playerName) return
     set({ playerName, phase: 'meetPm' })
     saveProgress(safeStorage(), { playerName, phase: 'meetPm' })
+  },
+  refuseJob: () => set({ phase: 'fired' }),
+  restartGame: () => {
+    try {
+      safeStorage()?.removeItem(STORAGE_KEY)
+    } catch {
+      // ignore
+    }
+    set({ phase: 'intro', playerName: '', activeDialogue: null })
   },
   startDialogue: (lines) => {
     if (lines.length === 0) return

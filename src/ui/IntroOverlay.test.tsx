@@ -8,35 +8,45 @@ beforeEach(() => {
   useGameStore.setState({ phase: 'intro', playerName: '', activeDialogue: null })
 })
 
+function toChoiceStep() {
+  fireEvent.click(screen.getByText('Далее'))
+  fireEvent.click(screen.getByText('Далее'))
+}
+
 describe('IntroOverlay', () => {
-  it('walks through both story steps to the name step', () => {
+  it('walks the story steps to the accept/refuse choice, then to the name step', () => {
     render(<IntroOverlay />)
-    expect(screen.getByText(/Совет директоров собрал вас/)).toBeTruthy()
-    fireEvent.click(screen.getByText('Далее'))
-    expect(screen.getByText(/Теперь отдел — ваша ответственность/)).toBeTruthy()
-    fireEvent.click(screen.getByText('Далее'))
+    expect(screen.getByText(/Поздравлять вас не с чем/)).toBeTruthy()
+    toChoiceStep()
+    expect(screen.getByText('Берусь за дело')).toBeTruthy()
+    expect(screen.getByText('Отказаться')).toBeTruthy()
+    fireEvent.click(screen.getByText('Берусь за дело'))
     expect(screen.getByText('Как к вам обращаться?')).toBeTruthy()
   })
 
-  it('rejects an empty name and stays in the intro', () => {
+  it('refusing the job fires the player and offers a restart', () => {
     render(<IntroOverlay />)
-    fireEvent.click(screen.getByText('Далее'))
-    fireEvent.click(screen.getByText('Далее'))
-    fireEvent.click(screen.getByText('Приступить'))
+    toChoiceStep()
+    fireEvent.click(screen.getByText('Отказаться'))
+    expect(useGameStore.getState().phase).toBe('fired')
+    expect(screen.getByText('Вы уволены!')).toBeTruthy()
+    fireEvent.click(screen.getByText('Начать заново'))
     expect(useGameStore.getState().phase).toBe('intro')
   })
 
-  it('accepts a name (Enter works) and moves the game to meetPm', () => {
+  it('rejects an empty name and accepts a valid one (Enter works)', () => {
     render(<IntroOverlay />)
-    fireEvent.click(screen.getByText('Далее'))
-    fireEvent.click(screen.getByText('Далее'))
+    toChoiceStep()
+    fireEvent.click(screen.getByText('Берусь за дело'))
+    fireEvent.click(screen.getByText('Приступить'))
+    expect(useGameStore.getState().phase).toBe('intro')
     fireEvent.change(screen.getByPlaceholderText('Ваше имя'), { target: { value: 'Иван' } })
     fireEvent.keyDown(screen.getByPlaceholderText('Ваше имя'), { key: 'Enter' })
     expect(useGameStore.getState().phase).toBe('meetPm')
     expect(useGameStore.getState().playerName).toBe('Иван')
   })
 
-  it('renders nothing outside the intro phase', () => {
+  it('renders nothing in free play', () => {
     useGameStore.setState({ phase: 'free' })
     const { container } = render(<IntroOverlay />)
     expect(container.innerHTML).toBe('')

@@ -6,7 +6,7 @@ import type { CharacterDefinition } from './definition'
 export const femalePm: CharacterDefinition = {
   id: 'npc-female-pm',
   displayName: 'Product Manager',
-  portrait: '/portraits/femalePm.svg',
+  portrait: '/dialogue_pictures/prodact_manager/pm.jpeg',
   persona: {
     name: 'Соня Соколова',
     age: 29,

@@ -3,3 +3,4 @@ dist
 .DS_Store
 character-source
 .claude/
+/dialogue_pictures/

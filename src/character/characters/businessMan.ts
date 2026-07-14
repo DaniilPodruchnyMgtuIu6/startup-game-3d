@@ -5,6 +5,7 @@ import type { CharacterDefinition } from './definition'
 export const businessMan: CharacterDefinition = {
   id: 'player',
   displayName: 'Founder',
+  portrait: '/dialogue_pictures/businessman/businesman.jpeg',
   model: {
     clips: {
       idle: '/character/business_man/idle.glb',

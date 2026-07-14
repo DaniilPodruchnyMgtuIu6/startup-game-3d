@@ -79,6 +79,14 @@ describe('gameStore', () => {
     expect(useGameStore.getState().activeDialogue).toBeNull()
   })
 
+  it('refusing the job fires the player; restart returns to a clean intro', () => {
+    useGameStore.getState().refuseJob()
+    expect(useGameStore.getState().phase).toBe('fired')
+    useGameStore.getState().restartGame()
+    expect(useGameStore.getState().phase).toBe('intro')
+    expect(useGameStore.getState().playerName).toBe('')
+  })
+
   it('finishing the meetPm dialogue unlocks free play', () => {
     useGameStore.setState({ phase: 'meetPm', playerName: 'Иван' })
     useGameStore.getState().startDialogue([LINES[0]])

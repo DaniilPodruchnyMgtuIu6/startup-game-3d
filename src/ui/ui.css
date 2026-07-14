@@ -11,14 +11,59 @@
 }
 
 .intro-card {
-  width: min(520px, calc(100vw - 48px));
+  width: min(720px, calc(100vw - 48px));
+  min-height: 320px;
+  display: flex;
+  overflow: hidden;
   background: linear-gradient(160deg, #232f3e, #1a2430);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
-  padding: 32px 36px 24px;
   color: #e8edf4;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
   animation: card-in 0.35s ease-out;
+}
+
+/* Full-height speaker picture docked to the card's left edge */
+.card-picture {
+  flex-shrink: 0;
+  width: 240px;
+  align-self: stretch;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.card-body {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 32px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-body .dots,
+.card-body .hint {
+  margin-top: auto;
+}
+
+.choice-row {
+  display: flex;
+  gap: 12px;
+}
+
+button.ghost {
+  padding: 11px 22px;
+  font: 600 14px system-ui, sans-serif;
+  color: #e8edf4;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+button.ghost:hover {
+  border-color: #e2604f;
+  color: #ff8a76;
 }
 
 @keyframes card-in {
@@ -120,53 +165,30 @@ button.primary:hover {
   left: 50%;
   bottom: 28px;
   transform: translateX(-50%);
-  width: min(680px, calc(100vw - 48px));
+  width: min(760px, calc(100vw - 48px));
+  min-height: 200px;
+  display: flex;
+  overflow: hidden;
   background: linear-gradient(160deg, #232f3e, #1a2430);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
-  padding: 18px 22px;
   color: #e8edf4;
   box-shadow: 0 16px 60px rgba(0, 0, 0, 0.45);
   z-index: 90;
   animation: card-in 0.25s ease-out;
-  display: flex;
-  gap: 18px;
-  align-items: flex-start;
 }
 
-.dialogue-body {
-  flex: 1;
-  min-width: 0;
+.dialogue-panel .card-picture {
+  width: 190px;
 }
 
-/* Drawn speaker portraits (DiceBear Lorelei, CC0) */
-.portrait {
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #3d5069, #26313f);
-  border: 2px solid rgba(79, 143, 240, 0.55);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+.dialogue-panel .card-body {
+  padding: 20px 24px 18px;
 }
 
-.dialogue-portrait {
-  width: 76px;
-  height: 76px;
-}
-
-.intro-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 14px;
-}
-
-.intro-portrait {
-  width: 64px;
-  height: 64px;
-}
-
-.intro-header h2 {
-  margin: 0;
+.dialogue-panel button.primary {
+  align-self: flex-start;
+  margin-top: auto;
 }
 
 .dialogue-speaker {

@@ -8,13 +8,14 @@ describe('pmIntroDialogue', () => {
     expect(lines[0].text).toContain('Иван')
   })
 
-  it('has five non-empty lines spoken by the PM persona', () => {
+  it('has six non-empty lines with pictures, including one spoken by the player', () => {
     const lines = pmIntroDialogue('Иван')
-    expect(lines.length).toBe(5)
+    expect(lines.length).toBe(6)
     for (const line of lines) {
       expect(line.text.length).toBeGreaterThan(0)
-      expect(line.speaker).toBe(femalePm.persona!.name)
-      expect(line.speakerRole).toBe(femalePm.persona!.role)
+      expect(line.portrait).toBeTruthy()
     }
+    expect(lines[0].speaker).toBe(femalePm.persona!.name)
+    expect(lines.some((line) => line.speaker === 'Иван')).toBe(true)
   })
 })

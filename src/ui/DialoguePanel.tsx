@@ -13,8 +13,8 @@ export function DialoguePanel() {
 
   return (
     <div className="dialogue-panel">
-      {line.portrait ? <img className="portrait dialogue-portrait" src={line.portrait} alt={line.speaker} /> : null}
-      <div className="dialogue-body">
+      {line.portrait ? <img className="card-picture" src={line.portrait} alt={line.speaker} /> : null}
+      <div className="card-body">
         <div className="dialogue-speaker">
           {line.speaker}
           {line.speakerRole ? <span className="dialogue-role"> · {line.speakerRole}</span> : null}
