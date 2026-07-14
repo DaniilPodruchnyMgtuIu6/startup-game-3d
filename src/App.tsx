@@ -4,6 +4,7 @@ import { EffectComposer, N8AO, Bloom, Vignette } from '@react-three/postprocessi
 import { ACESFilmicToneMapping } from 'three'
 import { useControls } from 'leva'
 import { Office } from './scene/Office'
+import { SceneBackground } from './scene/SceneBackground'
 
 function ExposureControl({ exposure }: { exposure: number }) {
   const gl = useThree((state) => state.gl)
@@ -23,6 +24,7 @@ export function App() {
   return (
     <Canvas shadows dpr={[1, 2]} gl={{ antialias: true, toneMapping: ACESFilmicToneMapping, preserveDrawingBuffer: true }}>
       <ExposureControl exposure={exposure} />
+      <SceneBackground />
       <Office />
       <EffectComposer>
         <N8AO aoRadius={1.2} intensity={aoIntensity} />
