@@ -24,6 +24,7 @@ export const STUB_MATERIALS: OfficeMaterials = {
   screenEmissive: procedural.screenEmissive,
   ledGreen: procedural.ledGreen,
   ledAmber: procedural.ledAmber,
+  ledRed: procedural.ledRed,
   chairFabric: procedural.chairFabric,
 }
 

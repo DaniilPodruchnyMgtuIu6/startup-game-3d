@@ -26,5 +26,6 @@ export interface OfficeMaterials {
   screenEmissive: StandardMaterialProps
   ledGreen: StandardMaterialProps
   ledAmber: StandardMaterialProps
+  ledRed: StandardMaterialProps
   chairFabric: (color: string) => StandardMaterialProps
 }

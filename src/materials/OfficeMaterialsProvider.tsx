@@ -62,6 +62,7 @@ export function OfficeMaterialsProvider({ children }: { children: ReactNode }) {
       screenEmissive: procedural.screenEmissive,
       ledGreen: procedural.ledGreen,
       ledAmber: procedural.ledAmber,
+      ledRed: procedural.ledRed,
       chairFabric: procedural.chairFabric,
     }
   }, [wood, concrete, leatherTex, boucleTex])

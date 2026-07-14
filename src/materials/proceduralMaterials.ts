@@ -34,6 +34,12 @@ export const ledAmber: StandardMaterialProps = {
   emissiveIntensity: 3,
   roughness: 0.4,
 }
+export const ledRed: StandardMaterialProps = {
+  color: '#2b0505',
+  emissive: '#ff3b30',
+  emissiveIntensity: 3,
+  roughness: 0.4,
+}
 export function chairFabric(color: string): StandardMaterialProps {
   return { color, roughness: 0.85, metalness: 0 }
 }
