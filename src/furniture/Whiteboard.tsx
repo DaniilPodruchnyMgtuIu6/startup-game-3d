@@ -1,18 +1,32 @@
+import type { ThreeEvent } from '@react-three/fiber'
 import { useMaterials } from '../materials/MaterialsContext'
 
 export interface WhiteboardProps {
   position?: [number, number, number]
   rotation?: [number, number, number]
+  onSelect?: () => void
 }
 
 const WIDTH = 1.5
 const HEIGHT = 1.0
 const MARKER_COLORS = ['#1a1a1a', '#c0392b', '#2166c9']
 
-export function Whiteboard({ position = [0, 0, 0], rotation = [0, 0, 0] }: WhiteboardProps) {
+export function Whiteboard({ position = [0, 0, 0], rotation = [0, 0, 0], onSelect }: WhiteboardProps) {
   const materials = useMaterials()
+  const handleClick = onSelect
+    ? (event: ThreeEvent<MouseEvent>) => {
+        event.stopPropagation()
+        onSelect()
+      }
+    : undefined
   return (
-    <group position={position} rotation={rotation}>
+    <group
+      position={position}
+      rotation={rotation}
+      onClick={handleClick}
+      onPointerOver={onSelect ? () => (document.body.style.cursor = 'pointer') : undefined}
+      onPointerOut={onSelect ? () => (document.body.style.cursor = 'auto') : undefined}
+    >
       <mesh castShadow>
         <boxGeometry args={[WIDTH, HEIGHT, 0.02]} />
         <meshStandardMaterial color="#fbfbf8" roughness={0.3} metalness={0} />

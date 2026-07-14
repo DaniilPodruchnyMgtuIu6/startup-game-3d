@@ -7,6 +7,7 @@ import { Office } from './scene/Office'
 import { SceneBackground } from './scene/SceneBackground'
 import { IntroOverlay } from './ui/IntroOverlay'
 import { DialoguePanel } from './ui/DialoguePanel'
+import { TaskBoard } from './ui/TaskBoard'
 
 function ExposureControl({ exposure }: { exposure: number }) {
   const gl = useThree((state) => state.gl)
@@ -41,6 +42,7 @@ export function App() {
       </Canvas>
       <IntroOverlay />
       <DialoguePanel />
+      <TaskBoard />
     </>
   )
 }

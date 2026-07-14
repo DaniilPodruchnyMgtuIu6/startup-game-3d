@@ -6,6 +6,7 @@ import { TVPanel } from '../furniture/TVPanel'
 import { Whiteboard } from '../furniture/Whiteboard'
 import { TrackLight } from '../furniture/TrackLight'
 import { useCharacterStore } from '../character/characterStore'
+import { useGameStore } from '../game/gameStore'
 import type { TriggerTarget } from '../interaction/triggerPayload'
 import { ROOMS, roomCenter, roomSize } from '../scene/layout'
 
@@ -21,6 +22,8 @@ export function MeetingRoom() {
     <group position={center}>
       <GlassPartitionWithDoor axis="z" length={depth} position={[width / 2, 0, 0]} />
       <Wall axis="x" length={width} center={[0, 1.4, depth / 2]} height={2.8} thickness={0.2} material="paint" />
+      {/* solid white wall along the west (window) side - the TV hangs on it */}
+      <Wall axis="z" length={depth} center={[-width / 2 + 0.25, 1.4, 0]} height={2.8} thickness={0.2} material="paint" />
       <MeetingTable />
       {CHAIR_X.map((x) => (
         <Chair key={`n-${x}`} position={[x, 0, -1.1]} color="#2c3e50" onSelect={onSeat} />
@@ -28,8 +31,12 @@ export function MeetingRoom() {
       {CHAIR_X.map((x) => (
         <Chair key={`s-${x}`} position={[x, 0, 1.1]} rotation={[0, Math.PI, 0]} color="#2c3e50" onSelect={onSeat} />
       ))}
-      <TVPanel position={[0, 1.6, depth / 2 - 0.15]} rotation={[0, Math.PI, 0]} />
-      <Whiteboard position={[-2, 1.4, depth / 2 - 0.15]} rotation={[0, Math.PI, 0]} />
+      <TVPanel position={[-width / 2 + 0.42, 1.6, 0]} rotation={[0, Math.PI / 2, 0]} />
+      <Whiteboard
+        position={[0, 1.4, depth / 2 - 0.15]}
+        rotation={[0, Math.PI, 0]}
+        onSelect={() => useGameStore.getState().openTaskBoard()}
+      />
       <TrackLight position={[0, 2.7, -1]} withSpot />
     </group>
   )

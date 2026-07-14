@@ -66,11 +66,15 @@ interface GameStore {
   phase: GamePhase
   playerName: string
   activeDialogue: ActiveDialogue | null
+  // the meeting room whiteboard with the task reminders
+  taskBoardOpen: boolean
   completeIntro: (name: string) => void
   refuseJob: () => void
   restartGame: () => void
   startDialogue: (lines: DialogueLine[]) => void
   advanceDialogue: () => void
+  openTaskBoard: () => void
+  closeTaskBoard: () => void
 }
 
 const initial = loadProgress(safeStorage(), typeof window === 'undefined' ? '' : window.location.search)
@@ -79,6 +83,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   phase: initial.phase,
   playerName: initial.playerName,
   activeDialogue: null,
+  taskBoardOpen: false,
   completeIntro: (name) => {
     const playerName = name.trim()
     if (!playerName) return
@@ -98,6 +103,8 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     if (lines.length === 0) return
     set({ activeDialogue: { lines, index: 0 } })
   },
+  openTaskBoard: () => set({ taskBoardOpen: true }),
+  closeTaskBoard: () => set({ taskBoardOpen: false }),
   advanceDialogue: () => {
     const dialogue = get().activeDialogue
     if (!dialogue) return
