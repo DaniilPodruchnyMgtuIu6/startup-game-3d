@@ -24,6 +24,7 @@ function freeTargets(kind: Parameters<typeof getInteractions>[0], ownerId: strin
 function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivity) {
   const stateKind = useCharacterStore((s) => s.characters[id]?.state.kind)
   const gamePhase = useGameStore((s) => s.phase)
+  const sceneOwned = useCharacterStore((s) => s.sceneOwned.has(id))
   const planRef = useRef<ActivityPlan | null>(null)
   const rngRef = useRef<(() => number) | null>(null)
   if (!rngRef.current) {
@@ -34,8 +35,9 @@ function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivit
 
   useEffect(() => {
     // story gating: NPCs live their office life only once the game reaches
-    // free play (after the player has met the PM)
-    if (gamePhase !== 'free') return
+    // free play (after the player has met the PM), and pause entirely while
+    // a cutscene has taken direct control of this character
+    if (gamePhase !== 'free' || sceneOwned) return
     if (!stateKind || !SETTLED_STATES.has(stateKind)) return
     const rng = rngRef.current!
     // first decision after spawn comes quickly; afterwards stay durations rule
@@ -76,7 +78,7 @@ function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivit
       cancelled = true
       clearTimeout(timer)
     }
-  }, [stateKind, id, planActivity, gamePhase])
+  }, [stateKind, id, planActivity, gamePhase, sceneOwned])
 }
 
 function Npc({ definition }: { definition: CharacterDefinition }) {
