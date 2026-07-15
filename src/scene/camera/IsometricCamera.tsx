@@ -3,6 +3,7 @@ import { OrthographicCamera, CameraControls } from '@react-three/drei'
 import { Box3, Vector3 } from 'three'
 import type CameraControlsImpl from 'camera-controls'
 import { BUILDING } from '../layout'
+import { registerCameraControls } from './cameraController'
 
 const CAMERA_POSITION: [number, number, number] = [22, 26, 22]
 const CAMERA_TARGET: [number, number, number] = [0, 0.8, 0]
@@ -24,6 +25,7 @@ export function IsometricCamera() {
   const attachControls = useCallback((instance: CameraControlsImpl | null) => {
     instance?.setLookAt(...CAMERA_POSITION, ...CAMERA_TARGET, false)
     instance?.setBoundary(PAN_BOUNDARY)
+    registerCameraControls(instance)
   }, [])
 
   return (
