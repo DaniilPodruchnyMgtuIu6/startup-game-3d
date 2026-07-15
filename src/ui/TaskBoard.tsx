@@ -1,5 +1,4 @@
 import { useGameStore } from '../game/gameStore'
-import { BOARD_TASKS } from '../game/tasks'
 import './ui.css'
 
 // The meeting room whiteboard, up close: a hand-written TODO list of the
@@ -7,6 +6,7 @@ import './ui.css'
 export function TaskBoard() {
   const open = useGameStore((s) => s.taskBoardOpen)
   const close = useGameStore((s) => s.closeTaskBoard)
+  const tasks = useGameStore((s) => s.tasks)
   if (!open) return null
 
   return (
@@ -17,7 +17,7 @@ export function TaskBoard() {
         </button>
         <h2 className="taskboard-title">TODO:</h2>
         <ul className="taskboard-list">
-          {BOARD_TASKS.map((task) => (
+          {tasks.map((task) => (
             <li key={task.id} className={task.done ? 'taskboard-done' : ''}>
               <span className="taskboard-checkbox">{task.done ? '✔' : ''}</span>
               <span>{task.text}</span>

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useGameStore, loadProgress, saveProgress, type DialogueLine } from './gameStore'
+import { BOARD_TASKS } from './tasks'
 
 function fakeStorage(initial: Record<string, string> = {}) {
   const data = new Map(Object.entries(initial))
@@ -16,39 +17,38 @@ const LINES: DialogueLine[] = [
   { speaker: 'Соня Соколова', speakerRole: 'Product Manager', text: 'Вторая' },
 ]
 
+const FRESH = { playerName: '', phase: 'intro' as const, tasks: BOARD_TASKS, reprimands: 0 }
+
 describe('loadProgress', () => {
   it('starts fresh when nothing is saved', () => {
-    expect(loadProgress(fakeStorage(), '')).toEqual({ playerName: '', phase: 'intro' })
+    expect(loadProgress(fakeStorage(), '')).toEqual(FRESH)
   })
 
   it('restores a saved phase and name', () => {
     const storage = fakeStorage({
       'startup-office-progress': JSON.stringify({ playerName: 'Иван', phase: 'free' }),
     })
-    expect(loadProgress(storage, '')).toEqual({ playerName: 'Иван', phase: 'free' })
+    expect(loadProgress(storage, '')).toEqual({ ...FRESH, playerName: 'Иван', phase: 'free' })
   })
 
   it('?intro wipes saved progress', () => {
     const storage = fakeStorage({
       'startup-office-progress': JSON.stringify({ playerName: 'Иван', phase: 'free' }),
     })
-    expect(loadProgress(storage, '?intro')).toEqual({ playerName: '', phase: 'intro' })
+    expect(loadProgress(storage, '?intro')).toEqual(FRESH)
     expect(storage.dump()).toEqual({})
   })
 
   it('ignores corrupted or invalid saved data', () => {
-    expect(loadProgress(fakeStorage({ 'startup-office-progress': '{oops' }), '')).toEqual({
-      playerName: '',
-      phase: 'intro',
-    })
+    expect(loadProgress(fakeStorage({ 'startup-office-progress': '{oops' }), '')).toEqual(FRESH)
     expect(
       loadProgress(fakeStorage({ 'startup-office-progress': JSON.stringify({ phase: 'intro' }) }), ''),
-    ).toEqual({ playerName: '', phase: 'intro' })
+    ).toEqual(FRESH)
   })
 
   it('works without storage (private mode)', () => {
-    expect(loadProgress(null, '')).toEqual({ playerName: '', phase: 'intro' })
-    expect(() => saveProgress(null, { playerName: 'x', phase: 'free' })).not.toThrow()
+    expect(loadProgress(null, '')).toEqual(FRESH)
+    expect(() => saveProgress(null, { playerName: 'x', phase: 'free', tasks: [], reprimands: 0 })).not.toThrow()
   })
 })
 

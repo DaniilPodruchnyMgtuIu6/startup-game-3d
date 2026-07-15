@@ -1,6 +1,6 @@
-// The department's task reminders written on the meeting room whiteboard.
-// Future game mechanics will move completion state into the game store; for
-// now the list is static content.
+// Seed data for the department's task board. gameStore's `tasks` field is
+// what the game and the whiteboard UI actually read and mutate at runtime -
+// this array only seeds its initial value.
 
 export interface BoardTask {
   id: string
