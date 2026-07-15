@@ -1,5 +1,8 @@
 import type { FC } from 'react'
 import type { MinigameKind } from '../serverIncidentsStore'
+import { firewallModule } from './firewall.tsx'
+import { logsModule } from './logs.tsx'
+import { sqliModule } from './sqli.tsx'
 
 // Every mini-game exposes this tiny contract so the overlay shell stays
 // generic. Pure scenario data + evaluation live in a sibling `.ts` file; the
@@ -16,27 +19,8 @@ export interface MinigameModule<S> {
   Component: FC<{ scenario: S; onWin: () => void; onLose: () => void }>
 }
 
-// Populated as each game lands (Tasks 5-7). Temporary stub keeps Task 4
-// runnable end-to-end; replaced by the real modules.
-const STUB: MinigameModule<{ id: string }> = {
-  title: 'Заглушка',
-  pickScenario: () => ({ id: 'stub' }),
-  brief: () => 'Временная заглушка мини-игры.',
-  takeaways: () => ['Заглушка заменяется реальной игрой.'],
-  Component: ({ onWin, onLose }) => (
-    <div className="minigame-stub">
-      <button className="primary" onClick={onWin}>
-        Победа
-      </button>
-      <button className="primary" onClick={onLose}>
-        Проигрыш
-      </button>
-    </div>
-  ),
-}
-
 export const MINIGAME_MODULES: Record<MinigameKind, MinigameModule<any>> = {
-  firewall: STUB,
-  logs: STUB,
-  sqli: STUB,
+  firewall: firewallModule,
+  logs: logsModule,
+  sqli: sqliModule,
 }
