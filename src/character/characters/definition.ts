@@ -1,7 +1,7 @@
 import type { Point } from '../navigation'
 import type { ActivityPlanner } from '../npcBehavior'
 
-export const CLIP_NAMES = ['idle', 'walk', 'sit', 'type', 'drink', 'sitIdle', 'sofaSit', 'talk'] as const
+export const CLIP_NAMES = ['idle', 'walk', 'sit', 'type', 'drink', 'sitIdle', 'sofaSit', 'talk', 'look'] as const
 export type ClipName = (typeof CLIP_NAMES)[number]
 
 export interface CharacterModelConfig {

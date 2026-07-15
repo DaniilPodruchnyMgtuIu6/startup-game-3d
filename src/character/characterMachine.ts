@@ -22,6 +22,7 @@ export type CharacterState =
   | { kind: 'sittingIdle'; target: Target }
   | { kind: 'sofaSitting'; target: Target }
   | { kind: 'talking' }
+  | { kind: 'looking' }
 
 export type CharacterEvent =
   | { type: 'CLICK_FLOOR'; point: Point }
@@ -34,6 +35,8 @@ export type CharacterEvent =
   | { type: 'BREW_ELAPSED' }
   | { type: 'TALK_START' }
   | { type: 'TALK_END' }
+  | { type: 'LOOK_START' }
+  | { type: 'LOOK_END' }
 
 // While seated the character's rotation IS the seat's facing - reuse it so a
 // character stands up forward off the seat instead of through its backrest.
@@ -67,6 +70,10 @@ export function nextState(
       return { kind: 'talking' }
     case 'TALK_END':
       return current.kind === 'talking' ? { kind: 'idle' } : current
+    case 'LOOK_START':
+      return { kind: 'looking' }
+    case 'LOOK_END':
+      return current.kind === 'looking' ? { kind: 'idle' } : current
   }
 }
 
