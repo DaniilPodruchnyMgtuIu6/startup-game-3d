@@ -19,6 +19,13 @@ interface CharactersStore {
   // Every walking body in the office - the player and all NPCs - lives here
   // under its own id and shares the same state machine and pathfinding.
   characters: Record<string, CharacterEntity>
+  // Blocks player-originated clicks while a cutscene is directing the scene.
+  inputLocked: boolean
+  setInputLocked: (locked: boolean) => void
+  // NPC ids a running cutscene has taken direct control of - their own
+  // autonomous brain must not schedule new activities while owned.
+  sceneOwned: Set<string>
+  setSceneOwned: (ids: Set<string>) => void
   spawnCharacter: (id: string, position: Point, rotationY?: number) => void
   removeCharacter: (id: string) => void
   dispatchTo: (id: string, event: CharacterEvent) => void
@@ -34,6 +41,7 @@ interface CharactersStore {
 export const useCharacterStore = create<CharactersStore>()((set, get) => {
   const playerClick = (type: 'CLICK_WORKSTATION' | 'CLICK_COFFEE_MACHINE' | 'CLICK_SEAT' | 'CLICK_SOFA') => {
     return (target: Target) => {
+      if (get().inputLocked) return
       // one seat, one character - clicks on a spot someone else already took
       // are ignored instead of stacking two characters on it
       if (!isTargetFree(target, PLAYER_ID)) return
@@ -46,6 +54,10 @@ export const useCharacterStore = create<CharactersStore>()((set, get) => {
     characters: {
       [PLAYER_ID]: { state: { kind: 'idle' }, position: SPAWN_POSITION, rotationY: SPAWN_ROTATION_Y },
     },
+    inputLocked: false,
+    setInputLocked: (locked) => set({ inputLocked: locked }),
+    sceneOwned: new Set(),
+    setSceneOwned: (ids) => set({ sceneOwned: ids }),
     spawnCharacter: (id, position, rotationY = 0) =>
       set((s) => ({
         characters: { ...s.characters, [id]: { state: { kind: 'idle' }, position, rotationY } },
@@ -75,6 +87,7 @@ export const useCharacterStore = create<CharactersStore>()((set, get) => {
     // character walks up beside the obstacle instead of into it. Walking away
     // also frees whatever spot the player had claimed.
     clickFloor: (point) => {
+      if (get().inputLocked) return
       releaseClaims(PLAYER_ID)
       get().dispatchTo(PLAYER_ID, { type: 'CLICK_FLOOR', point: nearestWalkable(point) })
     },
