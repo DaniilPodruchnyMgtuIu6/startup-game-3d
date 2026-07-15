@@ -15,6 +15,7 @@ import { Character } from '../character/Character'
 import { Npcs } from '../character/Npcs'
 import { FloorClickCatcher } from '../character/FloorClickCatcher'
 import { MeetPmController } from '../game/MeetPmController'
+import { CutsceneRunner } from '../cutscenes/CutsceneRunner'
 
 export interface OfficeProps {
   MaterialsProvider?: ComponentType<{ children: ReactNode }>
@@ -48,6 +49,7 @@ export function Office({
         <CharacterComponent />
         <NpcsComponent />
         <StoryComponent />
+        <CutsceneRunner />
       </MaterialsProvider>
     </Suspense>
   )

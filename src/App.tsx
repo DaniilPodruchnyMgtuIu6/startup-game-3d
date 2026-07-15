@@ -8,6 +8,12 @@ import { SceneBackground } from './scene/SceneBackground'
 import { IntroOverlay } from './ui/IntroOverlay'
 import { DialoguePanel } from './ui/DialoguePanel'
 import { TaskBoard } from './ui/TaskBoard'
+import { useCutsceneStore } from './cutscenes/cutsceneStore'
+
+if (import.meta.env.DEV) {
+  ;(window as unknown as { __startCutscene?: (id: string) => void }).__startCutscene = (id: string) =>
+    useCutsceneStore.getState().startScene(id)
+}
 
 function ExposureControl({ exposure }: { exposure: number }) {
   const gl = useThree((state) => state.gl)
