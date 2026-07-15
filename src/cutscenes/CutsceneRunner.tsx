@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { PlaceholderActorModel } from '../character/PlaceholderActorModel'
+import { CharacterModel } from '../character/CharacterModel'
 import { useCharacterStore } from '../character/characterStore'
 import { enterCutsceneCamera, exitCutsceneCamera } from '../scene/camera/cameraController'
 import { createDirector } from './director'
@@ -45,9 +46,13 @@ export function CutsceneRunner() {
 
   return (
     <>
-      {Object.entries(actors).map(([id, actor]) => (
-        <PlaceholderActorModel key={id} characterId={id} color={actor.color} />
-      ))}
+      {Object.entries(actors).map(([id, actor]) =>
+        actor.kind === 'model' ? (
+          <CharacterModel key={id} characterId={id} config={actor.definition.model} />
+        ) : (
+          <PlaceholderActorModel key={id} characterId={id} color={actor.color} />
+        ),
+      )}
     </>
   )
 }

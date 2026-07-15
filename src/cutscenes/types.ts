@@ -1,5 +1,6 @@
 import type { DialogueLine, ChoiceOption } from '../game/gameStore'
 import type { BoardTask } from '../game/tasks'
+import type { CharacterDefinition } from '../character/characters/definition'
 
 export type Point = [number, number, number]
 
@@ -12,6 +13,9 @@ export interface CutsceneDirector {
   wait(ms: number): Promise<void>
   talk(characterId: string, on: boolean): void
   spawnActor(id: string, at: Point, rotationY?: number, color?: string): void
+  spawnModeledActor(id: string, at: Point, definition: CharacterDefinition, rotationY?: number): void
+  look(characterId: string, on: boolean): void
+  sit(characterId: string, target: { point: Point; facing: number }, kind: 'workstation' | 'seat'): Promise<void>
   despawnActor(id: string): void
   addTask(task: BoardTask): void
 }
