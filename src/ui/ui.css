@@ -207,6 +207,17 @@ button.primary:hover {
   font: 400 15px/1.6 system-ui, sans-serif;
 }
 
+.dialogue-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.dialogue-choices button.primary {
+  margin-top: 0;
+}
+
 /* The whiteboard up close: aluminium frame, marker handwriting */
 .taskboard {
   position: relative;
