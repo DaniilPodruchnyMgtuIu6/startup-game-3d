@@ -6,7 +6,7 @@ import type { TriggerTarget } from './triggerPayload'
 // NPC-visible automatically. Claims prevent two characters from targeting
 // the same seat/machine at once.
 
-export type InteractionKind = 'workstation' | 'coffee' | 'seat' | 'sofa'
+export type InteractionKind = 'workstation' | 'coffee' | 'seat' | 'sofa' | 'server'
 
 export interface RegisteredInteraction {
   kind: InteractionKind

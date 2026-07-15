@@ -4,13 +4,13 @@ import { StubMaterialsProvider } from '../materials/StubMaterialsProvider'
 import { ServerRack } from './ServerRack'
 
 describe('ServerRack', () => {
-  it('renders body + 2 side panels + 8 unit slots + 8 LEDs + 3 patch cables (22 meshes)', async () => {
+  it('renders body + 2 side panels + role plate + 8 unit slots + 8 LEDs + 3 patch cables (23 meshes)', async () => {
     const renderer = await ReactThreeTestRenderer.create(
       <StubMaterialsProvider>
         <ServerRack />
       </StubMaterialsProvider>,
     )
-    expect(renderer.scene.findAllByType('Mesh').length).toBe(22)
+    expect(renderer.scene.findAllByType('Mesh').length).toBe(23)
   })
 
   it('animates LED emissive intensity over time (blinking)', async () => {

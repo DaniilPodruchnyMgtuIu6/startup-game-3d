@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useGLTF, useAnimations } from '@react-three/drei'
 import { Vector3, type Group, type Object3D } from 'three'
-import { useCharacterStore } from './characterStore'
-import { useCharacterTransform } from './useCharacterTransform'
+import { useCharacterStore, PLAYER_ID } from './characterStore'
+import { useCharacterTransform, WALK_SPEED } from './useCharacterTransform'
+import { useServerIncidentsStore, type ServerRole } from '../game/serverIncidentsStore'
 import { buildHeldMug, disposeHeldProp } from './heldProps'
 import type { CharacterModelConfig, ClipName } from './characters/definition'
 
@@ -69,12 +70,16 @@ export function CharacterModel({ characterId, config }: CharacterModelProps) {
 
   useEffect(() => {
     if (!stateKind) return
-    const action = actions[resolveClip(stateKind, availableClips)]
+    const clipName = resolveClip(stateKind, availableClips)
+    const action = actions[clipName]
+    // The walk clip plays at the ratio of actual travel speed to the clip's
+    // own stance pace, so planted feet stay pinned instead of skating.
+    action?.setEffectiveTimeScale(clipName === 'walk' ? WALK_SPEED / config.walkPace : 1)
     action?.reset().fadeIn(0.3).play()
     return () => {
       action?.fadeOut(0.3)
     }
-  }, [stateKind, actions, availableClips])
+  }, [stateKind, actions, availableClips, config.walkPace])
 
   // hand the character a coffee mug while drinking (the Mixamo drink
   // animations raise the LEFT hand to the mouth)
@@ -115,7 +120,19 @@ export function CharacterModel({ characterId, config }: CharacterModelProps) {
     }
   }, [stateKind, characterId])
 
-  useCharacterTransform(characterId, group)
+  // The player reaching a broken rack opens its mini-game overlay; leaving
+  // 'repairing' (walk away or REPAIR_DONE) closes it. NPCs never open overlays.
+  useEffect(() => {
+    if (characterId !== PLAYER_ID || stateKind !== 'repairing') return
+    const state = useCharacterStore.getState().characters[characterId]?.state
+    if (state?.kind !== 'repairing') return
+    useServerIncidentsStore.getState().beginRepair(state.role as ServerRole)
+    return () => {
+      useServerIncidentsStore.getState().closeMinigame()
+    }
+  }, [stateKind, characterId])
+
+  useCharacterTransform(characterId, group, config.walkLift ?? 0)
 
   return (
     <group ref={group}>

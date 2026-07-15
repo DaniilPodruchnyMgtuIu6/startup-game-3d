@@ -11,6 +11,7 @@ type ArrivalGoal =
   | { kind: 'brew'; target: Target }
   | { kind: 'sitIdle'; target: Target }
   | { kind: 'sofaSit'; target: Target }
+  | { kind: 'repair'; target: Target; role: string }
 
 export type CharacterState =
   | { kind: 'idle' }
@@ -21,6 +22,7 @@ export type CharacterState =
   | { kind: 'drinkingCoffee'; target: Target }
   | { kind: 'sittingIdle'; target: Target }
   | { kind: 'sofaSitting'; target: Target }
+  | { kind: 'repairing'; target: Target; role: string }
   | { kind: 'talking' }
   | { kind: 'looking' }
 
@@ -30,6 +32,8 @@ export type CharacterEvent =
   | { type: 'CLICK_COFFEE_MACHINE'; target: Target }
   | { type: 'CLICK_SEAT'; target: Target }
   | { type: 'CLICK_SOFA'; target: Target }
+  | { type: 'CLICK_SERVER'; target: Target; role: string }
+  | { type: 'REPAIR_DONE' }
   | { type: 'WAYPOINT_REACHED' }
   | { type: 'SETTLE_ELAPSED' }
   | { type: 'BREW_ELAPSED' }
@@ -60,6 +64,10 @@ export function nextState(
       return startWalking(position, event.target.point, { kind: 'sitIdle', target: event.target }, { exitFacing, entryFacing: event.target.facing })
     case 'CLICK_SOFA':
       return startWalking(position, event.target.point, { kind: 'sofaSit', target: event.target }, { exitFacing, entryFacing: event.target.facing })
+    case 'CLICK_SERVER':
+      return startWalking(position, event.target.point, { kind: 'repair', target: event.target, role: event.role }, { exitFacing, entryFacing: event.target.facing })
+    case 'REPAIR_DONE':
+      return current.kind === 'repairing' ? { kind: 'idle' } : current
     case 'WAYPOINT_REACHED':
       return advanceWaypoint(current)
     case 'SETTLE_ELAPSED':
@@ -100,5 +108,7 @@ function arrive(goal: ArrivalGoal): CharacterState {
       return { kind: 'sittingIdle', target: goal.target }
     case 'sofaSit':
       return { kind: 'sofaSitting', target: goal.target }
+    case 'repair':
+      return { kind: 'repairing', target: goal.target, role: goal.role }
   }
 }
