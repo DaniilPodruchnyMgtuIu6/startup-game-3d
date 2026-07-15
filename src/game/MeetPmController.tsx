@@ -53,7 +53,7 @@ function PmMeeting() {
     store.setTransform(PLAYER_ID, player.position, facingBetween(player.position, pm.position))
     store.setTransform(femalePm.id, pm.position, facingBetween(pm.position, player.position))
     const { playerName, startDialogue } = useGameStore.getState()
-    startDialogue(pmIntroDialogue(playerName))
+    startDialogue(pmIntroDialogue(playerName), { closingLabel: 'За работу' })
   })
 
   return (

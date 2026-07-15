@@ -24,6 +24,7 @@ export interface OfficeMaterials {
   leather: StandardMaterialProps
   fabricLounge: StandardMaterialProps
   screenEmissive: StandardMaterialProps
+  screenOff: StandardMaterialProps
   ledGreen: StandardMaterialProps
   ledAmber: StandardMaterialProps
   ledRed: StandardMaterialProps

@@ -4,7 +4,7 @@ import type { Group } from 'three'
 import { useCharacterStore } from './characterStore'
 import { stepTowards } from './movement'
 
-const WALK_SPEED = 1.4
+const WALK_SPEED = 2.2
 // The downloaded sit/type clips reach for a lower surface than our desks. Lifting
 // the seated pose closes most of the gap without visibly lifting off the chair.
 const SEATED_LIFT = 0.05

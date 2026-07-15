@@ -5,7 +5,8 @@ import type { CharacterDefinition } from './definition'
 // needs him; never listed in characters/index.ts's CHARACTERS array.
 export const security1: CharacterDefinition = {
   id: 'security-1',
-  displayName: 'Охранник 1',
+  displayName: 'Максим Орлов',
+  portrait: '/dialogue_pictures/security/security_1_without_emotions.png',
   model: {
     clips: {
       idle: '/character/security_1/idle.glb',

@@ -3,6 +3,9 @@ import { useMaterials } from '../materials/MaterialsContext'
 export interface MonitorProps {
   position?: [number, number, number]
   rotation?: [number, number, number]
+  // Whether the screen is lit - off (dark) by default so a monitor nobody
+  // configured as occupied doesn't silently glow.
+  on?: boolean
 }
 
 const SCREEN_WIDTH = 0.6
@@ -11,7 +14,7 @@ const BODY_THICKNESS = 0.025
 const NECK_HEIGHT = 0.16
 const BASE_RADIUS = 0.12
 
-export function Monitor({ position = [0, 0, 0], rotation = [0, 0, 0] }: MonitorProps) {
+export function Monitor({ position = [0, 0, 0], rotation = [0, 0, 0], on = false }: MonitorProps) {
   const materials = useMaterials()
   const baseY = 0.01
   const neckY = baseY + 0.01 + NECK_HEIGHT / 2
@@ -33,7 +36,7 @@ export function Monitor({ position = [0, 0, 0], rotation = [0, 0, 0] }: MonitorP
       </mesh>
       <mesh position={[0, screenY, BODY_THICKNESS / 2 + 0.002]}>
         <boxGeometry args={[SCREEN_WIDTH - 0.03, SCREEN_HEIGHT - 0.03, 0.002]} />
-        <meshStandardMaterial {...materials.screenEmissive} />
+        <meshStandardMaterial {...(on ? materials.screenEmissive : materials.screenOff)} />
       </mesh>
     </group>
   )

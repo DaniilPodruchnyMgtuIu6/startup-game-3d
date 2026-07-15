@@ -42,7 +42,7 @@ export function DialoguePanel() {
         </div>
         <p className="dialogue-text">{line.text}</p>
         <button className="primary" onClick={advance}>
-          {isLast ? 'За работу' : 'Далее'}
+          {isLast ? (dialogue.closingLabel ?? 'Далее') : 'Далее'}
         </button>
       </div>
     </div>

@@ -41,6 +41,7 @@ export function CutsceneRunner() {
         exitCutsceneCamera()
         useCharacterStore.getState().setInputLocked(false)
         useCharacterStore.getState().setSceneOwned(new Set())
+        useCharacterStore.getState().clearUnlockedScreens()
       })
   }, [activeSceneId])
 

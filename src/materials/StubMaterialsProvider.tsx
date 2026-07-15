@@ -22,6 +22,7 @@ export const STUB_MATERIALS: OfficeMaterials = {
   leather: { color: '#5b4230', roughness: 1, metalness: 0 },
   fabricLounge: { color: '#cfc9bd', roughness: 1, metalness: 0 },
   screenEmissive: procedural.screenEmissive,
+  screenOff: procedural.screenOff,
   ledGreen: procedural.ledGreen,
   ledAmber: procedural.ledAmber,
   ledRed: procedural.ledRed,

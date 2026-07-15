@@ -1,5 +1,5 @@
 import { useGLTF } from '@react-three/drei'
-import { PLAYER_ID } from '../character/characterStore'
+import { PLAYER_ID, useCharacterStore } from '../character/characterStore'
 import { femalePm } from '../character/characters/femalePm'
 import { security1 } from '../character/characters/security1'
 import { security2 } from '../character/characters/security2'
@@ -37,13 +37,59 @@ const OFFICE_CAMERA_POSITION: Point = [12.5, 1.6, -6]
 const GUARD1_OFFICE_MARK: Point = [7.2, 0, -6.5]
 const GUARD2_OFFICE_MARK: Point = [8.8, 0, -6.5]
 
-const GUARD1 = { speaker: 'Охранник 1', speakerRole: 'Служба безопасности' }
-const GUARD2 = { speaker: 'Охранник 2', speakerRole: 'Служба безопасности' }
+const AUDIT_ROLE = 'Аудит безопасности'
+const PLAYER_ROLE = 'Руководитель отдела'
+
+// Three expressions per guard, used across the scene as the situation
+// escalates: thinking while they puzzle out what happened at the desk,
+// angry once they're laying out the violation, neutral for the calmer
+// (accept-responsibility) reply so the two branches read differently even
+// through the portrait alone.
+const GUARD1_THINKING = {
+  speaker: security1.displayName,
+  speakerRole: AUDIT_ROLE,
+  portrait: '/dialogue_pictures/security/security_1_thinking.png',
+}
+const GUARD1_ANGRY = {
+  speaker: security1.displayName,
+  speakerRole: AUDIT_ROLE,
+  portrait: '/dialogue_pictures/security/security_1_angry.png',
+}
+const GUARD1_NEUTRAL = {
+  speaker: security1.displayName,
+  speakerRole: AUDIT_ROLE,
+  portrait: '/dialogue_pictures/security/security_1_without_emotions.png',
+}
+const GUARD2_THINKING = {
+  speaker: security2.displayName,
+  speakerRole: AUDIT_ROLE,
+  portrait: '/dialogue_pictures/security/security_2_thinking.png',
+}
+const GUARD2_ANGRY = {
+  speaker: security2.displayName,
+  speakerRole: AUDIT_ROLE,
+  portrait: '/dialogue_pictures/security/angry_security_2.png',
+}
 
 export const securityBreachScene: CutsceneScript = async (director) => {
+  const playerName = useGameStore.getState().playerName
+  const PLAYER_SHOCKED = {
+    speaker: playerName,
+    speakerRole: PLAYER_ROLE,
+    portrait: '/dialogue_pictures/businessman/businessman_shocked.png',
+  }
+  const PLAYER_SAD = {
+    speaker: playerName,
+    speakerRole: PLAYER_ROLE,
+    portrait: '/dialogue_pictures/businessman/businessmen_sad.png',
+  }
+
   await director.camera(PM_DESK_CAMERA_TARGET, { position: PM_DESK_CAMERA_POSITION, durationMs: 1200 })
   await director.sit(femalePm.id, { point: PM_SEAT, facing: 0 }, 'workstation')
   await director.wait(800)
+  // She's leaving without locking - the monitor must stay lit even though
+  // she's no longer sitting there, which is the entire point of the scene.
+  useCharacterStore.getState().markScreenUnlocked(PM_SEAT)
   await director.walk(femalePm.id, PM_AWAY_POINT)
 
   director.spawnModeledActor('guard1', GUARD1_SPAWN, security1)
@@ -54,8 +100,8 @@ export const securityBreachScene: CutsceneScript = async (director) => {
   director.look('guard2', true)
 
   await director.say([
-    { ...GUARD1, text: 'Так, а тут у нас непорядок. Компьютер не заблокирован — ушла и оставила всё как есть.' },
-    { ...GUARD2, text: 'Если это дойдёт до руководства — влетит всему отделу. Идём к начальнику отдела, обсудим.' },
+    { ...GUARD1_THINKING, text: 'Так, а тут у нас непорядок. Компьютер не заблокирован — ушла и оставила всё как есть.' },
+    { ...GUARD2_THINKING, text: 'Если это дойдёт до руководства — влетит всему отделу. Идём к начальнику отдела, обсудим.' },
   ])
 
   director.look('guard1', false)
@@ -73,10 +119,11 @@ export const securityBreachScene: CutsceneScript = async (director) => {
 
   await director.say([
     {
-      ...GUARD1,
+      ...GUARD1_ANGRY,
       text: 'У вас в отделе только что нашли разблокированный компьютер без присмотра. Это прямое нарушение политики безопасности.',
     },
-    { ...GUARD2, text: 'Мы обязаны сообщать о таком наверх. Но для начала хотим услышать вашу версию.' },
+    { ...GUARD2_ANGRY, text: 'Мы обязаны сообщать о таком наверх. Но для начала хотим услышать вашу версию.' },
+    { ...PLAYER_SHOCKED, text: 'Что?! Оставила компьютер разблокированным средь бела дня?' },
   ])
 
   const pick = await director.choice([
@@ -88,21 +135,22 @@ export const securityBreachScene: CutsceneScript = async (director) => {
     useGameStore.getState().addReprimand()
     await director.say([
       {
-        ...GUARD1,
+        ...GUARD1_ANGRY,
         text: 'Понятно. Только перекладывать ответственность на сотрудников — не лучшая черта для руководителя. Это мы тоже отметим.',
       },
     ])
   } else {
     await director.say([
-      { ...GUARD1, text: 'Разумно. По крайней мере, вы не пытаетесь спихнуть вину на подчинённых — уже неплохо.' },
+      { ...GUARD1_NEUTRAL, text: 'Разумно. По крайней мере, вы не пытаетесь спихнуть вину на подчинённых — уже неплохо.' },
     ])
   }
 
   await director.say([
     {
-      ...GUARD2,
+      ...GUARD2_ANGRY,
       text: 'В качестве меры — отдел обязан регулярно проводить курсы по безопасности для сотрудников. Мы это проконтролируем.',
     },
+    { ...PLAYER_SAD, text: 'Ладно... Проведём. Хотя не самая приятная новость под конец дня.' },
   ])
   director.addTask({ id: 'security-training', text: 'Проводить курсы по безопасности (регулярно)', done: false })
 

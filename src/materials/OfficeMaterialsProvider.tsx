@@ -60,6 +60,7 @@ export function OfficeMaterialsProvider({ children }: { children: ReactNode }) {
         metalness: 0,
       },
       screenEmissive: procedural.screenEmissive,
+      screenOff: procedural.screenOff,
       ledGreen: procedural.ledGreen,
       ledAmber: procedural.ledAmber,
       ledRed: procedural.ledRed,

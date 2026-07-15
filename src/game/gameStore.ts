@@ -15,6 +15,11 @@ export interface DialogueLine {
 interface ActiveDialogue {
   lines: DialogueLine[]
   index: number
+  // Label for the button on the last line - defaults to 'Далее' like every
+  // other line. Only the PM's welcome conversation asks for something else
+  // ('За работу'); a scripted scene's dialogue has no reason to say that
+  // mid-scene, so it must be opted into per call, not assumed globally.
+  closingLabel?: string
 }
 
 export interface ChoiceOption {
@@ -89,7 +94,7 @@ interface GameStore {
   completeIntro: (name: string) => void
   refuseJob: () => void
   restartGame: () => void
-  startDialogue: (lines: DialogueLine[]) => void
+  startDialogue: (lines: DialogueLine[], opts?: { closingLabel?: string }) => void
   advanceDialogue: () => void
   presentChoice: (options: ChoiceOption[], onChoose: (id: string) => void) => void
   chooseOption: (id: string) => void
@@ -131,9 +136,9 @@ export const useGameStore = create<GameStore>()((set, get) => ({
       reprimands: 0,
     })
   },
-  startDialogue: (lines) => {
+  startDialogue: (lines, opts) => {
     if (lines.length === 0) return
-    set({ activeDialogue: { lines, index: 0 } })
+    set({ activeDialogue: { lines, index: 0, closingLabel: opts?.closingLabel } })
   },
   presentChoice: (options, onChoose) => set({ activeChoice: { options, onChoose } }),
   chooseOption: (id) => {

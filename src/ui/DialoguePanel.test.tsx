@@ -11,7 +11,11 @@ const LINES: DialogueLine[] = [
 ]
 
 beforeEach(() => {
-  useGameStore.setState({ phase: 'meetPm', playerName: 'Иван', activeDialogue: { lines: LINES, index: 0 } })
+  useGameStore.setState({
+    phase: 'meetPm',
+    playerName: 'Иван',
+    activeDialogue: { lines: LINES, index: 0, closingLabel: 'За работу' },
+  })
 })
 
 describe('DialoguePanel', () => {

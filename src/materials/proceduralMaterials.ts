@@ -22,6 +22,14 @@ export const screenEmissive: StandardMaterialProps = {
   roughness: 0.3,
   metalness: 0.1,
 }
+// A monitor with nobody sitting at it - dark glass, no glow.
+export const screenOff: StandardMaterialProps = {
+  color: '#0a1a2a',
+  emissive: '#000000',
+  emissiveIntensity: 0,
+  roughness: 0.3,
+  metalness: 0.1,
+}
 export const ledGreen: StandardMaterialProps = {
   color: '#062b0d',
   emissive: '#37ff6b',

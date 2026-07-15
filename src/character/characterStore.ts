@@ -26,6 +26,13 @@ interface CharactersStore {
   // autonomous brain must not schedule new activities while owned.
   sceneOwned: Set<string>
   setSceneOwned: (ids: Set<string>) => void
+  // Desks whose monitor must read as "on" regardless of whether anyone is
+  // actually seated there right now - a scripted scene's way of saying "left
+  // unlocked," which is a fact about the screen, not a fact derivable from
+  // who's currently sitting at it.
+  unlockedScreens: Point[]
+  markScreenUnlocked: (point: Point) => void
+  clearUnlockedScreens: () => void
   spawnCharacter: (id: string, position: Point, rotationY?: number) => void
   removeCharacter: (id: string) => void
   dispatchTo: (id: string, event: CharacterEvent) => void
@@ -58,6 +65,9 @@ export const useCharacterStore = create<CharactersStore>()((set, get) => {
     setInputLocked: (locked) => set({ inputLocked: locked }),
     sceneOwned: new Set(),
     setSceneOwned: (ids) => set({ sceneOwned: ids }),
+    unlockedScreens: [],
+    markScreenUnlocked: (point) => set((s) => ({ unlockedScreens: [...s.unlockedScreens, point] })),
+    clearUnlockedScreens: () => set({ unlockedScreens: [] }),
     spawnCharacter: (id, position, rotationY = 0) =>
       set((s) => ({
         characters: { ...s.characters, [id]: { state: { kind: 'idle' }, position, rotationY } },
