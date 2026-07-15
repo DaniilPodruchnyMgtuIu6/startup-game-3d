@@ -27,7 +27,7 @@
 - Modify: `src/character/CharacterModel.tsx:1-16` (imports/consts), `src/character/CharacterModel.tsx:121-138` (the `useFrame` block)
 
 **Interfaces:**
-- Produces: `useCharacterTransform(characterId: string, group: RefObject<Group>): void` — per-frame walk integration + position/rotation application to `group`. Used by Task 2's `PlaceholderActorModel` and by `CharacterModel` itself.
+- Produces: `useCharacterTransform(characterId: string, group: RefObject<Group | null>): void` — per-frame walk integration + position/rotation application to `group`. Used by Task 2's `PlaceholderActorModel` and by `CharacterModel` itself.
 
 This is a pure refactor — behavior must not change. `CharacterModel.tsx` currently does per-frame walking/pose integration inline; the guard boxes (Task 2) need that exact same logic without the skinned-mesh/animation machinery around it, so it's pulled into its own hook first.
 
@@ -49,7 +49,7 @@ const SEATED_LIFT = 0.05
 // Per-frame walking integration and position/rotation application, shared by
 // every rendered body (skinned models and placeholder boxes alike) so they
 // all move through the exact same pathfinding/state machine loop.
-export function useCharacterTransform(characterId: string, group: RefObject<Group>) {
+export function useCharacterTransform(characterId: string, group: RefObject<Group | null>) {
   useFrame((_, delta) => {
     const store = useCharacterStore.getState()
     const entity = store.characters[characterId]

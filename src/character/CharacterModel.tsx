@@ -1,18 +1,13 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
 import { useGLTF, useAnimations } from '@react-three/drei'
 import { Vector3, type Group, type Object3D } from 'three'
 import { useCharacterStore } from './characterStore'
-import { stepTowards } from './movement'
+import { useCharacterTransform } from './useCharacterTransform'
 import { buildHeldMug, disposeHeldProp } from './heldProps'
 import type { CharacterModelConfig, ClipName } from './characters/definition'
 
-const WALK_SPEED = 1.4
 const SIT_SETTLE_MS = 1000
 const BREW_MS = 3500
-// The downloaded sit/type clips reach for a lower surface than our desks. Lifting
-// the seated pose closes most of the gap without visibly lifting off the chair.
-const SEATED_LIFT = 0.05
 
 const CLIP_FOR_STATE: Record<string, ClipName> = {
   idle: 'idle',
@@ -118,24 +113,7 @@ export function CharacterModel({ characterId, config }: CharacterModelProps) {
     }
   }, [stateKind, characterId])
 
-  useFrame((_, delta) => {
-    const store = useCharacterStore.getState()
-    const entity = store.characters[characterId]
-    if (!entity) return
-    if (entity.state.kind === 'walking') {
-      const target = entity.state.path[entity.state.nextIndex]
-      const result = stepTowards(entity.position, target, WALK_SPEED, delta, entity.rotationY)
-      store.setTransform(characterId, result.position, result.rotationY)
-      if (result.reachedTarget) store.dispatchTo(characterId, { type: 'WAYPOINT_REACHED' })
-    }
-    if (group.current) {
-      const seated =
-        entity.state.kind === 'sittingDown' || entity.state.kind === 'working' || entity.state.kind === 'sittingIdle'
-      const [x, y, z] = entity.position
-      group.current.position.set(x, y + (seated ? SEATED_LIFT : 0), z)
-      group.current.rotation.y = entity.rotationY
-    }
-  })
+  useCharacterTransform(characterId, group)
 
   return (
     <group ref={group}>
