@@ -4,7 +4,7 @@ import { CanvasTexture, SRGBColorSpace, type Group, type MeshStandardMaterial } 
 import { useMaterials } from '../materials/MaterialsContext'
 import { useObstacle } from '../character/useObstacle'
 import { ledStatusFor, ledMaterialKeyFor, ledIntensityAt, alarmIntensityAt } from './serverRackLights'
-import { attachHoverOutline } from '../interaction/hoverOutline'
+import { ServerAlertMarker } from './ServerAlertMarker'
 import { InteractionTrigger } from '../interaction/InteractionTrigger'
 import type { TriggerTarget } from '../interaction/triggerPayload'
 import { useServerIncidentsStore, ROLE_BY_SEED, ROLE_LABEL } from '../game/serverIncidentsStore'
@@ -60,14 +60,6 @@ export function ServerRack({ position = [0, 0, 0], rotation = [0, 0, 0], seed = 
     return texture
   }, [role, broken])
   useEffect(() => () => plateTexture?.dispose(), [plateTexture])
-
-  // Persistent white outline while broken (same shell trick as hover),
-  // attached to the rack group and removed on repair.
-  useEffect(() => {
-    if (!broken || !group.current) return
-    const remove = attachHoverOutline(group.current)
-    return remove
-  }, [broken])
 
   useFrame((_, delta) => {
     elapsed.current += delta
@@ -133,6 +125,7 @@ export function ServerRack({ position = [0, 0, 0], rotation = [0, 0, 0], seed = 
           </mesh>
         )
       })}
+      {broken ? <ServerAlertMarker y={HEIGHT + 0.35} /> : null}
       {broken && onRepair ? (
         <InteractionTrigger position={[0, 1.0, DEPTH / 2 + 0.2]} size={[WIDTH, HEIGHT, 0.5]} onTrigger={onRepair} kind="server" />
       ) : null}
