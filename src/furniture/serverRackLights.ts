@@ -47,3 +47,12 @@ export function ledIntensityAt(status: LedStatus, unit: number, timeSeconds: num
     }
   }
 }
+
+// Broken-rack alarm: every unit flashes red together (unlike the normal
+// per-unit phased mix), reading as a hard fault rather than routine activity.
+export function alarmIntensityAt(unit: number, timeSeconds: number): number {
+  const on = Math.sin(timeSeconds * Math.PI * 2 * 2.6) > -0.2
+  // tiny per-unit phase so the row isn't a single flat sheet of light
+  const flicker = Math.sin((timeSeconds + unit * 0.05) * Math.PI * 2 * 9) > 0.7 ? DIM : 1
+  return (on ? BASE_INTENSITY : BASE_INTENSITY * DIM) * flicker
+}

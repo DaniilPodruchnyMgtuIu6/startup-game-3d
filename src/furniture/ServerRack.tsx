@@ -1,15 +1,21 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { Text } from '@react-three/drei'
 import type { Group, MeshStandardMaterial } from 'three'
 import { useMaterials } from '../materials/MaterialsContext'
 import { useObstacle } from '../character/useObstacle'
-import { ledStatusFor, ledMaterialKeyFor, ledIntensityAt } from './serverRackLights'
+import { ledStatusFor, ledMaterialKeyFor, ledIntensityAt, alarmIntensityAt } from './serverRackLights'
+import { attachHoverOutline } from '../interaction/hoverOutline'
+import { InteractionTrigger } from '../interaction/InteractionTrigger'
+import type { TriggerTarget } from '../interaction/triggerPayload'
+import { useServerIncidentsStore, ROLE_BY_SEED, ROLE_LABEL } from '../game/serverIncidentsStore'
 
 export interface ServerRackProps {
   position?: [number, number, number]
   rotation?: [number, number, number]
   // Differentiates the deterministic LED status mix between racks.
   seed?: number
+  onRepair?: (target: TriggerTarget) => void
 }
 
 const WIDTH = 0.6
@@ -21,7 +27,7 @@ const UNIT_GAP = 0.02
 
 const PATCH_CABLE_COLORS = ['#d97b29', '#2166c9', '#d9c22b']
 
-export function ServerRack({ position = [0, 0, 0], rotation = [0, 0, 0], seed = 0 }: ServerRackProps) {
+export function ServerRack({ position = [0, 0, 0], rotation = [0, 0, 0], seed = 0, onRepair }: ServerRackProps) {
   const materials = useMaterials()
   const group = useRef<Group>(null)
   useObstacle(group)
@@ -30,11 +36,25 @@ export function ServerRack({ position = [0, 0, 0], rotation = [0, 0, 0], seed = 
   const stackHeight = UNIT_COUNT * (UNIT_HEIGHT + UNIT_GAP)
   const startY = HEIGHT - 0.15 - stackHeight
 
+  const role = ROLE_BY_SEED[seed] ?? 'backup'
+  const status = useServerIncidentsStore((s) => s.racks[role].status)
+  const broken = status !== 'ok'
+
+  // Persistent white outline while broken (same shell trick as hover),
+  // attached to the rack group and removed on repair.
+  useEffect(() => {
+    if (!broken || !group.current) return
+    const remove = attachHoverOutline(group.current)
+    return remove
+  }, [broken])
+
   useFrame((_, delta) => {
     elapsed.current += delta
     ledMaterials.current.forEach((material, unit) => {
       if (!material) return
-      material.emissiveIntensity = ledIntensityAt(ledStatusFor(seed, unit), unit, elapsed.current)
+      material.emissiveIntensity = broken
+        ? alarmIntensityAt(unit, elapsed.current)
+        : ledIntensityAt(ledStatusFor(seed, unit), unit, elapsed.current)
     })
   })
 
@@ -50,9 +70,23 @@ export function ServerRack({ position = [0, 0, 0], rotation = [0, 0, 0], seed = 
           <meshStandardMaterial {...materials.metalFrame} />
         </mesh>
       ))}
+      {/* role plate on the rack front */}
+      <mesh position={[0, HEIGHT - 0.08, DEPTH / 2 + 0.006]}>
+        <boxGeometry args={[WIDTH - 0.12, 0.1, 0.008]} />
+        <meshStandardMaterial {...materials.metalFrame} />
+      </mesh>
+      <Text
+        position={[0, HEIGHT - 0.08, DEPTH / 2 + 0.012]}
+        fontSize={0.06}
+        color={broken ? '#ff5b5b' : '#9fb4c8'}
+        anchorX="center"
+        anchorY="middle"
+      >
+        {ROLE_LABEL[role]}
+      </Text>
       {Array.from({ length: UNIT_COUNT }, (_, unit) => {
         const y = startY + unit * (UNIT_HEIGHT + UNIT_GAP)
-        const ledKey = ledMaterialKeyFor(ledStatusFor(seed, unit))
+        const ledKey = broken ? 'ledRed' : ledMaterialKeyFor(ledStatusFor(seed, unit))
         return (
           <group key={unit}>
             <mesh position={[0, y, DEPTH / 2 + 0.005]} castShadow>
@@ -83,6 +117,9 @@ export function ServerRack({ position = [0, 0, 0], rotation = [0, 0, 0], seed = 
           </mesh>
         )
       })}
+      {broken && onRepair ? (
+        <InteractionTrigger position={[0, 1.0, DEPTH / 2 + 0.2]} size={[WIDTH, HEIGHT, 0.5]} onTrigger={onRepair} kind="server" />
+      ) : null}
     </group>
   )
 }

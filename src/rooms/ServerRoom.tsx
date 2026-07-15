@@ -41,7 +41,7 @@ export function ServerRoom() {
       />
       <ServerRoomDoor position={[width / 2, 0, 0]} rotation={[0, Math.PI / 2, 0]} />
       {RACK_X.map((x, i) => (
-        <ServerRack key={x} position={[x, 0, 0]} seed={i} />
+        <ServerRack key={x} position={[x, 0, 0]} seed={i} onRepair={() => {}} />
       ))}
       {/* overhead cabling running along the rack row, dropping into each rack */}
       <CableTray length={4.6} position={[0, 2.35, 0]} drops={RACK_X} dropLength={0.35} />
