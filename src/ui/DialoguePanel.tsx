@@ -13,7 +13,7 @@ export function DialoguePanel() {
 
   if (choice) {
     return (
-      <div className="dialogue-panel">
+      <div className="dialogue-panel dialogue-panel--choice">
         <div className="card-body">
           <div className="dialogue-choices">
             {choice.options.map((option) => (

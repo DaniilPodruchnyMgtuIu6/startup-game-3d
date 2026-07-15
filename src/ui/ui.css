@@ -218,6 +218,21 @@ button.primary:hover {
   margin-top: 0;
 }
 
+/* No portrait/line text precedes the choice row, so the panel shouldn't
+   stretch to the same height as a picture+text line - let it hug the
+   buttons instead of leaving them stranded at the bottom of empty space. */
+.dialogue-panel--choice {
+  min-height: 0;
+}
+
+.dialogue-panel--choice .card-body {
+  padding: 20px 24px;
+}
+
+.dialogue-panel--choice .dialogue-choices {
+  margin-top: 0;
+}
+
 /* The whiteboard up close: aluminium frame, marker handwriting */
 .taskboard {
   position: relative;
