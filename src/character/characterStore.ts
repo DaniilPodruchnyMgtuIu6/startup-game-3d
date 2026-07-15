@@ -3,6 +3,7 @@ import { nextState, type CharacterState, type CharacterEvent, type Target } from
 import { nearestWalkable } from './grid'
 import { claimTarget, releaseClaims, isTargetFree } from '../interaction/interactionRegistry'
 import type { Point } from './navigation'
+import type { ServerRole } from '../game/serverIncidentsStore'
 
 export const PLAYER_ID = 'player'
 
@@ -43,6 +44,7 @@ interface CharactersStore {
   clickCoffeeMachine: (target: Target) => void
   clickSeat: (target: Target) => void
   clickSofa: (target: Target) => void
+  clickServer: (target: Target, role: ServerRole) => void
 }
 
 export const useCharacterStore = create<CharactersStore>()((set, get) => {
@@ -105,5 +107,13 @@ export const useCharacterStore = create<CharactersStore>()((set, get) => {
     clickCoffeeMachine: playerClick('CLICK_COFFEE_MACHINE'),
     clickSeat: playerClick('CLICK_SEAT'),
     clickSofa: playerClick('CLICK_SOFA'),
+    // Like playerClick but carries the rack's role through to the machine so
+    // arrival can open the correct mini-game.
+    clickServer: (target, role) => {
+      if (get().inputLocked) return
+      if (!isTargetFree(target, PLAYER_ID)) return
+      claimTarget(PLAYER_ID, target)
+      get().dispatchTo(PLAYER_ID, { type: 'CLICK_SERVER', target: { point: target.point, facing: target.facing }, role })
+    },
   }
 })
