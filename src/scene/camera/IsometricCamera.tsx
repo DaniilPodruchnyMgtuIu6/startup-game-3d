@@ -3,7 +3,7 @@ import { OrthographicCamera, CameraControls } from '@react-three/drei'
 import { Box3, Vector3 } from 'three'
 import type CameraControlsImpl from 'camera-controls'
 import { BUILDING } from '../layout'
-import { registerCameraControls } from './cameraController'
+import { useCutsceneCameraStore } from './cameraController'
 
 const CAMERA_POSITION: [number, number, number] = [22, 26, 22]
 const CAMERA_TARGET: [number, number, number] = [0, 0.8, 0]
@@ -17,6 +17,11 @@ const PAN_BOUNDARY = new Box3(
 )
 
 export function IsometricCamera() {
+  // Yields makeDefault/enabled to the cutscene camera while one is active -
+  // this rig is never unmounted, so its orbited setLookAt state is exactly
+  // where the player left it once a cutscene ends.
+  const cutsceneActive = useCutsceneCameraStore((s) => s.active)
+
   // A callback ref (not useEffect + useRef) because CameraControls' internal
   // camera-controls instance is recreated once OrthographicCamera's makeDefault
   // effect swaps in the real camera (its first instance briefly wraps R3F's
@@ -25,15 +30,15 @@ export function IsometricCamera() {
   const attachControls = useCallback((instance: CameraControlsImpl | null) => {
     instance?.setLookAt(...CAMERA_POSITION, ...CAMERA_TARGET, false)
     instance?.setBoundary(PAN_BOUNDARY)
-    registerCameraControls(instance)
   }, [])
 
   return (
     <>
-      <OrthographicCamera makeDefault position={CAMERA_POSITION} zoom={28} near={0.1} far={150} />
+      <OrthographicCamera makeDefault={!cutsceneActive} position={CAMERA_POSITION} zoom={28} near={0.1} far={150} />
       <CameraControls
         ref={attachControls}
-        makeDefault
+        makeDefault={!cutsceneActive}
+        enabled={!cutsceneActive}
         minZoom={12}
         maxZoom={70}
         minPolarAngle={0.3}

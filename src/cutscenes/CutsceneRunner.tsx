@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { PlaceholderActorModel } from '../character/PlaceholderActorModel'
 import { useCharacterStore } from '../character/characterStore'
-import { setInputEnabled } from '../scene/camera/cameraController'
+import { enterCutsceneCamera, exitCutsceneCamera } from '../scene/camera/cameraController'
 import { createDirector } from './director'
 import { CUTSCENES } from './registry'
 import { useCutsceneStore } from './cutsceneStore'
@@ -24,7 +24,7 @@ export function CutsceneRunner() {
       return
     }
     running.current = activeSceneId
-    setInputEnabled(false)
+    enterCutsceneCamera()
     const characterStore = useCharacterStore.getState()
     characterStore.setInputLocked(true)
     characterStore.setSceneOwned(new Set(entry.ownsNpcIds ?? []))
@@ -37,7 +37,7 @@ export function CutsceneRunner() {
       .finally(() => {
         running.current = null
         useCutsceneStore.getState().endScene()
-        setInputEnabled(true)
+        exitCutsceneCamera()
         useCharacterStore.getState().setInputLocked(false)
         useCharacterStore.getState().setSceneOwned(new Set())
       })

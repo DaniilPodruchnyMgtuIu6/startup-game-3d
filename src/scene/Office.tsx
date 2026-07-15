@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import type { ComponentType, ReactNode } from 'react'
 import { OfficeMaterialsProvider } from '../materials/OfficeMaterialsProvider'
 import { IsometricCamera } from './camera/IsometricCamera'
+import { CutsceneCamera } from './camera/CutsceneCamera'
 import { Lighting } from './lighting/Lighting'
 import { Building } from './Building'
 import { OpenSpace } from '../rooms/OpenSpace'
@@ -36,6 +37,7 @@ export function Office({
     <Suspense fallback={null}>
       <MaterialsProvider>
         <IsometricCamera />
+        <CutsceneCamera />
         <LightingComponent />
         <Building />
         <FloorClickCatcher />
