@@ -8,11 +8,15 @@ import { SceneBackground } from './scene/SceneBackground'
 import { IntroOverlay } from './ui/IntroOverlay'
 import { DialoguePanel } from './ui/DialoguePanel'
 import { TaskBoard } from './ui/TaskBoard'
+import { MinigameOverlay } from './game/minigames/MinigameOverlay'
 import { useCutsceneStore } from './cutscenes/cutsceneStore'
+import { useServerIncidentsStore, type ServerRole } from './game/serverIncidentsStore'
 
 if (import.meta.env.DEV) {
   ;(window as unknown as { __startCutscene?: (id: string) => void }).__startCutscene = (id: string) =>
     useCutsceneStore.getState().startScene(id)
+  ;(window as unknown as { __breakServer?: (role?: ServerRole) => void }).__breakServer = (role?: ServerRole) =>
+    useServerIncidentsStore.getState().breakServer(role)
 }
 
 function ExposureControl({ exposure }: { exposure: number }) {
@@ -49,6 +53,7 @@ export function App() {
       <IntroOverlay />
       <DialoguePanel />
       <TaskBoard />
+      <MinigameOverlay />
     </>
   )
 }
