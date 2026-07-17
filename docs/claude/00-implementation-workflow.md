@@ -123,4 +123,4 @@ Claude Code не должен:
 
 На текущем этапе Claude Code нужно передать только:
 
-`02-budget-and-financial-ledger.md`
+`03-team-and-first-developers.md`
