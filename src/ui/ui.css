@@ -357,6 +357,113 @@ button.primary:hover {
   }
 }
 
+/* Sprint clock HUD (top-left) */
+.sprint-hud {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  background: rgba(22, 31, 42, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  color: #e8edf4;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  font: 500 14px system-ui, sans-serif;
+  backdrop-filter: blur(4px);
+}
+.sprint-hud-sprint {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.sprint-hud-day {
+  color: #a9b8c9;
+}
+.sprint-hud-end {
+  padding: 8px 14px;
+  font: 600 13px system-ui, sans-serif;
+  color: #fff;
+  background: #3573dd;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.sprint-hud-end:hover:not(:disabled) {
+  background: #4f8ff0;
+}
+.sprint-hud-end:disabled {
+  background: #384456;
+  color: #7f8ea0;
+  cursor: default;
+}
+
+/* End-of-day confirmation */
+.sprint-confirm {
+  width: min(440px, calc(100vw - 48px));
+  background: linear-gradient(160deg, #232f3e, #1a2430);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  color: #e8edf4;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  padding: 22px 24px;
+  animation: card-in 0.3s ease-out;
+}
+.sprint-confirm-title {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+.sprint-confirm-text {
+  margin: 0 0 20px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #a9b8c9;
+}
+.sprint-confirm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+.sprint-secondary {
+  padding: 11px 22px;
+  font: 600 14px system-ui, sans-serif;
+  color: #cdd8e4;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.sprint-secondary:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Planning / review phase blocks */
+.sprint-panel {
+  width: min(520px, calc(100vw - 48px));
+  text-align: center;
+  background: linear-gradient(160deg, #232f3e, #1a2430);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  color: #e8edf4;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  padding: 32px 28px;
+  animation: card-in 0.35s ease-out;
+}
+.sprint-panel-title {
+  margin: 0 0 14px;
+  font-size: 22px;
+}
+.sprint-panel-text {
+  margin: 0 auto 24px;
+  max-width: 400px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #a9b8c9;
+}
+
 /* Server security mini-games */
 .minigame {
   width: min(760px, calc(100vw - 48px));

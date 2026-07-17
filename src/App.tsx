@@ -8,6 +8,8 @@ import { SceneBackground } from './scene/SceneBackground'
 import { IntroOverlay } from './ui/IntroOverlay'
 import { DialoguePanel } from './ui/DialoguePanel'
 import { TaskBoard } from './ui/TaskBoard'
+import { SprintHud } from './ui/SprintHud'
+import { SprintPhaseOverlay } from './ui/SprintPhaseOverlay'
 import { MinigameOverlay } from './game/minigames/MinigameOverlay'
 import { useCutsceneStore } from './cutscenes/cutsceneStore'
 import { useServerIncidentsStore, type ServerRole } from './game/serverIncidentsStore'
@@ -53,6 +55,8 @@ export function App() {
       <IntroOverlay />
       <DialoguePanel />
       <TaskBoard />
+      <SprintHud />
+      <SprintPhaseOverlay />
       <MinigameOverlay />
     </>
   )

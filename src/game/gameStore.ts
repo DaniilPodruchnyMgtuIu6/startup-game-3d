@@ -51,13 +51,20 @@ function safeStorage(): ProgressStorage | null {
   }
 }
 
+// `?intro` in the URL search string requests a full progress reset (replay the
+// intro). Kept in one place so gameStore and sprintStore parse the flag
+// identically rather than duplicating the URL logic.
+export function isIntroReset(search: string): boolean {
+  return new URLSearchParams(search).has('intro')
+}
+
 // Reads saved progress; `?intro` in the search string wipes it so the intro
 // can be replayed. Exported for tests.
 export function loadProgress(storage: ProgressStorage | null, search: string): SavedProgress {
   const fresh: SavedProgress = { playerName: '', phase: 'intro', tasks: BOARD_TASKS, reprimands: 0 }
   if (!storage) return fresh
   try {
-    if (new URLSearchParams(search).has('intro')) {
+    if (isIntroReset(search)) {
       storage.removeItem(STORAGE_KEY)
       return fresh
     }
