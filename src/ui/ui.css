@@ -464,6 +464,223 @@ button.primary:hover {
   color: #a9b8c9;
 }
 
+/* Budget chip in the HUD */
+.sprint-hud-budget {
+  padding: 6px 10px;
+  font: 600 13px system-ui, sans-serif;
+  color: #dbe6f2;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.sprint-hud-budget:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* End-of-day confirmation figures + warnings */
+.sprint-confirm-figures {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.22);
+  border-radius: 10px;
+}
+.sprint-confirm-figures > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+.sprint-confirm-figures > div + div {
+  margin-top: 6px;
+}
+.sprint-confirm-figures dt {
+  color: #a9b8c9;
+}
+.sprint-confirm-figures dd {
+  margin: 0;
+  font-weight: 600;
+}
+.sprint-warning {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.sprint-warning--low {
+  color: #e6c15a;
+  background: rgba(230, 193, 90, 0.12);
+}
+.sprint-warning--critical {
+  color: #f0975a;
+  background: rgba(240, 151, 90, 0.14);
+}
+.sprint-warning--depleted {
+  color: #ff7676;
+  background: rgba(255, 118, 118, 0.14);
+}
+
+/* Sprint review financial figures */
+.sprint-review-figures {
+  margin: 0 auto 24px;
+  max-width: 320px;
+  text-align: left;
+}
+.sprint-review-figures > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 15px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.sprint-review-figures dt {
+  color: #a9b8c9;
+}
+.sprint-review-figures dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* Finance panel */
+.finance-panel {
+  position: relative;
+  width: min(560px, calc(100vw - 48px));
+  max-height: calc(100vh - 64px);
+  overflow: auto;
+  background: linear-gradient(160deg, #202b39, #161f2a);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  color: #e8edf4;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  padding: 24px 26px 28px;
+  animation: card-in 0.35s ease-out;
+}
+.finance-close {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  background: none;
+  border: none;
+  color: #7f8ea0;
+  font-size: 20px;
+  cursor: pointer;
+}
+.finance-close:hover {
+  color: #e8edf4;
+}
+.finance-title {
+  margin: 0 0 16px;
+  font-size: 20px;
+}
+.finance-balance {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  background: rgba(53, 115, 221, 0.12);
+  border: 1px solid rgba(53, 115, 221, 0.25);
+  border-radius: 12px;
+}
+.finance-balance-label {
+  font-size: 13px;
+  color: #a9b8c9;
+}
+.finance-balance-value {
+  font-size: 24px;
+  font-weight: 700;
+}
+.finance-section {
+  margin-bottom: 20px;
+}
+.finance-costs-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 4px 0;
+}
+.finance-costs-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.finance-costs-list li {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #a9b8c9;
+  padding: 4px 0;
+}
+.finance-subtitle {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+.ledger {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ledger-row {
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.ledger-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.ledger-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ledger-title {
+  font-size: 14px;
+}
+.ledger-meta {
+  font-size: 12px;
+  color: #8ea0b3;
+}
+.ledger-amount {
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.ledger-amount--in {
+  color: #5fd08a;
+}
+.ledger-amount--out {
+  color: #f0975a;
+}
+.ledger-more {
+  margin-top: 6px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: #6ea8ff;
+  font-size: 12px;
+  cursor: pointer;
+}
+.ledger-breakdown {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+.ledger-breakdown li {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #a9b8c9;
+  padding: 3px 0;
+}
+
 /* Server security mini-games */
 .minigame {
   width: min(760px, calc(100vw - 48px));

@@ -10,6 +10,7 @@ import { DialoguePanel } from './ui/DialoguePanel'
 import { TaskBoard } from './ui/TaskBoard'
 import { SprintHud } from './ui/SprintHud'
 import { SprintPhaseOverlay } from './ui/SprintPhaseOverlay'
+import { FinancePanel } from './ui/FinancePanel'
 import { MinigameOverlay } from './game/minigames/MinigameOverlay'
 import { useCutsceneStore } from './cutscenes/cutsceneStore'
 import { useServerIncidentsStore, type ServerRole } from './game/serverIncidentsStore'
@@ -57,6 +58,7 @@ export function App() {
       <TaskBoard />
       <SprintHud />
       <SprintPhaseOverlay />
+      <FinancePanel />
       <MinigameOverlay />
     </>
   )
