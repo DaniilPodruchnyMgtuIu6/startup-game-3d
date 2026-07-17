@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { CharacterModel } from './CharacterModel'
-import { NPC_CHARACTERS, type CharacterDefinition } from './characters'
+import { NPC_CHARACTERS, DEVELOPER_CHARACTERS, getCharacterById, type CharacterDefinition } from './characters'
+import { useTeamStore } from '../game/teamStore'
+import { getHiredCharacterIds } from '../game/teamRules'
 import { useCharacterStore } from './characterStore'
 import { nearestWalkable } from './grid'
 import { planNextActivity, wanderPoint, createRng, type ActivityPlan, type ActivityPlanner } from './npcBehavior'
@@ -96,11 +98,23 @@ function Npc({ definition }: { definition: CharacterDefinition }) {
   return <CharacterModel characterId={definition.id} config={definition.model} />
 }
 
-// All autonomous office dwellers from the character roster.
+// All autonomous office dwellers: the always-on roster (the PM) plus any
+// developers the player has hired. Each hired developer is spawned exactly once
+// via <Npc>; unhiring/reset removes their record, unmounts the <Npc>, and the
+// character despawns. They share the same navigation, state machine, claims and
+// planner as every other body.
 export function Npcs() {
+  const hires = useTeamStore((s) => s.hires)
+  const hiredDevelopers = getHiredCharacterIds(hires)
+    .map((id) => getCharacterById(id))
+    .filter((d): d is CharacterDefinition => d !== undefined)
+
   return (
     <>
       {NPC_CHARACTERS.map((definition) => (
+        <Npc key={definition.id} definition={definition} />
+      ))}
+      {hiredDevelopers.map((definition) => (
         <Npc key={definition.id} definition={definition} />
       ))}
     </>
@@ -111,4 +125,13 @@ for (const definition of NPC_CHARACTERS) {
   for (const url of Object.values(definition.model.clips)) {
     useGLTF.preload(url)
   }
+}
+
+// Preload hired-developer models in the COMBINED-array form CharacterModel
+// actually looks up (useGLTF([...urls])). This warms the exact cache entry the
+// character uses, so hiring mid-game does not suspend the shared <Suspense>
+// boundary and wipe every character's position (same reason the guard models
+// are preloaded this way for the security-breach cutscene).
+for (const definition of DEVELOPER_CHARACTERS) {
+  useGLTF.preload(Object.values(definition.model.clips))
 }

@@ -106,6 +106,9 @@ interface GameStore {
   presentChoice: (options: ChoiceOption[], onChoose: (id: string) => void) => void
   chooseOption: (id: string) => void
   addTask: (task: BoardTask) => void
+  // Marks an existing board task done (idempotent). No-op if it is already done
+  // or the id is unknown - the id is expected to exist in the seeded board.
+  completeTask: (id: string) => void
   addReprimand: () => void
   openTaskBoard: () => void
   closeTaskBoard: () => void
@@ -155,6 +158,12 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   },
   addTask: (task) => {
     set((s) => ({ tasks: [...s.tasks, task] }))
+    const { playerName, phase, tasks, reprimands } = get()
+    saveProgress(safeStorage(), { playerName, phase, tasks, reprimands })
+  },
+  completeTask: (id) => {
+    if (!get().tasks.some((t) => t.id === id && !t.done)) return // already done or unknown
+    set((s) => ({ tasks: s.tasks.map((t) => (t.id === id ? { ...t, done: true } : t)) }))
     const { playerName, phase, tasks, reprimands } = get()
     saveProgress(safeStorage(), { playerName, phase, tasks, reprimands })
   },

@@ -680,6 +680,105 @@ button.primary:hover {
   color: #a9b8c9;
   padding: 3px 0;
 }
+.finance-costs-head--spaced {
+  margin-top: 12px;
+}
+.finance-costs-total {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Team panel */
+.team-panel {
+  position: relative;
+  width: min(560px, calc(100vw - 48px));
+  max-height: calc(100vh - 64px);
+  overflow: auto;
+  background: linear-gradient(160deg, #202b39, #161f2a);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  color: #e8edf4;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  padding: 24px 26px 28px;
+  animation: card-in 0.35s ease-out;
+}
+.team-card {
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+.team-card--pm {
+  background: rgba(53, 115, 221, 0.1);
+  border-color: rgba(53, 115, 221, 0.22);
+}
+.team-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.team-card-name {
+  font-size: 16px;
+  font-weight: 700;
+}
+.team-card-role {
+  font-size: 13px;
+  color: #8ea0b3;
+}
+.team-card-status {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5fd08a;
+}
+.team-card-desc {
+  margin: 10px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #a9b8c9;
+}
+.team-card-salary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #cdd8e4;
+}
+.team-card-blocked {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #e6c15a;
+}
+
+/* First-sprint team gate in the planning block */
+.sprint-team-gate {
+  margin: 0 auto 22px;
+  max-width: 420px;
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+}
+.sprint-gate-text {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.sprint-gate-progress {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #8ea0b3;
+}
+.sprint-gate-ready {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #5fd08a;
+}
 
 /* Server security mini-games */
 .minigame {

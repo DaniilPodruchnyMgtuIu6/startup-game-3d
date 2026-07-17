@@ -2,9 +2,11 @@ import { useGameStore } from '../game/gameStore'
 import { useSprintStore } from '../game/sprintStore'
 import { useServerIncidentsStore } from '../game/serverIncidentsStore'
 import { useEconomyStore } from '../game/economyStore'
+import { useTeamStore } from '../game/teamStore'
 import { useCharacterStore } from '../character/characterStore'
 import { SPRINT_DAYS } from '../game/sprintRules'
 import {
+  BASE_DAILY_COST,
   budgetWarningLevel,
   calculateBalance,
   formatRubles,
@@ -12,6 +14,7 @@ import {
   projectedBalanceAfterDay,
   type BudgetWarning,
 } from '../game/economyRules'
+import { getHiredEmployeeIds, getTeamDailySalary } from '../game/teamRules'
 import { completeWorkday } from '../game/completeWorkday'
 import './ui.css'
 
@@ -21,9 +24,9 @@ const WARNING_TEXT: Record<Exclude<BudgetWarning, 'ok'>, string> = {
   depleted: 'Бюджет проекта исчерпан.',
 }
 
-// Top-left HUD: sprint/day readout, budget (opens the finance panel), and -
-// during an active sprint - the explicit "end the working day" control and its
-// confirmation. Only shown in free play; planning/review have their own blocks.
+// Top-left HUD: sprint/day readout, budget (opens finance), team counter (opens
+// the team panel), and - during an active sprint - the end-of-day control and
+// its confirmation. Only shown in free play.
 export function SprintHud() {
   const gamePhase = useGameStore((s) => s.phase)
   const sprintNumber = useSprintStore((s) => s.sprintNumber)
@@ -34,8 +37,12 @@ export function SprintHud() {
   const cancelEndDay = useSprintStore((s) => s.cancelEndDay)
 
   const transactions = useEconomyStore((s) => s.transactions)
-  const panelOpen = useEconomyStore((s) => s.panelOpen)
-  const openPanel = useEconomyStore((s) => s.openPanel)
+  const financePanelOpen = useEconomyStore((s) => s.panelOpen)
+  const openFinance = useEconomyStore((s) => s.openPanel)
+
+  const hires = useTeamStore((s) => s.hires)
+  const teamPanelOpen = useTeamStore((s) => s.panelOpen)
+  const openTeam = useTeamStore((s) => s.openPanel)
 
   // Existing "the interface is busy" signals - no new global lock is added.
   const inputLocked = useCharacterStore((s) => s.inputLocked)
@@ -54,11 +61,17 @@ export function SprintHud() {
         : 'Итоги спринта'
 
   const balance = calculateBalance(transactions)
-  const busy = inputLocked || !!activeDialogue || !!activeChoice || taskBoardOpen || panelOpen || !!activeMinigame
+  // Team members = the PM plus every hired developer (the player is not counted).
+  const teamCount = 1 + getHiredEmployeeIds(hires).length
+
+  const busy =
+    inputLocked || !!activeDialogue || !!activeChoice || taskBoardOpen || financePanelOpen || teamPanelOpen || !!activeMinigame
   const canEndDay = sprintPhase === 'active' && !busy
 
-  const pendingExpense = pendingDailyExpense(transactions, sprintNumber, day)
-  const projected = projectedBalanceAfterDay(transactions, sprintNumber, day)
+  // Daily cost includes developer salaries at the moment the day is confirmed.
+  const dailyCost = BASE_DAILY_COST + getTeamDailySalary(hires)
+  const pendingExpense = pendingDailyExpense(transactions, sprintNumber, day, dailyCost)
+  const projected = projectedBalanceAfterDay(transactions, sprintNumber, day, dailyCost)
   const warning = budgetWarningLevel(projected)
 
   return (
@@ -66,8 +79,11 @@ export function SprintHud() {
       <div className="sprint-hud">
         <span className="sprint-hud-sprint">Спринт {sprintNumber}</span>
         <span className="sprint-hud-day">{label}</span>
-        <button className="sprint-hud-budget" onClick={openPanel} title="Открыть финансы">
+        <button className="sprint-hud-budget" onClick={openFinance} title="Открыть финансы">
           Бюджет: {formatRubles(balance)}
+        </button>
+        <button className="sprint-hud-budget" onClick={openTeam} title="Открыть команду">
+          Команда: {teamCount}/3
         </button>
         {sprintPhase === 'active' ? (
           <button className="sprint-hud-end" onClick={requestEndDay} disabled={!canEndDay}>

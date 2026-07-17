@@ -1,5 +1,7 @@
 import { useSprintStore } from './sprintStore'
 import { useEconomyStore } from './economyStore'
+import { useTeamStore } from './teamStore'
+import { getEmployeeSalaryExpenses, getHiredEmployeeIds } from './teamRules'
 
 // The single game operation that finalises a working day. It is the ONLY path
 // that advances the day, and it always charges the day's expenses first. The
@@ -32,8 +34,13 @@ export function completeWorkday(): CompleteWorkdayResult {
 
   const { sprintNumber, day } = sprint
 
+  // Salaries are computed from the team composition at the moment this day is
+  // confirmed, so a developer hired earlier today is charged and one hired
+  // after this stays off today's transaction.
+  const salaryItems = getEmployeeSalaryExpenses(getHiredEmployeeIds(useTeamStore.getState().hires))
+
   // 1. charge the day being completed (idempotent), THEN
-  const economyResult = useEconomyStore.getState().applyDailyOperatingExpense(sprintNumber, day)
+  const economyResult = useEconomyStore.getState().applyDailyOperatingExpense(sprintNumber, day, salaryItems)
   // 2. advance the sprint clock (day -> day+1, or day 10 -> review)
   useSprintStore.getState().confirmEndDay()
 

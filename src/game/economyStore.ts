@@ -5,6 +5,7 @@ import {
   createDailyOperatingExpense,
   initialTransactions,
   normalizeEconomy,
+  type ExpenseBreakdownItem,
   type MoneyTransaction,
 } from './economyRules'
 import { isIntroReset } from './gameStore'
@@ -61,7 +62,12 @@ interface EconomyStore {
   panelOpen: boolean
   // Applies the aggregated operating expense for one day, exactly once. Safe to
   // call again for the same day (idempotent via the deterministic id).
-  applyDailyOperatingExpense: (sprintNumber: number, day: number) => { applied: boolean; transaction: MoneyTransaction }
+  // `salaryItems` are the day's developer salaries (empty when none hired).
+  applyDailyOperatingExpense: (
+    sprintNumber: number,
+    day: number,
+    salaryItems?: ExpenseBreakdownItem[],
+  ) => { applied: boolean; transaction: MoneyTransaction }
   resetEconomy: () => void
   openPanel: () => void
   closePanel: () => void
@@ -73,8 +79,8 @@ export const useEconomyStore = create<EconomyStore>()((set, get) => ({
   transactions: initial,
   panelOpen: false,
 
-  applyDailyOperatingExpense: (sprintNumber, day) => {
-    const transaction = createDailyOperatingExpense(sprintNumber, day)
+  applyDailyOperatingExpense: (sprintNumber, day, salaryItems = []) => {
+    const transaction = createDailyOperatingExpense(sprintNumber, day, salaryItems)
     const { transactions, applied } = appendTransactionOnce(get().transactions, transaction)
     if (applied) {
       set({ transactions })

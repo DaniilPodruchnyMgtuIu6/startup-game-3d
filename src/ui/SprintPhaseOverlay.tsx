@@ -1,14 +1,16 @@
 import { useGameStore } from '../game/gameStore'
 import { useSprintStore } from '../game/sprintStore'
 import { useEconomyStore } from '../game/economyStore'
+import { useTeamStore } from '../game/teamStore'
 import { SPRINT_DAYS } from '../game/sprintRules'
 import { calculateBalance, formatRubles, sprintExpenseTotal } from '../game/economyRules'
+import { canStartSprintWithTeam, getHiredEmployeeIds, hasInitialDevelopmentTeam } from '../game/teamRules'
 import './ui.css'
 
 // The two full-screen blocks that bookend a sprint: planning before it starts
-// and review after day 10. Only shown in free play; the day-to-day readout and
-// the end-day control live in SprintHud. The review's financial figures are
-// computed from the journal (actual spend), not hard-coded.
+// and review after day 10. Only shown in free play. The first sprint cannot
+// start until both developers are hired; the review's figures come from the
+// journal (actual spend), not hard-coded.
 export function SprintPhaseOverlay() {
   const gamePhase = useGameStore((s) => s.phase)
   const sprintNumber = useSprintStore((s) => s.sprintNumber)
@@ -16,10 +18,15 @@ export function SprintPhaseOverlay() {
   const startSprint = useSprintStore((s) => s.startSprint)
   const completeSprintReview = useSprintStore((s) => s.completeSprintReview)
   const transactions = useEconomyStore((s) => s.transactions)
+  const hires = useTeamStore((s) => s.hires)
+  const openTeam = useTeamStore((s) => s.openPanel)
 
   if (gamePhase !== 'free') return null
 
   if (sprintPhase === 'planning') {
+    const canStart = canStartSprintWithTeam(sprintNumber, hires)
+    const showGate = sprintNumber === 1 && !hasInitialDevelopmentTeam(hires)
+    const techTeam = getHiredEmployeeIds(hires).length
     return (
       <div className="overlay-backdrop">
         <div className="sprint-panel">
@@ -28,7 +35,26 @@ export function SprintPhaseOverlay() {
             Спринт длится {SPRINT_DAYS} условных рабочих дней. Время идёт только когда вы завершаете рабочий день —
             перемещение по офису и разговоры его не расходуют.
           </p>
-          <button className="primary" onClick={startSprint}>
+
+          {sprintNumber === 1 ? (
+            <div className="sprint-team-gate">
+              {showGate ? (
+                <>
+                  <p className="sprint-gate-text">
+                    Для начала разработки OfficeFlow наймите backend- и frontend-разработчика.
+                  </p>
+                  <p className="sprint-gate-progress">Состав технической команды: {techTeam} из 2</p>
+                  <button className="sprint-secondary" onClick={openTeam}>
+                    Открыть команду
+                  </button>
+                </>
+              ) : (
+                <p className="sprint-gate-ready">Команда готова начать разработку.</p>
+              )}
+            </div>
+          ) : null}
+
+          <button className="primary" onClick={startSprint} disabled={!canStart}>
             Начать спринт
           </button>
         </div>

@@ -69,10 +69,22 @@ export function dailyExpenseId(sprintNumber: number, day: number): string {
   return `operations:sprint-${sprintNumber}:day-${day}`
 }
 
+// The full breakdown for one day: fixed base expenses plus any extra items
+// (e.g. developer salaries supplied by the team layer). Kept here so both the
+// daily transaction and the finance UI compose the breakdown identically.
+export function composeDailyBreakdown(extraItems: ExpenseBreakdownItem[] = []): ExpenseBreakdownItem[] {
+  return [...BASE_DAILY_EXPENSES.map((item) => ({ ...item })), ...extraItems.map((item) => ({ ...item }))]
+}
+
 // One aggregated operating-expense transaction for the day being completed.
-// amount always equals the sum of the breakdown.
-export function createDailyOperatingExpense(sprintNumber: number, day: number): MoneyTransaction {
-  const breakdown = BASE_DAILY_EXPENSES.map((item) => ({ ...item }))
+// amount always equals the sum of the breakdown. The deterministic id depends
+// only on sprint/day, so adding salaries never changes the idempotency key.
+export function createDailyOperatingExpense(
+  sprintNumber: number,
+  day: number,
+  extraItems: ExpenseBreakdownItem[] = [],
+): MoneyTransaction {
+  const breakdown = composeDailyBreakdown(extraItems)
   return {
     id: dailyExpenseId(sprintNumber, day),
     kind: 'expense',
@@ -118,17 +130,23 @@ export function projectedBalanceAfterDay(
   transactions: MoneyTransaction[],
   sprintNumber: number,
   day: number,
+  dailyCost: number = BASE_DAILY_COST,
 ): number {
   const balance = calculateBalance(transactions)
   const alreadyApplied = transactions.some((t) => t.id === dailyExpenseId(sprintNumber, day))
-  return alreadyApplied ? balance : balance - BASE_DAILY_COST
+  return alreadyApplied ? balance : balance - dailyCost
 }
 
 // The expense that completing this specific day would still charge (0 if it was
-// already applied).
-export function pendingDailyExpense(transactions: MoneyTransaction[], sprintNumber: number, day: number): number {
+// already applied). `dailyCost` includes any developer salaries for the day.
+export function pendingDailyExpense(
+  transactions: MoneyTransaction[],
+  sprintNumber: number,
+  day: number,
+  dailyCost: number = BASE_DAILY_COST,
+): number {
   const alreadyApplied = transactions.some((t) => t.id === dailyExpenseId(sprintNumber, day))
-  return alreadyApplied ? 0 : BASE_DAILY_COST
+  return alreadyApplied ? 0 : dailyCost
 }
 
 // --- Budget warnings (informational only in this feature) ------------------

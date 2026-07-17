@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useEconomyStore } from '../game/economyStore'
+import { useTeamStore } from '../game/teamStore'
 import {
   BASE_DAILY_COST,
   BASE_DAILY_EXPENSES,
@@ -8,6 +9,7 @@ import {
   formatRubles,
   type MoneyTransaction,
 } from '../game/economyRules'
+import { getEmployeeSalaryExpenses, getHiredEmployeeIds, getTeamDailySalary } from '../game/teamRules'
 import './ui.css'
 
 function TransactionRow({ tx }: { tx: MoneyTransaction }) {
@@ -54,11 +56,15 @@ export function FinancePanel() {
   const open = useEconomyStore((s) => s.panelOpen)
   const close = useEconomyStore((s) => s.closePanel)
   const transactions = useEconomyStore((s) => s.transactions)
+  const hires = useTeamStore((s) => s.hires)
 
   if (!open) return null
 
   const balance = calculateBalance(transactions)
   const ledger = [...transactions].reverse() // newest first
+  const salaryItems = getEmployeeSalaryExpenses(getHiredEmployeeIds(hires))
+  const salaryTotal = getTeamDailySalary(hires)
+  const currentDaily = BASE_DAILY_COST + salaryTotal
 
   return (
     <div className="overlay-backdrop" onClick={close}>
@@ -90,6 +96,27 @@ export function FinancePanel() {
               </li>
             ))}
           </ul>
+
+          {salaryItems.length > 0 ? (
+            <>
+              <div className="finance-costs-head finance-costs-head--spaced">
+                <span>Зарплаты разработчиков</span>
+                <span>{formatRubles(salaryTotal)}</span>
+              </div>
+              <ul className="finance-costs-list">
+                {salaryItems.map((item) => (
+                  <li key={item.code}>
+                    <span>{item.title.replace('Зарплата: ', '')}</span>
+                    <span>{formatRubles(item.amount)}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="finance-costs-head finance-costs-total">
+                <span>Текущие расходы за день</span>
+                <span>{formatRubles(currentDaily)}</span>
+              </div>
+            </>
+          ) : null}
         </div>
 
         <div className="finance-section">

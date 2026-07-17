@@ -34,6 +34,20 @@ const ALL_CLIPS = [
   { file: 'security/security_2_walking', name: 'walk', out: 'security_2/walk' },
   { file: 'security/security_2_talking', name: 'talk', out: 'security_2/talk' },
   { file: 'security/security_2_looking_around', name: 'look', out: 'security_2/look' },
+  { file: 'kirill_morozov/kiril_idle', name: 'idle', out: 'kirill_morozov/idle', keepMesh: true },
+  { file: 'kirill_morozov/kiril_wakling', name: 'walk', out: 'kirill_morozov/walk' },
+  { file: 'kirill_morozov/kiril_typing', name: 'type', out: 'kirill_morozov/type' },
+  { file: 'kirill_morozov/kiril_drinking', name: 'drink', out: 'kirill_morozov/drink' },
+  { file: 'kirill_morozov/kiril_sitting', name: 'sitIdle', out: 'kirill_morozov/sitIdle' },
+  { file: 'kirill_morozov/kiril_sitting_sofa', name: 'sofaSit', out: 'kirill_morozov/sofaSit' },
+  { file: 'kirill_morozov/kiril_talking', name: 'talk', out: 'kirill_morozov/talk' },
+  { file: 'alina_belova/alina_idle', name: 'idle', out: 'alina_belova/idle', keepMesh: true },
+  { file: 'alina_belova/alina_walking', name: 'walk', out: 'alina_belova/walk' },
+  { file: 'alina_belova/aline_typing', name: 'type', out: 'alina_belova/type' },
+  { file: 'alina_belova/alena_drinking', name: 'drink', out: 'alina_belova/drink' },
+  { file: 'alina_belova/alina_sitting_idle', name: 'sitIdle', out: 'alina_belova/sitIdle' },
+  { file: 'alina_belova/alina_sitting_sofa', name: 'sofaSit', out: 'alina_belova/sofaSit' },
+  { file: 'alina_belova/alina_talking', name: 'talk', out: 'alina_belova/talk' },
 ]
 // pass name fragments as CLI args to convert a subset, e.g.
 //   node scripts/convert-character.mjs female_pm
