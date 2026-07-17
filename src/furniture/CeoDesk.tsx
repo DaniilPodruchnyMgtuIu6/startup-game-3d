@@ -10,7 +10,9 @@ export interface CeoDeskProps {
 
 const WIDTH = 2.0
 const DEPTH = 1.0
-const HEIGHT = 0.75
+// Matches Desk's height: the seated character's pose was tuned against the
+// 0.7m workstation desks, a taller top clips into the arms and torso.
+const HEIGHT = 0.7
 const TOP_THICKNESS = 0.05
 
 export function CeoDesk({ position = [0, 0, 0], rotation = [0, 0, 0] }: CeoDeskProps) {
@@ -27,7 +29,9 @@ export function CeoDesk({ position = [0, 0, 0], rotation = [0, 0, 0] }: CeoDeskP
         <boxGeometry args={[WIDTH, TOP_THICKNESS, DEPTH]} />
         <meshStandardMaterial color="#3a2a20" roughness={0.4} metalness={0} />
       </mesh>
-      <mesh position={[0, pedestalHeight / 2, -DEPTH / 2 + 0.05]} castShadow>
+      {/* Modesty panel faces the visitors (+z); the chair side (-z) stays open
+          so the seated character's legs go under the top, not through a wall. */}
+      <mesh position={[0, pedestalHeight / 2, DEPTH / 2 - 0.05]} castShadow>
         <boxGeometry args={[WIDTH - 1.1, pedestalHeight - 0.1, 0.03]} />
         <meshStandardMaterial color="#3a2a20" roughness={0.4} metalness={0} />
       </mesh>

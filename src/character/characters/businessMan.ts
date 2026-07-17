@@ -17,5 +17,7 @@ export const businessMan: CharacterDefinition = {
       sofaSit: '/character/business_man/sofaSit.glb',
       talk: '/character/business_man/talk.glb',
     },
+    walkPace: 1.33,
+    walkLift: 0.011,
   },
 }

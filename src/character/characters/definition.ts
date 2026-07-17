@@ -9,6 +9,15 @@ export interface CharacterModelConfig {
   // carrying the skinned mesh. Missing clips fall back at runtime to the
   // closest available pose (see resolveClip in CharacterModel).
   clips: Partial<Record<ClipName, string>> & { idle: string }
+  // Natural pace of the walk clip in m/s, measured as the median horizontal
+  // speed of the planted (stance) foot bone - for an in-place clip that speed
+  // IS the pace the body must travel at. The walk action plays at
+  // WALK_SPEED / walkPace so feet stay pinned instead of skating.
+  walkPace: number
+  // How far the walk clip's stance foot dips below the idle clip's ground
+  // level (idle min foot Y - walk min foot Y, when positive). The model is
+  // raised by this while walking so soles don't sink through the floor.
+  walkLift?: number
 }
 
 // Personality sheet. Today it is optional and unused by gameplay; it is the

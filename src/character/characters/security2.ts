@@ -11,5 +11,6 @@ export const security2: CharacterDefinition = {
       talk: '/character/security_2/talk.glb',
       look: '/character/security_2/look.glb',
     },
+    walkPace: 1.61,
   },
 }

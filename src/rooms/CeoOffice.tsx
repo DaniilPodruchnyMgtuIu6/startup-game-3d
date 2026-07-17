@@ -18,8 +18,11 @@ export function CeoOffice() {
     <group position={center}>
       <GlassPartitionWithDoor axis="z" length={depth} position={[-width / 2, 0, 0]} />
       <Wall axis="x" length={width} center={[0, 1.4, depth / 2]} height={2.8} thickness={0.2} material="paint" />
-      <CeoDesk position={[0, 0, -1.6]} />
-      <CaptainChair position={[0, 0, -2.2]} onSelect={(target) => useCharacterStore.getState().clickSeat(target)} />
+      {/* Desk sits 1.2m off the back wall so there is a walkable corridor
+          behind the chair; the chair keeps the workstation-proven 0.2m gap to
+          the desk edge so the seated character doesn't clip the top. */}
+      <CeoDesk position={[0, 0, -0.85]} />
+      <CaptainChair position={[0, 0, -1.55]} onSelect={(target) => useCharacterStore.getState().clickSeat(target)} />
       <Bookshelf position={[width / 2 - 0.4, 0, -1.8]} rotation={[0, -Math.PI / 2, 0]} />
       <Sofa
         position={[-1.6, 0, 2.15]}

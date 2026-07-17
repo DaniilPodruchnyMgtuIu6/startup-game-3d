@@ -31,11 +31,14 @@ export function InteractionTrigger({
     [onTrigger],
   )
 
+  // No dependency array: like useObstacle, the registered target must follow
+  // the trigger wherever a re-render moves it, or clicks/NPCs would aim at a
+  // stale position.
   useEffect(() => {
     if (!kind || !mesh.current) return
     mesh.current.updateWorldMatrix(true, true)
     return registerInteraction(kind, computeTriggerPayload(mesh.current))
-  }, [kind])
+  })
 
   // drop the hover highlight if the trigger unmounts mid-hover
   useEffect(() => {

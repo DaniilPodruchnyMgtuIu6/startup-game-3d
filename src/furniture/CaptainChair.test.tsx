@@ -4,12 +4,12 @@ import { StubMaterialsProvider } from '../materials/StubMaterialsProvider'
 import { CaptainChair } from './CaptainChair'
 
 describe('CaptainChair', () => {
-  it('renders seat + back + headrest + cylinder + 5-star base (2 meshes per arm) = 14 meshes', async () => {
+  it('renders cushions + headrest + 2 armrests + gas lift stack + 5-star base = 21 meshes', async () => {
     const renderer = await ReactThreeTestRenderer.create(
       <StubMaterialsProvider>
         <CaptainChair />
       </StubMaterialsProvider>,
     )
-    expect(renderer.scene.findAllByType('Mesh').length).toBe(14)
+    expect(renderer.scene.findAllByType('Mesh').length).toBe(21)
   })
 })

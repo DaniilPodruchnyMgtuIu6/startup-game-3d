@@ -23,6 +23,7 @@ export const femalePm: CharacterDefinition = {
       sofaSit: '/character/female_pm/sofaSit.glb',
       talk: '/character/female_pm/talk.glb',
     },
+    walkPace: 0.99,
   },
   npc: {
     spawn: [-2, 0, 6.3],
