@@ -123,4 +123,4 @@ Claude Code не должен:
 
 На текущем этапе Claude Code нужно передать только:
 
-`13-mvp-release-and-campaign-success.md`
+`14-deepseek-npc-conversations.md`
