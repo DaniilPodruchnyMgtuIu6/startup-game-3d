@@ -61,7 +61,7 @@ export function saveProduct(storage: ProductStorage | null, data: PersistedProdu
   }
 }
 
-export type BoardTab = 'product' | 'department'
+export type BoardTab = 'product' | 'department' | 'security'
 
 interface ProductStore {
   taskStates: ProductTaskState[]
@@ -85,8 +85,14 @@ interface ProductStore {
   removeTaskFromPlan: (taskId: string) => void
   moveTask: (taskId: string, direction: 'up' | 'down') => void
 
-  // one confirmed day of deterministic progress (idempotent by day id)
-  applyWorkday: (sprintNumber: number, day: number, employeeIds: string[]) => { applied: boolean; record: WorkdayProgressRecord }
+  // one confirmed day of deterministic progress (idempotent by day id).
+  // `excludedEmployeeIds` are developers diverted to security work (Feature 08).
+  applyWorkday: (
+    sprintNumber: number,
+    day: number,
+    employeeIds: string[],
+    excludedEmployeeIds?: string[],
+  ) => { applied: boolean; record: WorkdayProgressRecord }
   // carry incomplete tasks back to the backlog for the next planning
   prepareNextPlanning: () => void
 
@@ -133,11 +139,11 @@ export const useProductStore = create<ProductStore>()((set, get) => {
       persist()
     },
 
-    applyWorkday: (sprintNumber, day, employeeIds) => {
+    applyWorkday: (sprintNumber, day, employeeIds, excludedEmployeeIds = []) => {
       const id = workdayProgressId(sprintNumber, day)
       const existing = get().workdayHistory.find((r) => r.id === id)
       if (existing) return { applied: false, record: existing } // idempotent - never charge/progress twice
-      const { states, record } = applyWorkdayProgress(get().taskStates, sprintNumber, day, employeeIds)
+      const { states, record } = applyWorkdayProgress(get().taskStates, sprintNumber, day, employeeIds, excludedEmployeeIds)
       const full: WorkdayProgressRecord = { id, ...record }
       set({ taskStates: states, workdayHistory: [...get().workdayHistory, full] })
       persist()

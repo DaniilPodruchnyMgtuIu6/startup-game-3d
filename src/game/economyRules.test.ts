@@ -6,8 +6,10 @@ import {
   INITIAL_BUDGET,
   INITIAL_FUNDING,
   appendTransactionOnce,
+  auditFineTransactionId,
   budgetWarningLevel,
   calculateBalance,
+  createAuditFineTransaction,
   createDailyOperatingExpense,
   dailyExpenseId,
   formatRubles,
@@ -86,6 +88,39 @@ describe('calculateBalance + appendTransactionOnce', () => {
     expect(projectedBalanceAfterDay(txs, 1, 1)).toBe(INITIAL_BUDGET - BASE_DAILY_COST)
     const applied = appendTransactionOnce(txs, createDailyOperatingExpense(1, 1)).transactions
     expect(projectedBalanceAfterDay(applied, 1, 1)).toBe(INITIAL_BUDGET - BASE_DAILY_COST)
+  })
+})
+
+describe('audit fines (Feature 08)', () => {
+  it('builds a deterministic audit-fine transaction, id keyed by audit number', () => {
+    const tx = createAuditFineTransaction(1, 120_000, 3, 1)
+    expect(tx).toMatchObject({ id: 'security-audit-fine:1', kind: 'expense', category: 'audit-fine', amount: 120_000, sprintNumber: 3, day: 1 })
+    expect(auditFineTransactionId(2)).toBe('security-audit-fine:2')
+  })
+
+  it('a fine reduces the balance and is not double-counted per audit number', () => {
+    let txs = initialTransactions()
+    const first = appendTransactionOnce(txs, createAuditFineTransaction(1, 120_000, 3, 1))
+    txs = first.transactions
+    expect(calculateBalance(txs)).toBe(INITIAL_BUDGET - 120_000)
+    const second = appendTransactionOnce(txs, createAuditFineTransaction(1, 120_000, 3, 1))
+    expect(second.applied).toBe(false)
+    expect(calculateBalance(second.transactions)).toBe(INITIAL_BUDGET - 120_000)
+  })
+
+  it('fines are not part of the per-sprint operations total, but survive normalisation', () => {
+    let txs = initialTransactions()
+    txs = appendTransactionOnce(txs, createDailyOperatingExpense(3, 1)).transactions
+    txs = appendTransactionOnce(txs, createAuditFineTransaction(1, 120_000, 3, 1)).transactions
+    expect(sprintExpenseTotal(txs, 3)).toBe(BASE_DAILY_COST) // fine excluded from operations
+    const normalized = normalizeEconomy({ transactions: txs })
+    expect(normalized.some((t) => t.id === 'security-audit-fine:1' && t.category === 'audit-fine')).toBe(true)
+  })
+
+  it('a large fine may drive the balance negative (no game over in Feature 08)', () => {
+    const txs = appendTransactionOnce(initialTransactions(), createAuditFineTransaction(3, 5_000_000, 3, 1)).transactions
+    expect(calculateBalance(txs)).toBe(INITIAL_BUDGET - 5_000_000)
+    expect(calculateBalance(txs)).toBeLessThan(0)
   })
 })
 

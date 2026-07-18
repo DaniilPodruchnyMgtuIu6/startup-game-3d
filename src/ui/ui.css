@@ -888,6 +888,122 @@ button.primary:hover {
   border-color: rgba(53, 115, 221, 0.4);
 }
 
+/* Security board (Feature 08) */
+.sb-deadline {
+  margin: 4px 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(53, 115, 221, 0.14);
+  border: 1px solid rgba(53, 115, 221, 0.28);
+  color: #cfe0f7;
+  font: 500 13px system-ui, sans-serif;
+  line-height: 1.5;
+}
+.sb-deadline--due {
+  background: rgba(224, 168, 62, 0.16);
+  border-color: rgba(224, 168, 62, 0.4);
+  color: #f2dcae;
+}
+.sb-deadline--ok {
+  background: rgba(76, 175, 110, 0.16);
+  border-color: rgba(76, 175, 110, 0.4);
+  color: #bfe6cd;
+}
+.sb-deadline--crit {
+  background: rgba(221, 76, 76, 0.16);
+  border-color: rgba(221, 76, 76, 0.4);
+  color: #f4c6c6;
+}
+.sb-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sb-card {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.sb-card--closed {
+  opacity: 0.7;
+}
+.sb-card-title {
+  font: 600 14px system-ui, sans-serif;
+  color: #e7eef6;
+}
+.sb-card-sev {
+  display: inline-block;
+  margin: 6px 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+.sb-card-sev--high {
+  color: #e6906a;
+}
+.sb-card-sev--medium {
+  color: #e6c15a;
+}
+.sb-card-desc {
+  margin: 4px 0 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #a9b8c9;
+}
+.sb-card-progress {
+  font-size: 13px;
+  color: #cdd8e4;
+  margin-bottom: 10px;
+}
+.sb-card-status {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #8ea0b3;
+}
+.sb-card-assignee,
+.sb-card-assign {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #cdd8e4;
+}
+.sb-card-assign-label,
+.sb-card-none {
+  color: #8ea0b3;
+}
+.sb-btn {
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(53, 115, 221, 0.4);
+  background: rgba(53, 115, 221, 0.18);
+  color: #cfe0f7;
+  font: 500 12px system-ui, sans-serif;
+  cursor: pointer;
+}
+.sb-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.dr-security {
+  margin: 6px 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(224, 168, 62, 0.1);
+  border: 1px solid rgba(224, 168, 62, 0.22);
+}
+.dr-security-title {
+  font: 600 13px system-ui, sans-serif;
+  color: #f2dcae;
+  margin-bottom: 6px;
+}
+.dr-security-deadline {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #cdd8e4;
+}
+
 /* Product board */
 .pb-header {
   margin-bottom: 16px;

@@ -3,23 +3,26 @@ import { useEconomyStore } from './economyStore'
 import { useTeamStore } from './teamStore'
 import { useProductStore } from './productStore'
 import { useSecurityStoryStore } from './securityStoryStore'
-import { getEmployeeSalaryExpenses, getHiredEmployeeIds } from './teamRules'
+import { useSecurityAuditStore, isFollowUpAuditBlocking, type ApplySecurityWorkdayResult, type ScheduleAuditResult } from './securityAuditStore'
+import { getEmployeeSalaryExpenses, getHiredEmployeeIds, getHiredDeveloperIds } from './teamRules'
 import { isPostAuditConversationRequired } from './securityStoryRules'
 import type { WorkdayProgressRecord } from './productRules'
 
 // The single game operation that finalises a working day. It is the ONLY path
-// that advances the day, and it always applies development progress and charges
-// the day's expenses first. The low-level sprintStore.confirmEndDay stays a
-// primitive but must not be called by components directly - doing so would move
-// the day without the product and financial calculations. Kept out of React so
-// the math is testable in isolation (a button component only calls this).
+// that advances the day. Feature 08 order: security corrective work FIRST (so we
+// know which developers are diverted), THEN product progress (excluding the
+// diverted), THEN the day's expenses, THEN a possible pending follow-up audit,
+// THEN advance the clock and surface the report. Kept out of React so the math
+// is testable in isolation (a button component only calls this).
 
 export interface CompleteWorkdayResult {
   completed: boolean
-  reason?: 'invalid-sprint-state' | 'required-story-conversation'
+  reason?: 'invalid-sprint-state' | 'required-story-conversation' | 'required-follow-up-audit'
   economyApplied?: boolean
   chargedAmount?: number
   workday?: WorkdayProgressRecord
+  securityResult?: ApplySecurityWorkdayResult
+  auditScheduleResult?: ScheduleAuditResult
   sprintNumber?: number
   day?: number
 }
@@ -36,24 +39,36 @@ export function completeWorkday(): CompleteWorkdayResult {
   if (!canCompleteCurrentWorkday()) {
     return { completed: false, reason: 'invalid-sprint-state' }
   }
-  // A required post-audit conversation must be held before the day can end; it
-  // charges no money and applies no progress when blocked.
+  // A required post-audit conversation must be held before the day can end.
   if (isPostAuditConversationRequired(useSecurityStoryStore.getState().postAuditConversation)) {
     return { completed: false, reason: 'required-story-conversation' }
+  }
+  // A pending/running follow-up audit must be resolved before the next day - no
+  // money, product or security progress happens while blocked.
+  if (isFollowUpAuditBlocking(useSecurityAuditStore.getState().followUpAudit)) {
+    return { completed: false, reason: 'required-follow-up-audit' }
   }
 
   const { sprintNumber, day } = sprint
   const hiredIds = getHiredEmployeeIds(useTeamStore.getState().hires)
 
-  // 1. deterministic development progress for the day (idempotent), THEN
-  const productResult = useProductStore.getState().applyWorkday(sprintNumber, day, hiredIds)
-  // 2. financial expenses incl. salaries of the current team, THEN
+  // 1. security corrective work for the day (idempotent) - who was diverted?
+  const securityResult = useSecurityAuditStore.getState().applySecurityWorkday(sprintNumber, day)
+  const developerIds = getHiredDeveloperIds(useTeamStore.getState().hires)
+  const excludedDeveloperIds = developerIds.filter((id) => securityResult.divertedEmployeeIds.includes(id))
+
+  // 2. deterministic development progress (diverted developers make none), THEN
+  const productResult = useProductStore.getState().applyWorkday(sprintNumber, day, developerIds, excludedDeveloperIds)
+  // 3. financial expenses incl. salaries of the whole team (diversion does not
+  //    change salary), THEN
   const salaryItems = getEmployeeSalaryExpenses(hiredIds)
   const economyResult = useEconomyStore.getState().applyDailyOperatingExpense(sprintNumber, day, salaryItems)
-  // 3. advance the sprint clock (day -> day+1, or day 10 -> review)
+  // 4. create a pending follow-up audit if this completed day hit the deadline
+  const auditScheduleResult = useSecurityAuditStore.getState().schedulePendingAuditIfDue(sprintNumber, day)
+  // 5. advance the sprint clock (day -> day+1, or day 10 -> review)
   useSprintStore.getState().confirmEndDay()
 
-  // 4. surface the day's report to the player (does not re-run any calc)
+  // 6. surface the day's report to the player (does not re-run any calc)
   useProductStore.getState().showReport(productResult.record)
 
   return {
@@ -61,6 +76,8 @@ export function completeWorkday(): CompleteWorkdayResult {
     economyApplied: economyResult.applied,
     chargedAmount: economyResult.transaction.amount,
     workday: productResult.record,
+    securityResult,
+    auditScheduleResult,
     sprintNumber,
     day,
   }

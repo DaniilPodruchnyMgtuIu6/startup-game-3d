@@ -76,6 +76,15 @@ export function getHiredCharacterIds(hires: HireRecord[]): string[] {
   return getHiredEmployeeIds(hires).map((id) => getEmployee(id)!.characterId)
 }
 
+// Hired employees with a developer role only (Kirill/Alina) - the employees that
+// receive OfficeFlow product progress. The security specialist never does.
+export function getHiredDeveloperIds(hires: HireRecord[]): string[] {
+  return getHiredEmployeeIds(hires).filter((id) => {
+    const role = getEmployee(id)?.role
+    return role === 'backend-developer' || role === 'frontend-developer'
+  })
+}
+
 // The full daily breakdown (base expenses + active salaries) for the given hired
 // ids - used by the finance UI and to build the day's expense transaction.
 export function getDailyExpenseBreakdown(hiredEmployeeIds: string[]): ExpenseBreakdownItem[] {

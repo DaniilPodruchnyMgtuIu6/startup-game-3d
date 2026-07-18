@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import {
   appendTransactionOnce,
   calculateBalance,
+  createAuditFineTransaction,
   createDailyOperatingExpense,
   initialTransactions,
   normalizeEconomy,
@@ -68,6 +69,13 @@ interface EconomyStore {
     day: number,
     salaryItems?: ExpenseBreakdownItem[],
   ) => { applied: boolean; transaction: MoneyTransaction }
+  // Applies a security-audit fine exactly once (idempotent by audit number).
+  applyAuditFine: (
+    auditNumber: number,
+    amount: number,
+    sprintNumber: number,
+    day: number,
+  ) => { applied: boolean; transaction: MoneyTransaction }
   resetEconomy: () => void
   openPanel: () => void
   closePanel: () => void
@@ -81,6 +89,16 @@ export const useEconomyStore = create<EconomyStore>()((set, get) => ({
 
   applyDailyOperatingExpense: (sprintNumber, day, salaryItems = []) => {
     const transaction = createDailyOperatingExpense(sprintNumber, day, salaryItems)
+    const { transactions, applied } = appendTransactionOnce(get().transactions, transaction)
+    if (applied) {
+      set({ transactions })
+      saveEconomy(safeStorage(), transactions)
+    }
+    return { applied, transaction }
+  },
+
+  applyAuditFine: (auditNumber, amount, sprintNumber, day) => {
+    const transaction = createAuditFineTransaction(auditNumber, amount, sprintNumber, day)
     const { transactions, applied } = appendTransactionOnce(get().transactions, transaction)
     if (applied) {
       set({ transactions })

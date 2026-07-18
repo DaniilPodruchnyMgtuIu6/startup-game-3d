@@ -15,17 +15,24 @@ import { TeamPanel } from './ui/TeamPanel'
 import { DailyReport } from './ui/DailyReport'
 import { PrototypeMock } from './ui/PrototypeMock'
 import { SecurityStoryTrigger } from './game/securityStoryTrigger'
+import { SecurityFollowUpAuditTrigger } from './game/SecurityFollowUpAuditTrigger'
+import { AuditResultOverlay } from './ui/AuditResultOverlay'
 import { MinigameOverlay } from './game/minigames/MinigameOverlay'
 import { useCutsceneStore } from './cutscenes/cutsceneStore'
 import { useServerIncidentsStore, type ServerRole } from './game/serverIncidentsStore'
 import { useSecurityStoryStore } from './game/securityStoryStore'
 import { useSprintStore } from './game/sprintStore'
 import { hireSecuritySpecialist, reconcileSecurityHire } from './game/hireSecuritySpecialist'
+import { useSecurityAuditStore } from './game/securityAuditStore'
+import { initializeSecurityAuditIfReady } from './game/initializeSecurityAudit'
 
 // Feature 07: repair any cross-store inconsistency between the staffing decision,
 // the security hire record and its task after a load/migration (spec §17), once
 // at startup before the scene mounts.
 reconcileSecurityHire()
+// Feature 08: create the corrective-action plan from an old save whose post-audit
+// conversation is already completed (idempotent migration).
+initializeSecurityAuditIfReady()
 
 if (import.meta.env.DEV) {
   ;(window as unknown as { __startCutscene?: (id: string) => void }).__startCutscene = (id: string) =>
@@ -55,6 +62,15 @@ if (import.meta.env.DEV) {
       day: useSprintStore.getState().day,
     })
     hireSecuritySpecialist()
+  }
+  // Story testing: force a pending follow-up audit right now (the trigger then
+  // runs the scene). Requires the corrective-action plan to be initialised.
+  ;(window as unknown as { __triggerFollowUpAudit?: () => void }).__triggerFollowUpAudit = () => {
+    const audit = useSecurityAuditStore.getState()
+    if (!audit.initialized) return
+    useSecurityAuditStore.setState({
+      followUpAudit: { ...audit.followUpAudit, status: 'pending', pendingAuditNumber: audit.followUpAudit.records.length + 1 },
+    })
   }
 }
 
@@ -98,7 +114,9 @@ export function App() {
       <TeamPanel />
       <PrototypeMock />
       <DailyReport />
+      <AuditResultOverlay />
       <SecurityStoryTrigger />
+      <SecurityFollowUpAuditTrigger />
       <MinigameOverlay />
     </>
   )

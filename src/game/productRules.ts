@@ -27,7 +27,9 @@ export interface WorkdayEmployeeProgress {
   beforeProgressDays?: number
   afterProgressDays?: number
   completedTask?: boolean
-  idleReason?: 'no-planned-task' | 'all-planned-tasks-done'
+  // 'security-diverted' (Feature 08): the developer spent the day on an audit
+  // finding, so their product task made no progress this day.
+  idleReason?: 'no-planned-task' | 'all-planned-tasks-done' | 'security-diverted'
 }
 
 export interface WorkdayProgressRecord {
@@ -194,19 +196,28 @@ function applyEmployeeDay(
 }
 
 // Applies one working day of progress for every given employee (each at most
-// one day, on the first unfinished task of their queue). Returns the new task
-// states and the day's progress record (without an id - the store assigns the
-// deterministic id and guards idempotency).
+// one day, on the first unfinished task of their queue). Employees in
+// `excludedEmployeeIds` are diverted to security work (Feature 08): they make no
+// product progress and are recorded with the 'security-diverted' reason so the
+// daily report can explain the skipped day. Returns the new task states and the
+// day's progress record (without an id - the store assigns the deterministic id
+// and guards idempotency).
 export function applyWorkdayProgress(
   states: ProductTaskState[],
   sprintNumber: number,
   day: number,
   employeeIds: string[],
+  excludedEmployeeIds: string[] = [],
 ): { states: ProductTaskState[]; record: Omit<WorkdayProgressRecord, 'id'> } {
   const productProgressBefore = productReadiness(states)
+  const excluded = new Set(excludedEmployeeIds)
   let current = states
   const employeeResults: WorkdayEmployeeProgress[] = []
   for (const employeeId of employeeIds) {
+    if (excluded.has(employeeId)) {
+      employeeResults.push({ employeeId, idleReason: 'security-diverted' })
+      continue
+    }
     const applied = applyEmployeeDay(current, employeeId, sprintNumber, day)
     current = applied.states
     employeeResults.push(applied.result)

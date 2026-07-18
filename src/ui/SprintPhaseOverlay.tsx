@@ -2,6 +2,7 @@ import { useGameStore } from '../game/gameStore'
 import { useSprintStore } from '../game/sprintStore'
 import { useEconomyStore } from '../game/economyStore'
 import { useProductStore } from '../game/productStore'
+import { useSecurityAuditStore, isFollowUpAuditBlocking } from '../game/securityAuditStore'
 import { SPRINT_DAYS } from '../game/sprintRules'
 import { calculateBalance, formatRubles, sprintExpenseTotal } from '../game/economyRules'
 import {
@@ -26,6 +27,9 @@ export function SprintPhaseOverlay() {
   const dismissPlanning = useProductStore((s) => s.dismissPlanning)
   const transactions = useEconomyStore((s) => s.transactions)
   const taskStates = useProductStore((s) => s.taskStates)
+  // On the tenth day a due follow-up audit takes priority over the review: the
+  // review stays hidden until the audit is resolved (spec §16).
+  const followUpAudit = useSecurityAuditStore((s) => s.followUpAudit)
 
   if (gamePhase !== 'free') return null
 
@@ -46,7 +50,7 @@ export function SprintPhaseOverlay() {
     )
   }
 
-  if (sprintPhase === 'review') {
+  if (sprintPhase === 'review' && !isFollowUpAuditBlocking(followUpAudit)) {
     const spent = sprintExpenseTotal(transactions, sprintNumber)
     const balance = calculateBalance(transactions)
     const completed = completedInSprint(taskStates, sprintNumber)

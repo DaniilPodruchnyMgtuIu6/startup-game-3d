@@ -7,7 +7,7 @@
 import { SPRINT_DAYS } from './sprintRules'
 
 export type MoneyTransactionKind = 'income' | 'expense'
-export type MoneyTransactionCategory = 'funding' | 'operations'
+export type MoneyTransactionCategory = 'funding' | 'operations' | 'audit-fine'
 
 export interface ExpenseBreakdownItem {
   code: string
@@ -97,6 +97,33 @@ export function createDailyOperatingExpense(
   }
 }
 
+// --- Security audit fines (Feature 08) --------------------------------------
+
+// Deterministic id per follow-up audit number - the idempotency key so the same
+// audit can never be fined twice.
+export function auditFineTransactionId(auditNumber: number): string {
+  return `security-audit-fine:${auditNumber}`
+}
+
+// A single audit-fine expense. Its own category so it is never mixed into the
+// per-sprint operations total, but it still reduces the balance like any expense.
+export function createAuditFineTransaction(
+  auditNumber: number,
+  amount: number,
+  sprintNumber: number,
+  day: number,
+): MoneyTransaction {
+  return {
+    id: auditFineTransactionId(auditNumber),
+    kind: 'expense',
+    category: 'audit-fine',
+    title: 'Штраф по результатам повторного аудита',
+    amount,
+    sprintNumber,
+    day,
+  }
+}
+
 // Appends a transaction only if its id is not already present. `applied` tells
 // the caller whether the journal (and therefore the balance) actually changed.
 export function appendTransactionOnce(
@@ -179,7 +206,7 @@ export function formatRubles(amount: number): string {
 // --- Persistence normalisation ---------------------------------------------
 
 const KINDS: MoneyTransactionKind[] = ['income', 'expense']
-const CATEGORIES: MoneyTransactionCategory[] = ['funding', 'operations']
+const CATEGORIES: MoneyTransactionCategory[] = ['funding', 'operations', 'audit-fine']
 
 function isPositiveInt(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value > 0

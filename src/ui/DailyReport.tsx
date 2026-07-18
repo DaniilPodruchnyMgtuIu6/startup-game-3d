@@ -1,13 +1,30 @@
 import { useProductStore } from '../game/productStore'
 import { useEconomyStore } from '../game/economyStore'
+import { useSecurityAuditStore, isFollowUpAuditBlocking } from '../game/securityAuditStore'
 import { getProductTask } from '../game/productTaskCatalog'
-import { getEmployee } from '../game/teamCatalog'
+import { getEmployee, PROJECT_MANAGER } from '../game/teamCatalog'
 import { getFirstPrototypeCompletion, hasFirstPrototype, type WorkdayEmployeeProgress } from '../game/productRules'
+import { getSecurityFinding } from '../game/securityFindingCatalog'
+import { securityWorkdayId, type SecurityWorkdayRecord } from '../game/securityAuditRules'
+import { getDaysUntilAudit, toWorkdayIndex } from '../game/workdayIndex'
 import { calculateBalance, dailyExpenseId, formatRubles } from '../game/economyRules'
 import './ui.css'
 
+function securityEmployeeName(id: string): string {
+  if (id === PROJECT_MANAGER.id) return PROJECT_MANAGER.name
+  return getEmployee(id)?.name ?? id
+}
+
 function EmployeeLine({ result }: { result: WorkdayEmployeeProgress }) {
   const employee = getEmployee(result.employeeId)
+  if (result.idleReason === 'security-diverted') {
+    return (
+      <div className="dr-emp">
+        <div className="dr-emp-name">{employee?.name}</div>
+        <div className="dr-emp-idle">Задача OfficeFlow не продвигалась: работал над замечанием аудита.</div>
+      </div>
+    )
+  }
   if (result.idleReason || !result.taskId) {
     return (
       <div className="dr-emp">
@@ -28,6 +45,44 @@ function EmployeeLine({ result }: { result: WorkdayEmployeeProgress }) {
   )
 }
 
+// Security corrective-work section + follow-up audit deadline for the completed
+// day. Only shown once the corrective-action plan is initialised.
+function SecuritySection({ record, sprintNumber, day }: { record: SecurityWorkdayRecord | undefined; sprintNumber: number; day: number }) {
+  const followUpAudit = useSecurityAuditStore((s) => s.followUpAudit)
+  const auditInProgress = isFollowUpAuditBlocking(followUpAudit)
+
+  let deadlineText: string | null = null
+  if (auditInProgress) {
+    deadlineText = 'Сегодня проводится повторная проверка.'
+  } else if (followUpAudit.status === 'scheduled' && followUpAudit.nextAuditWorkdayIndex !== undefined) {
+    const remaining = getDaysUntilAudit(toWorkdayIndex(sprintNumber, day), followUpAudit.nextAuditWorkdayIndex)
+    deadlineText = `До повторной проверки: ${remaining} рабочих дней`
+  }
+
+  return (
+    <div className="dr-security">
+      <div className="dr-security-title">Безопасность</div>
+      {record && record.results.length > 0 ? (
+        record.results.map((r) => {
+          const def = getSecurityFinding(r.findingId)
+          return (
+            <div className="dr-emp" key={r.employeeId + r.findingId}>
+              <div className="dr-emp-name">{securityEmployeeName(r.employeeId)}</div>
+              <div className="dr-emp-task">
+                {def?.title}: {r.beforeProgressDays}/{def?.effortDays} → {r.afterProgressDays}/{def?.effortDays}
+              </div>
+              {r.closedFinding ? <div className="dr-emp-done">Замечание закрыто</div> : null}
+            </div>
+          )
+        })
+      ) : (
+        <div className="dr-emp-idle">Замечания аудита сегодня не исправлялись.</div>
+      )}
+      {deadlineText ? <div className="dr-security-deadline">{deadlineText}</div> : null}
+    </div>
+  )
+}
+
 // Blocking end-of-day report. Only «Продолжить» closes it - clicking the
 // backdrop does nothing. Closing does not move time or re-run any calculation;
 // if the tenth day was completed, the sprint review is revealed underneath.
@@ -36,8 +91,12 @@ export function DailyReport() {
   const taskStates = useProductStore((s) => s.taskStates)
   const close = useProductStore((s) => s.closeReport)
   const transactions = useEconomyStore((s) => s.transactions)
+  const auditInitialized = useSecurityAuditStore((s) => s.initialized)
+  const securityHistory = useSecurityAuditStore((s) => s.workdayHistory)
 
   if (!report) return null
+
+  const securityRecord = securityHistory.find((w) => w.id === securityWorkdayId(report.sprintNumber, report.day))
 
   const dayExpense = transactions.find((t) => t.id === dailyExpenseId(report.sprintNumber, report.day))?.amount ?? 0
   const balance = calculateBalance(transactions)
@@ -55,6 +114,8 @@ export function DailyReport() {
             <EmployeeLine key={r.employeeId} result={r} />
           ))}
         </div>
+
+        {auditInitialized ? <SecuritySection record={securityRecord} sprintNumber={report.sprintNumber} day={report.day} /> : null}
 
         {milestoneToday ? (
           <div className="dr-milestone">

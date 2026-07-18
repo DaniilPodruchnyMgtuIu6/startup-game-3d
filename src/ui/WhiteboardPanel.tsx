@@ -5,7 +5,18 @@ import { useTeamStore } from '../game/teamStore'
 import { useEconomyStore } from '../game/economyStore'
 import { useGameStore } from '../game/gameStore'
 import { PRODUCT_TASK_CATALOG, getProductTask, type ProductTaskDefinition } from '../game/productTaskCatalog'
-import { getEmployee, DEVELOPER_CATALOG } from '../game/teamCatalog'
+import { getEmployee, DEVELOPER_CATALOG, PROJECT_MANAGER } from '../game/teamCatalog'
+import { isEmployeeHired, hasSecuritySpecialist } from '../game/teamRules'
+import { useSecurityAuditStore, isFollowUpAuditBlocking } from '../game/securityAuditStore'
+import { getSecurityFinding } from '../game/securityFindingCatalog'
+import {
+  getEligibleEmployeesForFinding,
+  getEmployeeActiveSecurityFinding,
+  getRemainingSecurityEffort,
+  type SecurityFindingState,
+  type SecurityStaffContext,
+} from '../game/securityAuditRules'
+import { toWorkdayIndex, fromWorkdayIndex, getDaysUntilAudit } from '../game/workdayIndex'
 import {
   completedInSprint,
   firstPrototypeDoneCount,
@@ -312,6 +323,128 @@ function DepartmentTasks() {
   )
 }
 
+const SEVERITY_LABEL: Record<'medium' | 'high', string> = { medium: 'Средняя серьёзность', high: 'Высокая серьёзность' }
+
+function securityEmployeeName(id: string): string {
+  if (id === PROJECT_MANAGER.id) return PROJECT_MANAGER.name
+  return getEmployee(id)?.name ?? id
+}
+
+// Deadline / status banner for the corrective-action plan.
+function SecurityDeadline() {
+  const followUpAudit = useSecurityAuditStore((s) => s.followUpAudit)
+  const sprintNumber = useSprintStore((s) => s.sprintNumber)
+  const day = useSprintStore((s) => s.day)
+
+  if (followUpAudit.status === 'passed') {
+    return <div className="sb-deadline sb-deadline--ok">Замечания закрыты. Повторная проверка пройдена.</div>
+  }
+  if (followUpAudit.status === 'critical-escalation') {
+    return <div className="sb-deadline sb-deadline--crit">Аудиторы рекомендуют приостановить проект.</div>
+  }
+  if (isFollowUpAuditBlocking(followUpAudit)) {
+    return <div className="sb-deadline">Проверка проводится.</div>
+  }
+  const next = followUpAudit.nextAuditWorkdayIndex
+  if (next === undefined) return null
+  const remaining = getDaysUntilAudit(toWorkdayIndex(sprintNumber, day), next)
+  if (remaining === 0) {
+    return <div className="sb-deadline sb-deadline--due">Повторная проверка назначена на конец текущего дня.</div>
+  }
+  const at = fromWorkdayIndex(next)
+  return (
+    <div className="sb-deadline">
+      <div>
+        Следующая проверка: Спринт {at.sprintNumber} · День {at.day}
+      </div>
+      <div>Осталось рабочих дней: {remaining}</div>
+    </div>
+  )
+}
+
+function FindingCard({ state, ctx, blocked }: { state: SecurityFindingState; ctx: SecurityStaffContext; blocked: boolean }) {
+  const assign = useSecurityAuditStore((s) => s.assignFinding)
+  const unassign = useSecurityAuditStore((s) => s.unassignFinding)
+  const findings = useSecurityAuditStore((s) => s.findings)
+  const def = getSecurityFinding(state.findingId)
+  if (!def) return null
+
+  if (state.status === 'closed') {
+    return (
+      <div className="sb-card sb-card--closed">
+        <div className="sb-card-title">{def.title}</div>
+        <div className="sb-card-status">
+          Закрыто{state.closedAt ? ` · Спринт ${state.closedAt.sprintNumber} · День ${state.closedAt.day}` : ''}
+        </div>
+      </div>
+    )
+  }
+
+  const eligible = getEligibleEmployeesForFinding(state.findingId, ctx)
+  return (
+    <div className="sb-card">
+      <div className="sb-card-title">{def.title}</div>
+      <div className={`sb-card-sev sb-card-sev--${def.severity}`}>{SEVERITY_LABEL[def.severity]}</div>
+      <p className="sb-card-desc">{def.description}</p>
+      <div className="sb-card-progress">
+        Прогресс: {state.progressDays}/{def.effortDays} · осталось {getRemainingSecurityEffort(state)} дн
+      </div>
+      {state.assignedEmployeeId ? (
+        <div className="sb-card-assignee">
+          <span>Исполнитель: {securityEmployeeName(state.assignedEmployeeId)}</span>
+          <button className="sb-btn" disabled={blocked} onClick={() => unassign(state.findingId)}>
+            Снять назначение
+          </button>
+        </div>
+      ) : (
+        <div className="sb-card-assign">
+          <span className="sb-card-assign-label">Назначить:</span>
+          {eligible.length === 0 ? (
+            <span className="sb-card-none">нет доступных сотрудников</span>
+          ) : (
+            eligible.map((empId) => {
+              const busy = getEmployeeActiveSecurityFinding(findings, empId)
+              return (
+                <button
+                  key={empId}
+                  className="sb-btn"
+                  disabled={blocked || !!busy}
+                  title={busy ? 'Сотрудник уже занимается другим замечанием' : undefined}
+                  onClick={() => assign(state.findingId, empId)}
+                >
+                  {securityEmployeeName(empId)}
+                </button>
+              )
+            })
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SecurityBoard() {
+  const findings = useSecurityAuditStore((s) => s.findings)
+  const followUpAudit = useSecurityAuditStore((s) => s.followUpAudit)
+  const hires = useTeamStore((s) => s.hires)
+  const ctx: SecurityStaffContext = { hasKirill: isEmployeeHired(hires, 'kirill-morozov'), hasIlya: hasSecuritySpecialist(hires) }
+  const blocked = isFollowUpAuditBlocking(followUpAudit)
+
+  return (
+    <div className="sb">
+      <div className="pb-header">
+        <h2 className="pb-title">Безопасность проекта</h2>
+      </div>
+      <SecurityDeadline />
+      <div className="sb-cards">
+        {findings.map((f) => (
+          <FindingCard key={f.findingId} state={f} ctx={ctx} blocked={blocked} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // The whiteboard panel: two tabs - OfficeFlow development (product board) and
 // the existing department tasks. Blocks scene clicks via the shared backdrop.
 export function WhiteboardPanel() {
@@ -319,10 +452,14 @@ export function WhiteboardPanel() {
   const close = useProductStore((s) => s.closeBoard)
   const tab = useProductStore((s) => s.boardTab)
   const setTab = useProductStore((s) => s.setTab)
+  // The security tab only exists once the corrective-action plan is initialised.
+  const securityInitialized = useSecurityAuditStore((s) => s.initialized)
 
   if (!open) return null
 
   const select = (t: BoardTab) => () => setTab(t)
+  // Guard against a persisted 'security' tab when the plan is not initialised.
+  const activeTab: BoardTab = tab === 'security' && !securityInitialized ? 'product' : tab
 
   return (
     <div className="overlay-backdrop" onClick={close}>
@@ -331,14 +468,19 @@ export function WhiteboardPanel() {
           ✕
         </button>
         <div className="wb-tabs">
-          <button className={tab === 'product' ? 'wb-tab wb-tab--active' : 'wb-tab'} onClick={select('product')}>
+          <button className={activeTab === 'product' ? 'wb-tab wb-tab--active' : 'wb-tab'} onClick={select('product')}>
             Разработка OfficeFlow
           </button>
-          <button className={tab === 'department' ? 'wb-tab wb-tab--active' : 'wb-tab'} onClick={select('department')}>
+          <button className={activeTab === 'department' ? 'wb-tab wb-tab--active' : 'wb-tab'} onClick={select('department')}>
             Задачи отдела
           </button>
+          {securityInitialized ? (
+            <button className={activeTab === 'security' ? 'wb-tab wb-tab--active' : 'wb-tab'} onClick={select('security')}>
+              Безопасность
+            </button>
+          ) : null}
         </div>
-        {tab === 'product' ? <ProductBoard /> : <DepartmentTasks />}
+        {activeTab === 'product' ? <ProductBoard /> : activeTab === 'security' ? <SecurityBoard /> : <DepartmentTasks />}
       </div>
     </div>
   )
