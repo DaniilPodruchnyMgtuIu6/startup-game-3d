@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { CharacterModel } from './CharacterModel'
-import { NPC_CHARACTERS, DEVELOPER_CHARACTERS, getCharacterById, type CharacterDefinition } from './characters'
+import { NPC_CHARACTERS, DEVELOPER_CHARACTERS, SPECIALIST_CHARACTERS, getCharacterById, type CharacterDefinition } from './characters'
 import { useTeamStore } from '../game/teamStore'
 import { getHiredEmployeeIds } from '../game/teamRules'
 import { getEmployee } from '../game/teamCatalog'
 import { developerPlanActivity } from '../game/developerPlanner'
+import { securitySpecialistPlanActivity } from '../game/securitySpecialistPlanner'
 import { useCharacterStore } from './characterStore'
 import { nearestWalkable } from './grid'
 import { planNextActivity, wanderPoint, createRng, type ActivityPlan, type ActivityPlanner } from './npcBehavior'
@@ -62,6 +63,12 @@ function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivit
         planRef.current = plan
         const store = useCharacterStore.getState()
         releaseClaims(id)
+        // A security round walks to a patrol point and idles there - a floor
+        // move, not a seat, so it claims nothing and touches no server state.
+        if (plan.kind === 'security-round' && plan.target) {
+          store.dispatchTo(id, { type: 'CLICK_FLOOR', point: nearestWalkable(plan.target.point) })
+          return
+        }
         if (!plan.target) {
           store.dispatchTo(id, { type: 'CLICK_FLOOR', point: nearestWalkable(wanderPoint(rng)) })
           return
@@ -107,21 +114,27 @@ function Npc({ definition, planActivity }: { definition: CharacterDefinition; pl
 // planner as every other body.
 export function Npcs() {
   const hires = useTeamStore((s) => s.hires)
-  const hiredDevelopers = getHiredEmployeeIds(hires)
+  const hiredNpcs = getHiredEmployeeIds(hires)
     .map((employeeId) => {
       const employee = getEmployee(employeeId)
       const definition = employee ? getCharacterById(employee.characterId) : undefined
-      return employee && definition ? { employeeId, definition } : null
+      if (!employee || !definition) return null
+      // the security specialist patrols; developers favour their sprint work
+      const planActivity =
+        employee.role === 'security-specialist'
+          ? securitySpecialistPlanActivity(employeeId)
+          : developerPlanActivity(employeeId)
+      return { definition, planActivity }
     })
-    .filter((d): d is { employeeId: string; definition: CharacterDefinition } => d !== null)
+    .filter((d): d is { definition: CharacterDefinition; planActivity: ActivityPlanner } => d !== null)
 
   return (
     <>
       {NPC_CHARACTERS.map((definition) => (
         <Npc key={definition.id} definition={definition} />
       ))}
-      {hiredDevelopers.map(({ employeeId, definition }) => (
-        <Npc key={definition.id} definition={definition} planActivity={developerPlanActivity(employeeId)} />
+      {hiredNpcs.map(({ definition, planActivity }) => (
+        <Npc key={definition.id} definition={definition} planActivity={planActivity} />
       ))}
     </>
   )
@@ -133,11 +146,11 @@ for (const definition of NPC_CHARACTERS) {
   }
 }
 
-// Preload hired-developer models in the COMBINED-array form CharacterModel
+// Preload hired-employee models in the COMBINED-array form CharacterModel
 // actually looks up (useGLTF([...urls])). This warms the exact cache entry the
 // character uses, so hiring mid-game does not suspend the shared <Suspense>
 // boundary and wipe every character's position (same reason the guard models
 // are preloaded this way for the security-breach cutscene).
-for (const definition of DEVELOPER_CHARACTERS) {
+for (const definition of [...DEVELOPER_CHARACTERS, ...SPECIALIST_CHARACTERS]) {
   useGLTF.preload(Object.values(definition.model.clips))
 }

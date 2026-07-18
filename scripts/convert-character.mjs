@@ -48,6 +48,13 @@ const ALL_CLIPS = [
   { file: 'alina_belova/alina_sitting_idle', name: 'sitIdle', out: 'alina_belova/sitIdle' },
   { file: 'alina_belova/alina_sitting_sofa', name: 'sofaSit', out: 'alina_belova/sofaSit' },
   { file: 'alina_belova/alina_talking', name: 'talk', out: 'alina_belova/talk' },
+  { file: 'cybersecurity/idle', name: 'idle', out: 'cybersecurity/idle', keepMesh: true },
+  { file: 'cybersecurity/walk', name: 'walk', out: 'cybersecurity/walk' },
+  { file: 'cybersecurity/type', name: 'type', out: 'cybersecurity/type' },
+  { file: 'cybersecurity/drink', name: 'drink', out: 'cybersecurity/drink' },
+  { file: 'cybersecurity/sitIdle', name: 'sitIdle', out: 'cybersecurity/sitIdle' },
+  { file: 'cybersecurity/sofaSit', name: 'sofaSit', out: 'cybersecurity/sofaSit' },
+  { file: 'cybersecurity/talk', name: 'talk', out: 'cybersecurity/talk' },
 ]
 // pass name fragments as CLI args to convert a subset, e.g.
 //   node scripts/convert-character.mjs female_pm

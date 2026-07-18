@@ -31,7 +31,7 @@ function fakeStorage(initial: Record<string, string> = {}) {
 }
 
 function resetStores() {
-  useSecurityStoryStore.setState({ securityBreach: { ...INITIAL_SECURITY_BREACH }, postAuditConversation: { status: 'locked', effectsApplied: false } })
+  useSecurityStoryStore.setState({ securityBreach: { ...INITIAL_SECURITY_BREACH }, postAuditConversation: { status: 'locked', effectsApplied: false }, hasIntroducedSecuritySpecialist: false })
   useGameStore.setState({ reprimands: 0, tasks: BOARD_TASKS.map((t) => ({ ...t })) })
   useCutsceneStore.setState({ activeSceneId: null, actors: {} })
   window.localStorage.clear()
@@ -141,7 +141,11 @@ describe('persistence & hydration', () => {
     expect(loadSecurityStory(fakeStorage({ [KEY]: '{oops' }), '').securityBreach).toEqual(INITIAL_SECURITY_BREACH)
     expect(loadSecurityStory(null, '').securityBreach).toEqual(INITIAL_SECURITY_BREACH)
     expect(() =>
-      saveSecurityStory(null, { securityBreach: INITIAL_SECURITY_BREACH, postAuditConversation: { status: 'locked', effectsApplied: false } }),
+      saveSecurityStory(null, {
+        securityBreach: INITIAL_SECURITY_BREACH,
+        postAuditConversation: { status: 'locked', effectsApplied: false },
+        hasIntroducedSecuritySpecialist: false,
+      }),
     ).not.toThrow()
   })
 })
@@ -290,5 +294,29 @@ describe('post-audit reload & reset', () => {
     useSecurityStoryStore.getState().resetSecurityStory()
     expect(pa().status).toBe('locked')
     expect(sb().status).toBe('not-started')
+  })
+})
+
+describe('security specialist introduction flag (Feature 07)', () => {
+  beforeEach(resetStores)
+
+  it('defaults to false and is set once, idempotently', () => {
+    expect(useSecurityStoryStore.getState().hasIntroducedSecuritySpecialist).toBe(false)
+    useSecurityStoryStore.getState().markSecuritySpecialistIntroduced()
+    useSecurityStoryStore.getState().markSecuritySpecialistIntroduced()
+    expect(useSecurityStoryStore.getState().hasIntroducedSecuritySpecialist).toBe(true)
+  })
+
+  it('survives a reload and is wiped by reset', () => {
+    useSecurityStoryStore.getState().markSecuritySpecialistIntroduced()
+    saveSecurityStory(window.localStorage, useSecurityStoryStore.getState())
+    expect(loadSecurityStory(window.localStorage, '').hasIntroducedSecuritySpecialist).toBe(true)
+    useSecurityStoryStore.getState().resetSecurityStory()
+    expect(useSecurityStoryStore.getState().hasIntroducedSecuritySpecialist).toBe(false)
+  })
+
+  it('an old save without the flag loads it as false', () => {
+    const saved = { securityBreach: { status: 'completed', completedAt: { sprintNumber: 2, day: 3 }, effectsApplied: true } }
+    expect(loadSecurityStory(fakeStorage({ [KEY]: JSON.stringify(saved) }), '').hasIntroducedSecuritySpecialist).toBe(false)
   })
 })

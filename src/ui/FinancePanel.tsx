@@ -100,7 +100,7 @@ export function FinancePanel() {
           {salaryItems.length > 0 ? (
             <>
               <div className="finance-costs-head finance-costs-head--spaced">
-                <span>Зарплаты разработчиков</span>
+                <span>Зарплаты команды</span>
                 <span>{formatRubles(salaryTotal)}</span>
               </div>
               <ul className="finance-costs-list">

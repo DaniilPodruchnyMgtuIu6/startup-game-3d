@@ -4,7 +4,10 @@ import type { Point } from './navigation'
 // Pure activity planning for NPC office life. All randomness comes in via the
 // injected rng, so the logic stays deterministic and unit-testable.
 
-export type ActivityKind = 'work' | 'coffee' | 'sofa' | 'meeting' | 'wander'
+// 'security-round' is a role-specific visual patrol (Feature 07). Like 'wander'
+// it carries no context target - its destination is chosen by the security
+// specialist's own planner from a fixed set of patrol points.
+export type ActivityKind = 'work' | 'coffee' | 'sofa' | 'meeting' | 'wander' | 'security-round'
 
 export interface ActivityPlan {
   kind: ActivityKind
@@ -54,6 +57,7 @@ const STAY_RANGES_MS: Record<ActivityKind, [number, number]> = {
   meeting: [10000, 22000],
   sofa: [12000, 28000],
   wander: [3000, 8000],
+  'security-round': [8000, 16000],
 }
 
 function key(target: TriggerTarget): string {
@@ -96,13 +100,15 @@ export function planNextActivity(
   weights: ActivityWeights = WEIGHTS,
 ): ActivityPlan {
   const kind = pickKind(rng, ctx.previousKind, weights)
-  const candidates: Record<Exclude<ActivityKind, 'wander'>, TriggerTarget[]> = {
+  const candidates: Record<Exclude<ActivityKind, 'wander' | 'security-round'>, TriggerTarget[]> = {
     work: ctx.workstations,
     coffee: ctx.coffeeMachines,
     sofa: ctx.sofas,
     meeting: ctx.seats,
   }
-  if (kind === 'wander') return { kind, stayMs: stayFor(rng, kind) }
+  // wander and security-round have no context target; security-round's patrol
+  // destination is supplied by the specialist's own planner wrapper.
+  if (kind === 'wander' || kind === 'security-round') return { kind, stayMs: stayFor(rng, kind) }
   const target = pickTarget(rng, candidates[kind], ctx.previousTargetKey)
   // everything of that kind is taken - stretch legs instead of idling in place
   if (!target) return { kind: 'wander', stayMs: stayFor(rng, 'wander') }

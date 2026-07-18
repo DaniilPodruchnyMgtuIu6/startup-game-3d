@@ -5,7 +5,7 @@ import { useTeamStore } from '../game/teamStore'
 import { useEconomyStore } from '../game/economyStore'
 import { useGameStore } from '../game/gameStore'
 import { PRODUCT_TASK_CATALOG, getProductTask, type ProductTaskDefinition } from '../game/productTaskCatalog'
-import { getEmployee, TEAM_CATALOG } from '../game/teamCatalog'
+import { getEmployee, DEVELOPER_CATALOG } from '../game/teamCatalog'
 import {
   completedInSprint,
   firstPrototypeDoneCount,
@@ -160,7 +160,7 @@ function ProductBoard() {
 
   const readiness = productReadiness(states)
   const prototypeReady = hasFirstPrototype(states)
-  const overloaded = TEAM_CATALOG.some((e) => plannedLoadForEmployee(states, e.id) > 10)
+  const overloaded = DEVELOPER_CATALOG.some((e) => plannedLoadForEmployee(states, e.id) > 10)
   const startCheck = canStartSprintWithPlan()
 
   const phaseLine =
@@ -187,7 +187,7 @@ function ProductBoard() {
       </div>
 
       <div className="pb-queues">
-        {TEAM_CATALOG.map((e) => (
+        {DEVELOPER_CATALOG.map((e) => (
           <DeveloperQueue key={e.id} employeeId={e.id} states={states} phase={phase} />
         ))}
       </div>

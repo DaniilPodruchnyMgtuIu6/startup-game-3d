@@ -1,6 +1,6 @@
 import { composeDailyBreakdown, type ExpenseBreakdownItem } from './economyRules'
 import { SPRINT_DAYS } from './sprintRules'
-import { TEAM_CATALOG, getEmployee } from './teamCatalog'
+import { TEAM_CATALOG, DEVELOPER_CATALOG, SECURITY_SPECIALIST_ID, getEmployee } from './teamCatalog'
 
 // Pure, deterministic team rules. Kept out of React and the store so hiring,
 // salary math and the first-sprint gate can be unit-tested in isolation.
@@ -28,10 +28,16 @@ export function getHiredEmployeeIds(hires: HireRecord[]): string[] {
   return ids
 }
 
-// True once both first developers are hired.
+// True once both first developers are hired. Only the developers count - the
+// security specialist (Feature 07) is never required to form the dev team.
 export function hasInitialDevelopmentTeam(hires: HireRecord[]): boolean {
   const ids = new Set(getHiredEmployeeIds(hires))
-  return TEAM_CATALOG.every((e) => ids.has(e.id))
+  return DEVELOPER_CATALOG.every((e) => ids.has(e.id))
+}
+
+// True once the fixed security specialist (Ilya) has been hired (Feature 07).
+export function hasSecuritySpecialist(hires: HireRecord[]): boolean {
+  return isEmployeeHired(hires, SECURITY_SPECIALIST_ID)
 }
 
 // The first sprint cannot start until both developers are hired; later sprints
@@ -54,6 +60,14 @@ export function getEmployeeSalaryExpenses(hiredEmployeeIds: string[]): ExpenseBr
 
 export function getTeamDailySalary(hires: HireRecord[]): number {
   return getEmployeeSalaryExpenses(getHiredEmployeeIds(hires)).reduce((sum, item) => sum + item.amount, 0)
+}
+
+// The security specialist's salary line if (and only if) he is hired, else null.
+// The daily breakdown already includes it via getEmployeeSalaryExpenses; this is
+// the isolated selector Feature 07 exposes for the finance/team UI and tests.
+export function getSecuritySpecialistSalaryExpense(hires: HireRecord[]): ExpenseBreakdownItem | null {
+  if (!hasSecuritySpecialist(hires)) return null
+  return getEmployeeSalaryExpenses([SECURITY_SPECIALIST_ID])[0] ?? null
 }
 
 // Character-definition ids of the hired developers - the active NPC roster to

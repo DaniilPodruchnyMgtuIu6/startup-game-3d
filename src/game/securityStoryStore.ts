@@ -60,12 +60,16 @@ function addTaskOnce(task: BoardTask): void {
 export interface SecurityStoryData {
   securityBreach: SecurityBreachData
   postAuditConversation: PostAuditConversationState
+  // Whether Ilya's one-off introduction dialogue has already been shown, so it
+  // is not repeated after a reload (Feature 07). A plain flag - no new store.
+  hasIntroducedSecuritySpecialist: boolean
 }
 
 export function loadSecurityStory(storage: StoryStorage | null, search: string): SecurityStoryData {
   const fresh = (): SecurityStoryData => ({
     securityBreach: { ...INITIAL_SECURITY_BREACH },
     postAuditConversation: getInitialPostAuditConversationState('not-started'),
+    hasIntroducedSecuritySpecialist: false,
   })
   if (isIntroReset(search)) {
     storage?.removeItem(SECURITY_STORAGE_KEY)
@@ -80,7 +84,8 @@ export function loadSecurityStory(storage: StoryStorage | null, search: string):
     // conversation is normalised against the (already normalised) breach status,
     // and derived from it when absent (Feature 05 -> 06 migration).
     const postAuditConversation = normalizePostAuditConversationState(parsed, securityBreach.status)
-    return { securityBreach, postAuditConversation }
+    const hasIntroducedSecuritySpecialist = (parsed as { hasIntroducedSecuritySpecialist?: unknown })?.hasIntroducedSecuritySpecialist === true
+    return { securityBreach, postAuditConversation, hasIntroducedSecuritySpecialist }
   } catch {
     return fresh()
   }
@@ -115,6 +120,8 @@ interface SecurityStoryStore extends SecurityStoryData {
   resolveSecurityStaffingDecision: (decision: SecurityStaffingDecision) => ResolveSecurityStaffingResult
   markPostAuditConversationCompleted: (moment: StoryMoment) => void
   markPostAuditConversationFailed: () => void
+  // --- security specialist (Feature 07) ---
+  markSecuritySpecialistIntroduced: () => void
   resetSecurityStory: () => void
 }
 
@@ -122,7 +129,11 @@ const initial = loadSecurityStory(safeStorage(), typeof window === 'undefined' ?
 
 export const useSecurityStoryStore = create<SecurityStoryStore>()((set, get) => {
   const persist = () =>
-    saveSecurityStory(safeStorage(), { securityBreach: get().securityBreach, postAuditConversation: get().postAuditConversation })
+    saveSecurityStory(safeStorage(), {
+      securityBreach: get().securityBreach,
+      postAuditConversation: get().postAuditConversation,
+      hasIntroducedSecuritySpecialist: get().hasIntroducedSecuritySpecialist,
+    })
 
   // Move a locked conversation to pending and make sure the objective task
   // exists. Idempotent - safe to call after a reload, migration, or a repeated
@@ -219,10 +230,17 @@ export const useSecurityStoryStore = create<SecurityStoryStore>()((set, get) => 
       persist()
     },
 
+    markSecuritySpecialistIntroduced: () => {
+      if (get().hasIntroducedSecuritySpecialist) return
+      set({ hasIntroducedSecuritySpecialist: true })
+      persist()
+    },
+
     resetSecurityStory: () => {
       set({
         securityBreach: { ...INITIAL_SECURITY_BREACH },
         postAuditConversation: getInitialPostAuditConversationState('not-started'),
+        hasIntroducedSecuritySpecialist: false,
       })
       persist()
     },

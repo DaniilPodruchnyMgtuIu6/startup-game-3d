@@ -2,6 +2,7 @@ import { businessMan } from './businessMan'
 import { femalePm } from './femalePm'
 import { kirillMorozov } from './kirillMorozov'
 import { alinaBelova } from './alinaBelova'
+import { ilyaVlasov } from './ilyaVlasov'
 import type { CharacterDefinition } from './definition'
 
 export type { CharacterDefinition, CharacterModelConfig, ClipName, Persona, NpcSettings } from './definition'
@@ -21,8 +22,13 @@ export const NPC_CHARACTERS = CHARACTERS.filter((c) => c.npc !== undefined)
 // hired the matching employee (keyed by character id from the team catalog).
 export const DEVELOPER_CHARACTERS: CharacterDefinition[] = [kirillMorozov, alinaBelova]
 
+// The hireable security specialist (Feature 07). Same rule as the developers:
+// spawned only once hired. Kept separate so it never auto-spawns and so the
+// developer-only roster stays exactly the two devs.
+export const SPECIALIST_CHARACTERS: CharacterDefinition[] = [ilyaVlasov]
+
 const BY_ID: Record<string, CharacterDefinition> = Object.fromEntries(
-  [...CHARACTERS, ...DEVELOPER_CHARACTERS].map((c) => [c.id, c]),
+  [...CHARACTERS, ...DEVELOPER_CHARACTERS, ...SPECIALIST_CHARACTERS].map((c) => [c.id, c]),
 )
 
 export function getCharacterById(id: string): CharacterDefinition | undefined {

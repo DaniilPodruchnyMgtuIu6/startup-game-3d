@@ -54,6 +54,9 @@ interface TeamStore {
   // UI flag for the team panel (not persisted), mirroring the project pattern.
   panelOpen: boolean
   hireEmployee: (employeeId: string, context: { sprintNumber: number; day: number }) => HireEmployeeResult
+  // Drops a hire record (idempotent). Used by the Feature 07 reconciliation to
+  // clear an invalid security-specialist record on the decline branch.
+  removeHire: (employeeId: string) => void
   resetTeam: () => void
   openPanel: () => void
   closePanel: () => void
@@ -76,6 +79,13 @@ export const useTeamStore = create<TeamStore>()((set, get) => ({
     set({ hires })
     saveTeam(safeStorage(), hires)
     return { hired: true, employeeId }
+  },
+
+  removeHire: (employeeId) => {
+    if (!get().hires.some((h) => h.employeeId === employeeId)) return
+    const hires = get().hires.filter((h) => h.employeeId !== employeeId)
+    set({ hires })
+    saveTeam(safeStorage(), hires)
   },
 
   resetTeam: () => {

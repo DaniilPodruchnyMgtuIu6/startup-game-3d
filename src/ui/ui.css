@@ -754,6 +754,24 @@ button.primary:hover {
   font-size: 13px;
   color: #e6c15a;
 }
+.team-section-title {
+  margin: 18px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8ea0b3;
+}
+.team-card-note {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #d7c69a;
+  background: rgba(224, 168, 62, 0.12);
+  border: 1px solid rgba(224, 168, 62, 0.28);
+  border-radius: 8px;
+}
 
 /* First-sprint team gate in the planning block */
 .sprint-team-gate {

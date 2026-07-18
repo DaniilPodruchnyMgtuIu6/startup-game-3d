@@ -1,8 +1,11 @@
-// Fixed roster of the two hireable first developers. No candidate market, no
-// random generation, no alternatives (Feature 03). Pure data - only the fact
-// of a hire is persisted (see teamStore), never this catalog.
+// Fixed roster of hireable story employees. No candidate market, no random
+// generation, no alternatives (Feature 03 / Feature 07). Pure data - only the
+// fact of a hire is persisted (see teamStore), never this catalog.
 
-export type EmployeeRole = 'backend-developer' | 'frontend-developer'
+export type EmployeeRole = 'backend-developer' | 'frontend-developer' | 'security-specialist'
+
+// The stable id of the one fixed security specialist (Feature 07).
+export const SECURITY_SPECIALIST_ID = 'ilya-vlasov'
 
 export interface EmployeeDefinition {
   id: string
@@ -37,7 +40,26 @@ export const TEAM_CATALOG: EmployeeDefinition[] = [
     persona: 'Общительная и ответственная. Не любит постоянную смену требований и бессмысленные переделки.',
     characterId: 'npc-alina-belova',
   },
+  {
+    id: SECURITY_SPECIALIST_ID,
+    name: 'Илья Власов',
+    role: 'security-specialist',
+    roleLabel: 'Специалист по информационной безопасности',
+    dailySalary: 9_000,
+    shortDescription:
+      'Специалист по защите инфраструктуры и внутренних процессов. Помогает находить риски до того, как они превращаются в инциденты.',
+    persona:
+      'Спокойный, внимательный и прямолинейный. Не обещает абсолютной безопасности и всегда объясняет цену риска. Не любит временные решения, которые становятся постоянными.',
+    characterId: 'npc-ilya-vlasov',
+  },
 ]
+
+// The two first developers only. Feature 03 gates (form-the-team task, first
+// sprint start) and the planning board iterate this, NOT the full catalog, so
+// the security specialist never counts as "development team".
+export const DEVELOPER_CATALOG: EmployeeDefinition[] = TEAM_CATALOG.filter(
+  (e) => e.role === 'backend-developer' || e.role === 'frontend-developer',
+)
 
 export function getEmployee(id: string): EmployeeDefinition | undefined {
   return TEAM_CATALOG.find((e) => e.id === id)

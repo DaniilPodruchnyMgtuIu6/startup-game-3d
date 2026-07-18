@@ -20,6 +20,12 @@ import { useCutsceneStore } from './cutscenes/cutsceneStore'
 import { useServerIncidentsStore, type ServerRole } from './game/serverIncidentsStore'
 import { useSecurityStoryStore } from './game/securityStoryStore'
 import { useSprintStore } from './game/sprintStore'
+import { hireSecuritySpecialist, reconcileSecurityHire } from './game/hireSecuritySpecialist'
+
+// Feature 07: repair any cross-store inconsistency between the staffing decision,
+// the security hire record and its task after a load/migration (spec §17), once
+// at startup before the scene mounts.
+reconcileSecurityHire()
 
 if (import.meta.env.DEV) {
   ;(window as unknown as { __startCutscene?: (id: string) => void }).__startCutscene = (id: string) =>
@@ -37,6 +43,18 @@ if (import.meta.env.DEV) {
     } else {
       story.unlockPostAuditConversation()
     }
+  }
+  // Story testing: force the approve staffing decision and hire Ilya through the
+  // real use-case (no money/time moved), so his NPC and salary can be verified
+  // without replaying the whole story.
+  ;(window as unknown as { __hireSecuritySpecialist?: () => void }).__hireSecuritySpecialist = () => {
+    const story = useSecurityStoryStore.getState()
+    story.resolveSecurityStaffingDecision('approve-security-hire')
+    story.markPostAuditConversationCompleted({
+      sprintNumber: useSprintStore.getState().sprintNumber,
+      day: useSprintStore.getState().day,
+    })
+    hireSecuritySpecialist()
   }
 }
 

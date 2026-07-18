@@ -1,21 +1,27 @@
 import { useState } from 'react'
 import { useTeamStore } from '../game/teamStore'
 import { useSprintStore } from '../game/sprintStore'
-import { TEAM_CATALOG, PROJECT_MANAGER, type EmployeeDefinition } from '../game/teamCatalog'
+import { useSecurityStoryStore } from '../game/securityStoryStore'
+import { DEVELOPER_CATALOG, PROJECT_MANAGER, SECURITY_SPECIALIST_ID, getEmployee, type EmployeeDefinition } from '../game/teamCatalog'
 import { isEmployeeHired, getTeamDailySalary } from '../game/teamRules'
+import { isSecuritySpecialistCandidateAvailable } from '../game/securityHiring'
 import { hireDeveloper } from '../game/hireDeveloper'
+import { hireSecuritySpecialist } from '../game/hireSecuritySpecialist'
 import { BASE_DAILY_COST, formatRubles } from '../game/economyRules'
 import { SPRINT_DAYS } from '../game/sprintRules'
 import './ui.css'
 
 // Confirmation shown before a hire is committed. Nothing changes until confirm.
+// The hire operation differs by role - the security specialist goes through its
+// own use-case (staffing-decision gated), developers through hireDeveloper.
 function HireConfirm({ employee, onClose }: { employee: EmployeeDefinition; onClose: () => void }) {
   const hires = useTeamStore((s) => s.hires)
   const currentDaily = BASE_DAILY_COST + getTeamDailySalary(hires)
   const afterDaily = currentDaily + employee.dailySalary
 
   const confirm = () => {
-    hireDeveloper(employee.id)
+    if (employee.role === 'security-specialist') hireSecuritySpecialist()
+    else hireDeveloper(employee.id)
     onClose()
   }
 
@@ -55,7 +61,7 @@ function HireConfirm({ employee, onClose }: { employee: EmployeeDefinition; onCl
   )
 }
 
-function EmployeeCard({ employee, onHire }: { employee: EmployeeDefinition; onHire: () => void }) {
+function EmployeeCard({ employee, note, onHire }: { employee: EmployeeDefinition; note?: string; onHire: () => void }) {
   const hired = useTeamStore((s) => isEmployeeHired(s.hires, employee.id))
   const reviewing = useSprintStore((s) => s.phase === 'review')
 
@@ -74,6 +80,7 @@ function EmployeeCard({ employee, onHire }: { employee: EmployeeDefinition; onHi
             <span>{formatRubles(employee.dailySalary)} в день</span>
             <span>{formatRubles(employee.dailySalary * SPRINT_DAYS)} за полный спринт</span>
           </div>
+          {note ? <p className="team-card-note">{note}</p> : null}
           {reviewing ? (
             <p className="team-card-blocked">Завершите итоги спринта перед изменением состава команды.</p>
           ) : (
@@ -87,15 +94,26 @@ function EmployeeCard({ employee, onHire }: { employee: EmployeeDefinition; onHi
   )
 }
 
+const SECURITY_NOTE =
+  'Специалист будет предлагать задачи по безопасности и может потребовать время разработчиков на исправления.'
+
 // Team overlay opened from the HUD (or the first-sprint planning gate). Shows
-// the PM as already on the team plus the two hireable developers. Blocks scene
-// clicks via the shared overlay-backdrop; opening it never moves time or money.
+// the PM as already on the team, the two hireable developers, and - only once
+// the player approved the hire in the post-audit conversation - the fixed
+// security specialist. Blocks scene clicks via the shared overlay-backdrop;
+// opening it never moves time or money.
 export function TeamPanel() {
   const open = useTeamStore((s) => s.panelOpen)
   const close = useTeamStore((s) => s.closePanel)
+  const staffingDecision = useSecurityStoryStore((s) => s.postAuditConversation.staffingDecision)
+  const conversationStatus = useSecurityStoryStore((s) => s.postAuditConversation.status)
   const [confirming, setConfirming] = useState<EmployeeDefinition | null>(null)
 
   if (!open) return null
+
+  const securityCandidate = isSecuritySpecialistCandidateAvailable(staffingDecision, conversationStatus)
+    ? getEmployee(SECURITY_SPECIALIST_ID)
+    : undefined
 
   return (
     <div className="overlay-backdrop" onClick={close}>
@@ -113,9 +131,16 @@ export function TeamPanel() {
           <span className="team-card-status">Уже в команде</span>
         </div>
 
-        {TEAM_CATALOG.map((employee) => (
+        {DEVELOPER_CATALOG.map((employee) => (
           <EmployeeCard key={employee.id} employee={employee} onHire={() => setConfirming(employee)} />
         ))}
+
+        {securityCandidate ? (
+          <>
+            <h3 className="team-section-title">Информационная безопасность</h3>
+            <EmployeeCard employee={securityCandidate} note={SECURITY_NOTE} onHire={() => setConfirming(securityCandidate)} />
+          </>
+        ) : null}
       </div>
 
       {confirming ? <HireConfirm employee={confirming} onClose={() => setConfirming(null)} /> : null}

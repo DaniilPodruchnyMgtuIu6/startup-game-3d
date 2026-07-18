@@ -17,7 +17,8 @@ import {
   projectedBalanceAfterDay,
   type BudgetWarning,
 } from '../game/economyRules'
-import { getHiredEmployeeIds, getTeamDailySalary } from '../game/teamRules'
+import { getTeamDailySalary } from '../game/teamRules'
+import { getCurrentTeamCapacityLabel } from '../game/securityHiring'
 import { completeWorkday } from '../game/completeWorkday'
 import './ui.css'
 
@@ -69,8 +70,9 @@ export function SprintHud() {
         : 'Итоги спринта'
 
   const balance = calculateBalance(transactions)
-  // Team members = the PM plus every hired developer (the player is not counted).
-  const teamCount = 1 + getHiredEmployeeIds(hires).length
+  // Team members = the PM plus every hired employee (the player is not counted).
+  // Capacity is 4 only on the approve branch (a slot for the security specialist).
+  const teamLabel = getCurrentTeamCapacityLabel(postAuditConversation.staffingDecision, hires)
 
   const busy =
     inputLocked ||
@@ -103,7 +105,7 @@ export function SprintHud() {
           Бюджет: {formatRubles(balance)}
         </button>
         <button className="sprint-hud-budget" onClick={openTeam} title="Открыть команду">
-          Команда: {teamCount}/3
+          Команда: {teamLabel}
         </button>
         {sprintPhase === 'active' ? (
           <button className="sprint-hud-end" onClick={requestEndDay} disabled={!canEndDay}>

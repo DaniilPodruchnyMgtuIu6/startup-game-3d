@@ -1,13 +1,16 @@
 import { describe, it, expect } from 'vitest'
-import { TEAM_CATALOG, getEmployee } from './teamCatalog'
+import { TEAM_CATALOG, DEVELOPER_CATALOG, SECURITY_SPECIALIST_ID, getEmployee } from './teamCatalog'
+import { getCharacterById } from '../character/characters'
 import {
   canStartSprintWithTeam,
   getDailyExpenseBreakdown,
   getEmployeeSalaryExpenses,
   getHiredCharacterIds,
   getHiredEmployeeIds,
+  getSecuritySpecialistSalaryExpense,
   getTeamDailySalary,
   hasInitialDevelopmentTeam,
+  hasSecuritySpecialist,
   isEmployeeHired,
   normalizeHires,
   type HireRecord,
@@ -17,17 +20,53 @@ import { BASE_DAILY_COST } from './economyRules'
 const hire = (employeeId: string, sprint = 1, day = 1): HireRecord => ({ employeeId, hiredAtSprint: sprint, hiredAtDay: day })
 const KIRILL = 'kirill-morozov'
 const ALINA = 'alina-belova'
+const ILYA = SECURITY_SPECIALIST_ID
 
 describe('team catalog', () => {
-  it('contains only Kirill and Alina, with unique ids and roles', () => {
-    expect(TEAM_CATALOG.map((e) => e.id)).toEqual([KIRILL, ALINA])
-    expect(new Set(TEAM_CATALOG.map((e) => e.id)).size).toBe(2)
-    expect(new Set(TEAM_CATALOG.map((e) => e.role)).size).toBe(2)
+  it('developer catalog is only Kirill and Alina', () => {
+    expect(DEVELOPER_CATALOG.map((e) => e.id)).toEqual([KIRILL, ALINA])
+  })
+
+  it('the full catalog also contains the fixed security specialist Ilya', () => {
+    const ilya = getEmployee(ILYA)
+    expect(ILYA).toBe('ilya-vlasov')
+    expect(ilya?.name).toBe('Илья Власов')
+    expect(ilya?.role).toBe('security-specialist')
+    expect(ilya?.dailySalary).toBe(9_000)
+    expect(ilya?.characterId).toBe('npc-ilya-vlasov')
+    // the character asset the catalog points at actually exists in the roster
+    expect(getCharacterById(ilya!.characterId)).toBeDefined()
+  })
+
+  it('employee ids stay unique', () => {
+    expect(new Set(TEAM_CATALOG.map((e) => e.id)).size).toBe(TEAM_CATALOG.length)
   })
 
   it('has the fixed salaries 9 000 and 8 000', () => {
     expect(getEmployee(KIRILL)?.dailySalary).toBe(9_000)
     expect(getEmployee(ALINA)?.dailySalary).toBe(8_000)
+  })
+})
+
+describe('security specialist selectors', () => {
+  it('hasSecuritySpecialist reflects Ilya being hired', () => {
+    expect(hasSecuritySpecialist([hire(KIRILL), hire(ALINA)])).toBe(false)
+    expect(hasSecuritySpecialist([hire(KIRILL), hire(ALINA), hire(ILYA)])).toBe(true)
+  })
+
+  it('getSecuritySpecialistSalaryExpense: null until hired, then 9 000 ₽', () => {
+    expect(getSecuritySpecialistSalaryExpense([hire(KIRILL), hire(ALINA)])).toBeNull()
+    expect(getSecuritySpecialistSalaryExpense([hire(ILYA)])).toEqual({
+      code: 'salary:ilya-vlasov',
+      title: 'Зарплата: Илья Власов',
+      amount: 9_000,
+    })
+  })
+
+  it('hiring Ilya does not count towards the development team', () => {
+    expect(hasInitialDevelopmentTeam([hire(ILYA)])).toBe(false)
+    expect(hasInitialDevelopmentTeam([hire(KIRILL), hire(ALINA), hire(ILYA)])).toBe(true)
+    expect(canStartSprintWithTeam(1, [hire(ILYA)])).toBe(false)
   })
 })
 
@@ -50,12 +89,13 @@ describe('hire selectors', () => {
     expect(hasInitialDevelopmentTeam([hire(KIRILL), hire(ALINA)])).toBe(true)
   })
 
-  it('active NPC roster is the hired developers character ids', () => {
+  it('active NPC roster is the hired employees character ids (incl. Ilya, deduped)', () => {
     expect(getHiredCharacterIds([])).toEqual([])
     expect(getHiredCharacterIds([hire(KIRILL)])).toEqual(['npc-kirill-morozov'])
-    expect(getHiredCharacterIds([hire(KIRILL), hire(ALINA), hire(KIRILL)])).toEqual([
+    expect(getHiredCharacterIds([hire(KIRILL), hire(ALINA), hire(ILYA), hire(ILYA)])).toEqual([
       'npc-kirill-morozov',
       'npc-alina-belova',
+      'npc-ilya-vlasov',
     ])
   })
 })
@@ -101,6 +141,22 @@ describe('salary math', () => {
       { code: 'salary:alina-belova', title: 'Зарплата: Алина Белова', amount: 8_000 },
     ])
     expect(breakdown.reduce((s, i) => s + i.amount, 0)).toBe(BASE_DAILY_COST + 17_000)
+  })
+
+  it('a day before Ilya costs 37 000 ₽; after Ilya 46 000 ₽ with his salary line', () => {
+    const before = getDailyExpenseBreakdown([KIRILL, ALINA])
+    expect(before.reduce((s, i) => s + i.amount, 0)).toBe(37_000)
+
+    const after = getDailyExpenseBreakdown([KIRILL, ALINA, ILYA])
+    expect(after.reduce((s, i) => s + i.amount, 0)).toBe(46_000)
+    expect(after).toContainEqual({ code: 'salary:ilya-vlasov', title: 'Зарплата: Илья Власов', amount: 9_000 })
+
+    // a full 10-day sprint with Ilya on the whole time
+    expect(after.reduce((s, i) => s + i.amount, 0) * 10).toBe(460_000)
+  })
+
+  it('Ilya salary is never doubled when his id repeats', () => {
+    expect(getTeamDailySalary([hire(KIRILL), hire(ALINA), hire(ILYA), hire(ILYA)])).toBe(26_000)
   })
 })
 
