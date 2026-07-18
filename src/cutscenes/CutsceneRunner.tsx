@@ -6,6 +6,7 @@ import { enterCutsceneCamera, exitCutsceneCamera } from '../scene/camera/cameraC
 import { createDirector } from './director'
 import { CUTSCENES } from './registry'
 import { useCutsceneStore } from './cutsceneStore'
+import { recoverSceneCharacters } from './sceneRecovery'
 
 // Mounted once inside the office scene, alongside Npcs/MeetPmController. Runs
 // whichever scene cutsceneStore.activeSceneId names: locks player input and
@@ -37,6 +38,9 @@ export function CutsceneRunner() {
       })
       .finally(() => {
         running.current = null
+        // before endScene wipes the actor map: remove ghost actor characters and
+        // close any TALK_START a failed scene left open (else the NPC freezes)
+        recoverSceneCharacters(entry.ownsNpcIds ?? [])
         useCutsceneStore.getState().endScene()
         exitCutsceneCamera()
         useCharacterStore.getState().setInputLocked(false)
