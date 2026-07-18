@@ -123,4 +123,4 @@ Claude Code не должен:
 
 На текущем этапе Claude Code нужно передать только:
 
-`09-hidden-risks-and-delayed-consequences.md`
+`10-access-control-and-office-intrusion.md`
