@@ -142,6 +142,38 @@ export function sprintPlanSignals(
   return signals
 }
 
+// --- Access control & office intrusion (Feature 10) -------------------------
+
+export function accessControlPostponedSignals(moment: RiskCreationMoment): RiskSignal[] {
+  return [
+    make('access-control:postponed:office-access', 'office-access', 1, 'access-control-decision', 'postpone-access-control', moment),
+    make('access-control:postponed:governance', 'governance', 1, 'access-control-decision', 'postpone-access-control', moment),
+  ]
+}
+
+export function accessControlActiveSignals(moment: RiskCreationMoment): RiskSignal[] {
+  return [
+    make('access-control:active:office-access', 'office-access', -4, 'access-control-implementation', 'access-control-active', moment),
+    make('access-control:active:governance', 'governance', -1, 'access-control-implementation', 'access-control-active', moment),
+  ]
+}
+
+// Incident consequences differ by whether Ilya contained it early (no
+// sensitive-data exposure) or the intruder reached a workstation.
+export function officeIntrusionSignals(hasSecuritySpecialist: boolean, moment: RiskCreationMoment): RiskSignal[] {
+  if (hasSecuritySpecialist) {
+    return [
+      make('incident:office-intrusion:office-access', 'office-access', 2, 'access-control-incident', 'office-intrusion:contained-early', moment),
+      make('incident:office-intrusion:governance', 'governance', 1, 'access-control-incident', 'office-intrusion:contained-early', moment),
+    ]
+  }
+  return [
+    make('incident:office-intrusion:office-access', 'office-access', 3, 'access-control-incident', 'office-intrusion:workstation-reached', moment),
+    make('incident:office-intrusion:governance', 'governance', 1, 'access-control-incident', 'office-intrusion:workstation-reached', moment),
+    make('incident:office-intrusion:sensitive-data', 'sensitive-data', 2, 'access-control-incident', 'office-intrusion:possible-data-exposure', moment),
+  ]
+}
+
 // --- Migration rebuild (from an old Feature 08 save) ------------------------
 
 export interface RiskRebuildSnapshot {

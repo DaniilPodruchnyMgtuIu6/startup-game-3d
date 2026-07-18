@@ -16,7 +16,9 @@ import { DailyReport } from './ui/DailyReport'
 import { PrototypeMock } from './ui/PrototypeMock'
 import { SecurityStoryTrigger } from './game/securityStoryTrigger'
 import { SecurityFollowUpAuditTrigger } from './game/SecurityFollowUpAuditTrigger'
+import { OfficeIntrusionTrigger } from './game/OfficeIntrusionTrigger'
 import { AuditResultOverlay } from './ui/AuditResultOverlay'
+import { IntrusionResultOverlay } from './ui/IntrusionResultOverlay'
 import { MinigameOverlay } from './game/minigames/MinigameOverlay'
 import { useCutsceneStore } from './cutscenes/cutsceneStore'
 import { useServerIncidentsStore, type ServerRole } from './game/serverIncidentsStore'
@@ -24,8 +26,10 @@ import { useSecurityStoryStore } from './game/securityStoryStore'
 import { useSprintStore } from './game/sprintStore'
 import { hireSecuritySpecialist, reconcileSecurityHire } from './game/hireSecuritySpecialist'
 import { useSecurityAuditStore } from './game/securityAuditStore'
+import { useAccessControlStore } from './game/accessControlStore'
 import { initializeSecurityAuditIfReady } from './game/initializeSecurityAudit'
 import { reconcileRiskSignals } from './game/reconcileRiskSignals'
+import { reconcileAccessControlThreatAndProposal } from './game/reconcileAccessControl'
 import { useRiskStore } from './game/riskStore'
 import { RISK_DOMAINS } from './game/riskCatalog'
 import { getActualRiskScore, getActualRiskLevel, getDetectedRiskScore, getDetectedRiskLevel } from './game/riskRules'
@@ -40,6 +44,9 @@ initializeSecurityAuditIfReady()
 // Feature 09: rebuild hidden-risk signals from facts in an old Feature 08 save
 // (idempotent; a continuing Feature 09 save is a no-op).
 reconcileRiskSignals()
+// Feature 10: open the СКУД proposal / arm the intrusion threat from an old
+// Feature 09 save's office-access risk (idempotent, never fires retroactively).
+reconcileAccessControlThreatAndProposal()
 
 if (import.meta.env.DEV) {
   ;(window as unknown as { __startCutscene?: (id: string) => void }).__startCutscene = (id: string) =>
@@ -78,6 +85,13 @@ if (import.meta.env.DEV) {
     useSecurityAuditStore.setState({
       followUpAudit: { ...audit.followUpAudit, status: 'pending', pendingAuditNumber: audit.followUpAudit.records.length + 1 },
     })
+  }
+  // Story testing: force a pending office intrusion right now (the trigger then
+  // runs the scene). Uses the current specialist snapshot at scene start.
+  ;(window as unknown as { __triggerOfficeIntrusion?: () => void }).__triggerOfficeIntrusion = () => {
+    const intrusion = useAccessControlStore.getState().intrusion
+    if (intrusion.status === 'resolved' || intrusion.status === 'prevented') return
+    useAccessControlStore.setState({ intrusion: { ...intrusion, status: 'pending', effectsApplied: intrusion.effectsApplied } })
   }
   // Read-only risk inspector: signals + actual/detected score & level per domain.
   ;(window as unknown as { __getRiskState?: () => unknown }).__getRiskState = () => {
@@ -140,8 +154,10 @@ export function App() {
       <PrototypeMock />
       <DailyReport />
       <AuditResultOverlay />
+      <IntrusionResultOverlay />
       <SecurityStoryTrigger />
       <SecurityFollowUpAuditTrigger />
+      <OfficeIntrusionTrigger />
       <MinigameOverlay />
     </>
   )

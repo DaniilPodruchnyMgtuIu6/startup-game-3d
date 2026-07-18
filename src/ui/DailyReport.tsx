@@ -2,6 +2,8 @@ import { useProductStore } from '../game/productStore'
 import { useEconomyStore } from '../game/economyStore'
 import { useTeamStore } from '../game/teamStore'
 import { useSecurityAuditStore, isFollowUpAuditBlocking } from '../game/securityAuditStore'
+import { useAccessControlStore } from '../game/accessControlStore'
+import { accessControlWorkdayId, getAccessControlEffortDays } from '../game/accessControlRules'
 import { useRiskStore } from '../game/riskStore'
 import { getProductTask } from '../game/productTaskCatalog'
 import { getEmployee, PROJECT_MANAGER } from '../game/teamCatalog'
@@ -47,6 +49,40 @@ function EmployeeLine({ result }: { result: WorkdayEmployeeProgress }) {
         {def?.title}: {result.beforeProgressDays}/{def?.effortDays} → {result.afterProgressDays}/{def?.effortDays}
       </div>
       {result.completedTask ? <div className="dr-emp-done">Задача завершена</div> : null}
+    </div>
+  )
+}
+
+// Access-control implementation progress for the completed day + a one-time
+// prevention note (Feature 10 §15/§19). Only shown once the proposal is approved.
+function AccessControlReportSection({ sprintNumber, day }: { sprintNumber: number; day: number }) {
+  const accessControl = useAccessControlStore((s) => s.accessControl)
+  const intrusion = useAccessControlStore((s) => s.intrusion)
+  const record = useAccessControlStore((s) => s.workdayHistory.find((w) => w.id === accessControlWorkdayId(sprintNumber, day)))
+
+  const approved = accessControl.proposalStatus === 'approved' || accessControl.proposalStatus === 'in-progress' || accessControl.proposalStatus === 'active'
+  if (!approved && !record) return null
+
+  return (
+    <div className="dr-security">
+      <div className="dr-security-title">Система контроля доступа</div>
+      {record ? (
+        <>
+          <div className="dr-emp">
+            <div className="dr-emp-name">{securityEmployeeName(record.employeeId)}</div>
+            <div className="dr-emp-task">
+              Внедрение СКУД: {record.beforeProgress}/{getAccessControlEffortDays(record.employeeId)} → {record.afterProgress}/
+              {getAccessControlEffortDays(record.employeeId)}
+            </div>
+            {record.activated ? <div className="dr-emp-done">СКУД введена в эксплуатацию. Риск физического доступа снижен.</div> : null}
+          </div>
+          {record.activated && intrusion.status === 'prevented' ? (
+            <div className="dr-security-deadline">Критический риск физического доступа устранён до инцидента. СКУД введена в эксплуатацию вовремя.</div>
+          ) : null}
+        </>
+      ) : (accessControl.proposalStatus === 'approved' || accessControl.proposalStatus === 'in-progress') && !accessControl.assignedEmployeeId ? (
+        <div className="dr-emp-idle">Внедрение СКУД сегодня не продвигалось: исполнитель не назначен.</div>
+      ) : null}
     </div>
   )
 }
@@ -168,6 +204,8 @@ export function DailyReport() {
         </div>
 
         {auditInitialized ? <SecuritySection record={securityRecord} sprintNumber={report.sprintNumber} day={report.day} /> : null}
+
+        <AccessControlReportSection sprintNumber={report.sprintNumber} day={report.day} />
 
         <RiskReportSection completedWorkdayIndex={toWorkdayIndex(report.sprintNumber, report.day)} />
 

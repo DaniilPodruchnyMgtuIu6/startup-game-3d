@@ -20,6 +20,9 @@ import { toWorkdayIndex, fromWorkdayIndex, getDaysUntilAudit } from '../game/wor
 import { useRiskStore } from '../game/riskStore'
 import { buildRiskObservations, getUnacknowledgedDetectedCount } from '../game/riskRules'
 import { RISK_LEVEL_LABEL } from '../game/riskCatalog'
+import { useAccessControlStore } from '../game/accessControlStore'
+import { getAccessControlEffortDays, getRemainingAccessControlEffort, type AccessControlAssigneeId } from '../game/accessControlRules'
+import { ACCESS_CONTROL_INVESTMENT_COST } from '../game/economyRules'
 import {
   completedInSprint,
   firstPrototypeDoneCount,
@@ -457,6 +460,152 @@ function RiskObservations() {
   )
 }
 
+const ACCESS_CONTROL_ASSIGNEES: { id: AccessControlAssigneeId; name: string }[] = [
+  { id: 'sonya-sokolova', name: 'Соня Соколова' },
+  { id: 'ilya-vlasov', name: 'Илья Власов' },
+]
+
+function AccessControlConfirm({ onClose }: { onClose: () => void }) {
+  const approve = useAccessControlStore((s) => s.approveAccessControl)
+  const sprintNumber = useSprintStore((s) => s.sprintNumber)
+  const day = useSprintStore((s) => s.day)
+  const balance = calculateBalance(useEconomyStore((s) => s.transactions))
+  const confirm = () => {
+    approve({ sprintNumber, day })
+    onClose()
+  }
+  return (
+    <div className="overlay-backdrop" onClick={onClose}>
+      <div className="sprint-confirm" onClick={(e) => e.stopPropagation()}>
+        <h3 className="sprint-confirm-title">Одобрить внедрение СКУД?</h3>
+        <dl className="sprint-confirm-figures">
+          <div>
+            <dt>Стоимость</dt>
+            <dd>{formatRubles(ACCESS_CONTROL_INVESTMENT_COST)}</dd>
+          </div>
+          <div>
+            <dt>Текущий бюджет</dt>
+            <dd>{formatRubles(balance)}</dd>
+          </div>
+          <div>
+            <dt>После оплаты останется</dt>
+            <dd>{formatRubles(balance - ACCESS_CONTROL_INVESTMENT_COST)}</dd>
+          </div>
+        </dl>
+        <p className="sprint-confirm-text">После оплаты потребуется назначить Соню или Илью на внедрение системы.</p>
+        <div className="sprint-confirm-actions">
+          <button className="primary" onClick={confirm}>
+            Одобрить
+          </button>
+          <button className="sprint-secondary" onClick={onClose}>
+            Отмена
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AccessControlCard() {
+  const accessControl = useAccessControlStore((s) => s.accessControl)
+  const followUpAudit = useSecurityAuditStore((s) => s.followUpAudit)
+  const findings = useSecurityAuditStore((s) => s.findings)
+  const hires = useTeamStore((s) => s.hires)
+  const postpone = useAccessControlStore((s) => s.postponeAccessControl)
+  const assign = useAccessControlStore((s) => s.assignAccessControlImplementation)
+  const unassign = useAccessControlStore((s) => s.unassignAccessControlImplementation)
+  const sprintNumber = useSprintStore((s) => s.sprintNumber)
+  const day = useSprintStore((s) => s.day)
+  const [confirming, setConfirming] = useState(false)
+
+  const status = accessControl.proposalStatus
+  if (status === 'locked') return null
+
+  const hasIlya = hasSecuritySpecialist(hires)
+  const auditBlocked = isFollowUpAuditBlocking(followUpAudit)
+
+  if (status === 'active') {
+    return (
+      <div className="sb-observations">
+        <h3 className="team-section-title">Контроль доступа</h3>
+        <div className="sb-card sb-card--closed">
+          <div className="sb-card-title">Система контроля и управления доступом</div>
+          <div className="sb-card-status">СКУД введена в эксплуатацию. Риск физического доступа снижен.</div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="sb-observations">
+      <h3 className="team-section-title">Контроль доступа</h3>
+      <div className="sb-card">
+        <div className="sb-card-title">Система контроля и управления доступом</div>
+        {status === 'available' || status === 'postponed' ? (
+          <>
+            <p className="sb-card-desc">
+              Наблюдения показывают, что сотрудники и посетители могут проходить в рабочие зоны без достаточного контроля.
+            </p>
+            <div className="sb-card-progress">
+              Стоимость оборудования и настройки: {formatRubles(ACCESS_CONTROL_INVESTMENT_COST)}
+              <br />
+              Срок внедрения: 2 рабочих дня с Ильёй · 3 рабочих дня силами Сони.
+            </div>
+            {status === 'postponed' ? <p className="sb-card-status">Внедрение СКУД отложено.</p> : null}
+            <div className="sb-card-assign">
+              <button className="primary" onClick={() => setConfirming(true)}>
+                {status === 'postponed' ? 'Вернуться к внедрению' : 'Одобрить внедрение'}
+              </button>
+              {status === 'available' ? (
+                <button className="sb-btn" onClick={() => postpone({ sprintNumber, day })}>
+                  Отложить решение
+                </button>
+              ) : null}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="sb-card-progress">
+              Внедрение СКУД · Прогресс: {accessControl.progressDays}/
+              {accessControl.assignedEmployeeId ? getAccessControlEffortDays(accessControl.assignedEmployeeId) : 3}
+              {accessControl.assignedEmployeeId ? ` · осталось ${getRemainingAccessControlEffort(accessControl)} дн` : ''}
+            </div>
+            {accessControl.assignedEmployeeId ? (
+              <div className="sb-card-assignee">
+                <span>Исполнитель: {securityEmployeeName(accessControl.assignedEmployeeId)}</span>
+                <button className="sb-btn" disabled={auditBlocked} onClick={unassign}>
+                  Снять назначение
+                </button>
+              </div>
+            ) : (
+              <div className="sb-card-assign">
+                <span className="sb-card-assign-label">Исполнитель:</span>
+                {ACCESS_CONTROL_ASSIGNEES.map((e) => {
+                  const notHired = e.id === 'ilya-vlasov' && !hasIlya
+                  const busy = !!getEmployeeActiveSecurityFinding(findings, e.id)
+                  return (
+                    <button
+                      key={e.id}
+                      className="sb-btn"
+                      disabled={notHired || busy || auditBlocked}
+                      title={notHired ? 'Илья не нанят' : busy ? 'Сотрудник занят замечанием' : undefined}
+                      onClick={() => assign(e.id)}
+                    >
+                      {e.name}
+                      {e.id === 'ilya-vlasov' ? ' (2 дн)' : ' (3 дн)'}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+      {confirming ? <AccessControlConfirm onClose={() => setConfirming(false)} /> : null}
+    </div>
+  )
+}
+
 function SecurityBoard() {
   const findings = useSecurityAuditStore((s) => s.findings)
   const followUpAudit = useSecurityAuditStore((s) => s.followUpAudit)
@@ -486,6 +635,7 @@ function SecurityBoard() {
           <FindingCard key={f.findingId} state={f} ctx={ctx} blocked={blocked} />
         ))}
       </div>
+      <AccessControlCard />
       <RiskObservations />
     </div>
   )

@@ -18,6 +18,7 @@ import { FloorClickCatcher } from '../character/FloorClickCatcher'
 import { MeetPmController } from '../game/MeetPmController'
 import { PostAuditConversationController } from '../game/PostAuditConversationController'
 import { SecuritySpecialistController } from '../game/SecuritySpecialistController'
+import { AccessControlReader } from '../furniture/AccessControlReader'
 import { CutsceneRunner } from '../cutscenes/CutsceneRunner'
 
 export interface OfficeProps {
@@ -55,6 +56,7 @@ export function Office({
         <StoryComponent />
         <PostAuditConversationController />
         <SecuritySpecialistController />
+        <AccessControlReader />
         <CutsceneRunner />
       </MaterialsProvider>
     </Suspense>

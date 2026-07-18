@@ -7,7 +7,7 @@
 import { SPRINT_DAYS } from './sprintRules'
 
 export type MoneyTransactionKind = 'income' | 'expense'
-export type MoneyTransactionCategory = 'funding' | 'operations' | 'audit-fine'
+export type MoneyTransactionCategory = 'funding' | 'operations' | 'audit-fine' | 'security-investment' | 'security-incident'
 
 export interface ExpenseBreakdownItem {
   code: string
@@ -124,6 +124,40 @@ export function createAuditFineTransaction(
   }
 }
 
+// --- Access-control investment & incident (Feature 10) ----------------------
+
+export const ACCESS_CONTROL_INVESTMENT_COST = 180_000
+export const ACCESS_CONTROL_TRANSACTION_ID = 'security-investment:access-control'
+export const OFFICE_INTRUSION_TRANSACTION_ID = 'security-incident:office-intrusion'
+
+// One-off security-investment expense for installing access control. Its own
+// category so it never mixes into the per-sprint operations total.
+export function createSecurityInvestmentTransaction(sprintNumber: number, day: number): MoneyTransaction {
+  return {
+    id: ACCESS_CONTROL_TRANSACTION_ID,
+    kind: 'expense',
+    category: 'security-investment',
+    title: 'Внедрение системы контроля доступа',
+    amount: ACCESS_CONTROL_INVESTMENT_COST,
+    sprintNumber,
+    day,
+  }
+}
+
+// One-off security-incident expense for the intrusion response (60k with Ilya,
+// 140k without). Deterministic id so it can never be charged twice.
+export function createSecurityIncidentTransaction(amount: number, sprintNumber: number, day: number): MoneyTransaction {
+  return {
+    id: OFFICE_INTRUSION_TRANSACTION_ID,
+    kind: 'expense',
+    category: 'security-incident',
+    title: amount >= 140_000 ? 'Проверка доступов и журналов после проникновения' : 'Проверка после попытки проникновения',
+    amount,
+    sprintNumber,
+    day,
+  }
+}
+
 // Appends a transaction only if its id is not already present. `applied` tells
 // the caller whether the journal (and therefore the balance) actually changed.
 export function appendTransactionOnce(
@@ -206,7 +240,7 @@ export function formatRubles(amount: number): string {
 // --- Persistence normalisation ---------------------------------------------
 
 const KINDS: MoneyTransactionKind[] = ['income', 'expense']
-const CATEGORIES: MoneyTransactionCategory[] = ['funding', 'operations', 'audit-fine']
+const CATEGORIES: MoneyTransactionCategory[] = ['funding', 'operations', 'audit-fine', 'security-investment', 'security-incident']
 
 function isPositiveInt(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value > 0

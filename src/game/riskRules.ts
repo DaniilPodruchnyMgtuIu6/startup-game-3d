@@ -21,6 +21,9 @@ export type RiskSignalSource =
   | 'security-audit'
   | 'server-minigame'
   | 'sprint-plan'
+  | 'access-control-decision'
+  | 'access-control-implementation'
+  | 'access-control-incident'
 
 export interface RiskMoment {
   sprintNumber: number
@@ -163,6 +166,13 @@ export function getRiskSignalFactorLabel(signal: RiskSignal): string {
     const overload = /^sprint:\d+:([a-z-]+):load-\d+$/.exec(signal.sourceRef)
     if (overload) return `План ${OVERLOAD_NAME[overload[1]] ?? 'сотрудника'} превысил вместимость спринта.`
   }
+
+  if (signal.sourceRef === 'postpone-access-control') return 'Решение о внедрении СКУД отложено.'
+  if (signal.sourceRef === 'access-control-active') return 'Внедрена система контроля доступа.'
+  if (signal.sourceRef === 'office-intrusion:contained-early') return 'Постороннего остановили до рабочей зоны.'
+  if (signal.sourceRef === 'office-intrusion:workstation-reached') return 'Посторонний дошёл до рабочей зоны.'
+  if (signal.sourceRef === 'office-intrusion:possible-data-exposure') return 'Не исключён доступ постороннего к данным.'
+
   return 'Обнаружен фактор риска.'
 }
 
@@ -208,7 +218,17 @@ export function getUnacknowledgedDetectedCount(signals: RiskSignal[]): number {
 
 // --- Persistence normalisation ---------------------------------------------
 
-const SOURCES: RiskSignalSource[] = ['staffing-decision', 'security-hire', 'security-finding', 'security-audit', 'server-minigame', 'sprint-plan']
+const SOURCES: RiskSignalSource[] = [
+  'staffing-decision',
+  'security-hire',
+  'security-finding',
+  'security-audit',
+  'server-minigame',
+  'sprint-plan',
+  'access-control-decision',
+  'access-control-implementation',
+  'access-control-incident',
+]
 
 function validMoment(raw: unknown): RiskMoment | undefined {
   if (!raw || typeof raw !== 'object') return undefined

@@ -1,8 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import {
+  accessControlActiveSignals,
+  accessControlPostponedSignals,
   auditSignals,
   declineStaffingSignals,
   findingClosedSignals,
+  officeIntrusionSignals,
   rebuildRiskSignalsFromGameState,
   securityHireSignals,
   serverFailureSignals,
@@ -75,6 +78,30 @@ describe('sprint plan signals', () => {
     expect(balanced).toMatchObject([{ id: 'sprint:4:balanced-plan', impact: -1 }])
     const noHistory = sprintPlanSignals(4, [{ employeeId: 'kirill-morozov', plannedLoadDays: 8 }], false, moment)
     expect(noHistory).toEqual([])
+  })
+})
+
+describe('access control & intrusion signals', () => {
+  it('postpone adds office-access +1 and governance +1', () => {
+    const s = accessControlPostponedSignals(moment)
+    expect(s.find((x) => x.domain === 'office-access')).toMatchObject({ impact: 1, source: 'access-control-decision' })
+    expect(s.find((x) => x.domain === 'governance')).toMatchObject({ impact: 1 })
+  })
+  it('active СКУД mitigates office-access -4 and governance -1', () => {
+    const s = accessControlActiveSignals(moment)
+    expect(s.find((x) => x.domain === 'office-access')).toMatchObject({ impact: -4, source: 'access-control-implementation' })
+    expect(s.find((x) => x.domain === 'governance')).toMatchObject({ impact: -1 })
+  })
+  it('intrusion with Ilya: office +2, governance +1, no sensitive-data', () => {
+    const s = officeIntrusionSignals(true, moment)
+    expect(byId(s)).toEqual(['incident:office-intrusion:governance', 'incident:office-intrusion:office-access'])
+    expect(s.find((x) => x.domain === 'office-access')!.impact).toBe(2)
+    expect(s.some((x) => x.domain === 'sensitive-data')).toBe(false)
+  })
+  it('intrusion without Ilya: office +3, governance +1, sensitive-data +2', () => {
+    const s = officeIntrusionSignals(false, moment)
+    expect(s.find((x) => x.domain === 'office-access')!.impact).toBe(3)
+    expect(s.find((x) => x.domain === 'sensitive-data')).toMatchObject({ impact: 2, source: 'access-control-incident' })
   })
 })
 

@@ -76,6 +76,9 @@ interface EconomyStore {
     sprintNumber: number,
     day: number,
   ) => { applied: boolean; transaction: MoneyTransaction }
+  // Appends any one-off expense exactly once (idempotent by its id). Used for
+  // the access-control investment and the intrusion-response cost (Feature 10).
+  applyOneTimeExpense: (transaction: MoneyTransaction) => { applied: boolean; transaction: MoneyTransaction }
   resetEconomy: () => void
   openPanel: () => void
   closePanel: () => void
@@ -99,6 +102,15 @@ export const useEconomyStore = create<EconomyStore>()((set, get) => ({
 
   applyAuditFine: (auditNumber, amount, sprintNumber, day) => {
     const transaction = createAuditFineTransaction(auditNumber, amount, sprintNumber, day)
+    const { transactions, applied } = appendTransactionOnce(get().transactions, transaction)
+    if (applied) {
+      set({ transactions })
+      saveEconomy(safeStorage(), transactions)
+    }
+    return { applied, transaction }
+  },
+
+  applyOneTimeExpense: (transaction) => {
     const { transactions, applied } = appendTransactionOnce(get().transactions, transaction)
     if (applied) {
       set({ transactions })
