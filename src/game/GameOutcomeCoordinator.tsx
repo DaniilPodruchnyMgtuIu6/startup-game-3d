@@ -59,8 +59,11 @@ export function GameOutcomeCoordinator() {
     if (useGameOutcomeStore.getState().status === 'playing') {
       registerGameFailureIfNeeded('outcome-coordinator:safe-moment', { sprintNumber, day })
     }
+    // Failure has priority over success (§18); each status is exclusive.
     if (useGameOutcomeStore.getState().status === 'failure-pending') {
       useGameOutcomeStore.getState().markFailureScreenOpened()
+    } else if (useGameOutcomeStore.getState().status === 'success-pending') {
+      useGameOutcomeStore.getState().markSuccessScreenOpened()
     }
   }, [safe, sprintNumber, day, status])
 

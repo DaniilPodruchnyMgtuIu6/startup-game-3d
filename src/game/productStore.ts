@@ -75,10 +75,14 @@ interface ProductStore {
   planningDismissed: boolean
   // The mock OfficeFlow prototype overlay (unlocked after the milestone).
   prototypeOpen: boolean
+  // The Feature 13 MVP release-readiness overlay (opened from the whiteboard).
+  releaseCheckOpen: boolean
 
   dismissPlanning: () => void
   openPrototype: () => void
   closePrototype: () => void
+  openReleaseCheck: () => void
+  closeReleaseCheck: () => void
 
   // planning (only take effect while the sprint phase is `planning`)
   addTaskToPlan: (taskId: string) => void
@@ -118,10 +122,13 @@ export const useProductStore = create<ProductStore>()((set, get) => {
     boardTab: 'product',
     planningDismissed: false,
     prototypeOpen: false,
+    releaseCheckOpen: false,
 
     dismissPlanning: () => set({ planningDismissed: true }),
     openPrototype: () => set({ prototypeOpen: true }),
     closePrototype: () => set({ prototypeOpen: false }),
+    openReleaseCheck: () => set({ releaseCheckOpen: true }),
+    closeReleaseCheck: () => set({ releaseCheckOpen: false }),
 
     addTaskToPlan: (taskId) => {
       if (!inPlanning()) return

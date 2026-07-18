@@ -1,13 +1,21 @@
 import type { MoneyTransaction } from './economyRules'
 import type { StoryMoment } from './securityStoryRules'
+import { RISK_DOMAINS, type RiskDomain, type RiskLevel } from './riskCatalog'
+import { getCampaignSuccessTier } from './mvpReleaseRules'
+import type {
+  CampaignReleaseState,
+  CampaignSuccessSnapshot,
+  CampaignSuccessTier,
+  MvpReleaseStatus,
+  MvpReleaseWarning,
+  OfficeIntrusionOutcome,
+} from './mvpReleaseRules'
 
-// Pure, deterministic evaluation of the four Feature 12 defeat conditions. No
-// store reads, no state mutation, no UI, no randomness, no Date. The use-case
-// (registerGameFailure) gathers a snapshot from the live stores and calls
-// evaluateGameFailureConditions; the store persists the resulting immutable
-// failure snapshot exactly once.
+// Pure, deterministic evaluation of the four Feature 12 defeat conditions plus
+// the Feature 13 success state. No store reads, no state mutation, no UI, no
+// randomness, no Date. The use-cases gather snapshots from the live stores.
 
-export type GameOutcomeStatus = 'playing' | 'failure-pending' | 'failed'
+export type GameOutcomeStatus = 'playing' | 'failure-pending' | 'failed' | 'success-pending' | 'succeeded'
 
 export type GameFailureReason =
   | 'budget-exhausted'
@@ -84,6 +92,9 @@ export interface GameOutcomeData {
   failure?: GameFailureSnapshot
   leadershipReview: LeadershipReviewState
   campaignDeadline: CampaignDeadlineState
+  campaignRelease: CampaignReleaseState
+  pendingSuccess?: CampaignSuccessSnapshot
+  success?: CampaignSuccessSnapshot
 }
 
 export function initialGameOutcome(): GameOutcomeData {
@@ -91,6 +102,7 @@ export function initialGameOutcome(): GameOutcomeData {
     status: 'playing',
     leadershipReview: { status: 'inactive' },
     campaignDeadline: { deadlineSprintNumber: CAMPAIGN_DEADLINE_SPRINT, status: 'active' },
+    campaignRelease: { status: 'not-started' },
   }
 }
 
@@ -275,29 +287,113 @@ function normalizeCampaignDeadline(raw: unknown): CampaignDeadlineState {
   return { deadlineSprintNumber, status, ...(metAt ? { metAt } : {}) }
 }
 
+function normalizeCampaignRelease(raw: unknown): CampaignReleaseState {
+  if (!raw || typeof raw !== 'object') return { status: 'not-started' }
+  const r = raw as Record<string, unknown>
+  const valid: MvpReleaseStatus[] = ['not-started', 'running', 'released']
+  // A release scene interrupted by a reload rewinds to not-started (§20).
+  let status: MvpReleaseStatus = valid.includes(r.status as MvpReleaseStatus) ? (r.status as MvpReleaseStatus) : 'not-started'
+  if (status === 'running') status = 'not-started'
+  const startedAt = normalizeMoment(r.startedAt)
+  const releasedAt = status === 'released' ? normalizeMoment(r.releasedAt) : undefined
+  return { status, ...(startedAt ? { startedAt } : {}), ...(releasedAt ? { releasedAt } : {}) }
+}
+
+function riskLevelRecord(raw: unknown): Record<RiskDomain, RiskLevel> {
+  const src = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  const levels: RiskLevel[] = ['controlled', 'low', 'elevated', 'high', 'critical']
+  const out = {} as Record<RiskDomain, RiskLevel>
+  for (const d of RISK_DOMAINS) out[d] = levels.includes(src[d] as RiskLevel) ? (src[d] as RiskLevel) : 'controlled'
+  return out
+}
+
+function normalizeSuccessSnapshot(raw: unknown): CampaignSuccessSnapshot | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const r = raw as Record<string, unknown>
+  const releasedAt = normalizeMoment(r.releasedAt)
+  if (!releasedAt) return undefined
+  const num = (v: unknown, fallback = 0) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback)
+  const strArray = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [])
+  const campaignScore = clampInt(r.campaignScore, 0, 100, 0)
+  const validTiers: CampaignSuccessTier[] = ['secure-launch', 'stable-launch', 'fragile-launch']
+  const resultTier = validTiers.includes(r.resultTier as CampaignSuccessTier)
+    ? (r.resultTier as CampaignSuccessTier)
+    : getCampaignSuccessTier(campaignScore)
+  const validIntrusion: OfficeIntrusionOutcome[] = ['not-triggered', 'prevented', 'contained-with-specialist', 'reached-work-area']
+  const officeIntrusionOutcome = validIntrusion.includes(r.officeIntrusionOutcome as OfficeIntrusionOutcome)
+    ? (r.officeIntrusionOutcome as OfficeIntrusionOutcome)
+    : 'not-triggered'
+  return {
+    releasedAt,
+    releaseWorkdayIndex: num(r.releaseWorkdayIndex),
+    resultTier,
+    campaignScore,
+    balance: num(r.balance),
+    completedProductTasks: num(r.completedProductTasks),
+    totalProductTasks: num(r.totalProductTasks),
+    productProgressPercent: clampInt(r.productProgressPercent, 0, 100, 0),
+    completedSprints: num(r.completedSprints),
+    metDeadlineEarly: r.metDeadlineEarly === true,
+    teamEmployeeIds: strArray(r.teamEmployeeIds),
+    securitySpecialistHired: r.securitySpecialistHired === true,
+    accessControlActive: r.accessControlActive === true,
+    auditRecords: num(r.auditRecords),
+    failedAuditRecords: num(r.failedAuditRecords),
+    totalAuditFines: num(r.totalAuditFines),
+    leadershipComplaint: r.leadershipComplaint === true,
+    shutdownRecommendation: r.shutdownRecommendation === true,
+    officeIntrusionOutcome,
+    occurredServerIncidentIds: strArray(r.occurredServerIncidentIds),
+    totalServerDowntimeCost: num(r.totalServerDowntimeCost),
+    totalServerIncidentCost: num(r.totalServerIncidentCost),
+    actualRiskLevels: riskLevelRecord(r.actualRiskLevels),
+    detectedRiskLevels: riskLevelRecord(r.detectedRiskLevels),
+    warningsAtRelease: strArray(r.warningsAtRelease) as MvpReleaseWarning[],
+  }
+}
+
 export function normalizeGameOutcome(raw: unknown): GameOutcomeData {
   if (!raw || typeof raw !== 'object') return initialGameOutcome()
   const r = raw as Record<string, unknown>
   const leadershipReview = normalizeLeadershipReview(r.leadershipReview)
   const campaignDeadline = normalizeCampaignDeadline(r.campaignDeadline)
+  const campaignRelease = normalizeCampaignRelease(r.campaignRelease)
 
   const rawStatus = r.status
-  const validStatus: GameOutcomeStatus[] = ['playing', 'failure-pending', 'failed']
+  const validStatus: GameOutcomeStatus[] = ['playing', 'failure-pending', 'failed', 'success-pending', 'succeeded']
   let status: GameOutcomeStatus = validStatus.includes(rawStatus as GameOutcomeStatus) ? (rawStatus as GameOutcomeStatus) : 'playing'
 
   const pendingFailure = normalizeSnapshot(r.pendingFailure)
   const failure = normalizeSnapshot(r.failure)
+  const pendingSuccess = normalizeSuccessSnapshot(r.pendingSuccess)
+  const success = normalizeSuccessSnapshot(r.success)
 
-  // pending/failed without a valid snapshot degrade to playing (re-evaluated in
-  // the next use-case). A valid snapshot must back the terminal states.
+  // A terminal/pending state must be backed by a valid snapshot, else it degrades
+  // to playing and is re-evaluated by the next use-case.
   if (status === 'failure-pending' && !pendingFailure) status = 'playing'
   if (status === 'failed' && !failure) status = 'playing'
+  if (status === 'success-pending' && !pendingSuccess) status = 'playing'
+  if (status === 'succeeded' && !success) status = 'playing'
+
+  // Failure and success can never coexist — a stale success state defers to a
+  // real failure (failure has priority when both are somehow present).
+  if ((status === 'success-pending' || status === 'succeeded') && (failure || pendingFailure)) {
+    status = failure ? 'failed' : 'failure-pending'
+  }
+
+  const failed = status === 'failed'
+  const failurePending = status === 'failure-pending'
+  const succeeded = status === 'succeeded'
+  const successPending = status === 'success-pending'
 
   return {
     status,
-    ...(status === 'failure-pending' && pendingFailure ? { pendingFailure } : {}),
-    ...(status === 'failed' && failure ? { failure } : {}),
+    ...(failurePending && pendingFailure ? { pendingFailure } : {}),
+    ...(failed && failure ? { failure } : {}),
+    ...(successPending && pendingSuccess ? { pendingSuccess } : {}),
+    ...(succeeded && success ? { success } : {}),
     leadershipReview,
     campaignDeadline,
+    campaignRelease,
   }
 }

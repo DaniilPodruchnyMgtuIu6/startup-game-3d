@@ -13,6 +13,7 @@ import {
   startLeadershipGraceIfNeeded,
   resolveLeadershipReviewForWorkday,
 } from './registerGameFailure'
+import { ensureMvpReleaseTask } from './releaseOfficeFlowMvp'
 import { getEmployeeSalaryExpenses, getHiredEmployeeIds, getHiredDeveloperIds, hasSecuritySpecialist } from './teamRules'
 import { isPostAuditConversationRequired } from './securityStoryRules'
 import { isOfficeIntrusionBlocking, canUnlockAccessControlProposal } from './accessControlRules'
@@ -138,6 +139,9 @@ export function completeWorkday(): CompleteWorkdayResult {
   startLeadershipGraceIfNeeded(completedWorkdayIndex)
   resolveLeadershipReviewForWorkday(sprintNumber, day, completedWorkdayIndex)
   registerGameFailureIfNeeded(`complete-workday:sprint-${sprintNumber}:day-${day}`, { sprintNumber, day })
+  // Feature 13: the moment all 14 tasks are done (and the run is still winnable),
+  // the department release task appears. Self-guarded + idempotent.
+  ensureMvpReleaseTask()
 
   // 14. a server may break on schedule for the player to fix via a mini-game
   // (deterministic; only while the sprint stays active and the game is not over)

@@ -25,14 +25,16 @@ import { getAccessControlEffortDays, getRemainingAccessControlEffort, type Acces
 import { ACCESS_CONTROL_INVESTMENT_COST } from '../game/economyRules'
 import { registerGameFailureIfNeeded } from '../game/registerGameFailure'
 import { useGameOutcomeStore } from '../game/gameOutcomeStore'
-import { countServerDowntimeDays, MAX_SERVER_DOWNTIME_DAYS } from '../game/gameOutcomeRules'
+import { countServerDowntimeDays, MAX_SERVER_DOWNTIME_DAYS, CAMPAIGN_DEADLINE_SPRINT } from '../game/gameOutcomeRules'
 import { getUnresolvedFindingIds } from '../game/securityAuditRules'
 import { useServerIncidentStore } from '../game/serverIncidentStore'
 import { getServerIncident } from '../game/serverIncidentCatalog'
 import { getEmployeeActiveSecurityWork, getRemainingServerRecoveryEffort, getServerDowntimeCost, getServerRecoveryEffort } from '../game/serverIncidentRules'
 import {
   completedInSprint,
+  completedProductTaskCount,
   firstPrototypeDoneCount,
+  hasCompletedCoreMvp,
   hasFirstPrototype,
   incompletePlanned,
   loadStatus,
@@ -269,7 +271,45 @@ function ProductBoard() {
         {!prototypeReady ? <p className="pb-hint">Прототип станет доступен после завершения основных задач.</p> : null}
       </div>
 
+      <MvpReleaseSection states={states} />
+
       {confirming ? <StartConfirm onClose={() => setConfirming(false)} /> : null}
+    </div>
+  )
+}
+
+// Feature 13: the MVP release section at the bottom of the OfficeFlow dev tab.
+function MvpReleaseSection({ states }: { states: ProductTaskState[] }) {
+  const openReleaseCheck = useProductStore((s) => s.openReleaseCheck)
+  const deadline = useGameOutcomeStore((s) => s.campaignDeadline)
+  const sprintNumber = useSprintStore((s) => s.sprintNumber)
+
+  if (!hasCompletedCoreMvp(states)) {
+    return (
+      <div className="pb-section pb-release pb-release--locked">
+        <div className="pb-release-title">Выпуск MVP</div>
+        <p className="pb-hint">Выпуск станет доступен после завершения всех задач OfficeFlow.</p>
+      </div>
+    )
+  }
+
+  const deadlineLine =
+    deadline.status === 'met'
+      ? 'Дедлайн: выполнен'
+      : `Дедлайн: осталось ${Math.max(0, CAMPAIGN_DEADLINE_SPRINT - sprintNumber)} спринтов`
+
+  return (
+    <div className="pb-section pb-release">
+      <div className="pb-release-title">Выпуск MVP</div>
+      <p className="pb-hint">OfficeFlow готов к итоговой проверке</p>
+      <div className="pb-release-figures">
+        Продуктовые задачи: {completedProductTaskCount(states)} из {PRODUCT_TASK_CATALOG.length}
+        <br />
+        {deadlineLine}
+      </div>
+      <button className="primary" onClick={openReleaseCheck}>
+        Проверить готовность к выпуску
+      </button>
     </div>
   )
 }

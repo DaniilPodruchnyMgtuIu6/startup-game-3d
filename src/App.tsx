@@ -24,11 +24,14 @@ import { ServerIncidentResultOverlay } from './ui/ServerIncidentResultOverlay'
 import { MinigameOverlay } from './game/minigames/MinigameOverlay'
 import { GameOutcomeCoordinator } from './game/GameOutcomeCoordinator'
 import { GameOverOverlay } from './ui/GameOverOverlay'
+import { MvpReleaseOverlay } from './ui/MvpReleaseOverlay'
+import { CampaignSuccessOverlay } from './ui/CampaignSuccessOverlay'
 import { useCutsceneStore } from './cutscenes/cutsceneStore'
 import { isIntroReset } from './game/gameStore'
 import { useGameOutcomeStore } from './game/gameOutcomeStore'
 import { reconcileGameOutcomeAtStartup } from './game/reconcileGameOutcome'
 import { forceRegisterFailureForDev } from './game/registerGameFailure'
+import { forceRegisterSuccessForDev } from './game/releaseOfficeFlowMvp'
 import type { GameFailureReason } from './game/gameOutcomeRules'
 import { useServerIncidentsStore, type ServerRole } from './game/serverIncidentsStore'
 import { useSecurityStoryStore } from './game/securityStoryStore'
@@ -133,12 +136,24 @@ if (import.meta.env.DEV) {
   // Read-only outcome inspector.
   ;(window as unknown as { __getGameOutcome?: () => unknown }).__getGameOutcome = () => {
     const o = useGameOutcomeStore.getState()
-    return { status: o.status, pendingFailure: o.pendingFailure, failure: o.failure, leadershipReview: o.leadershipReview, campaignDeadline: o.campaignDeadline }
+    return {
+      status: o.status,
+      pendingFailure: o.pendingFailure,
+      failure: o.failure,
+      pendingSuccess: o.pendingSuccess,
+      success: o.success,
+      leadershipReview: o.leadershipReview,
+      campaignDeadline: o.campaignDeadline,
+      campaignRelease: o.campaignRelease,
+    }
   }
   // Force a defeat with the current statistics through the normal register flow.
   ;(window as unknown as { __triggerGameFailure?: (reason?: GameFailureReason) => void }).__triggerGameFailure = (
     reason: GameFailureReason = 'budget-exhausted',
   ) => forceRegisterFailureForDev(reason)
+  // Commit a campaign success from the current stats (the coordinator opens it).
+  ;(window as unknown as { __triggerCampaignSuccess?: () => void }).__triggerCampaignSuccess = () =>
+    forceRegisterSuccessForDev()
   // Read-only risk inspector: signals + actual/detected score & level per domain.
   ;(window as unknown as { __getRiskState?: () => unknown }).__getRiskState = () => {
     const signals = useRiskStore.getState().signals
@@ -208,7 +223,9 @@ export function App() {
       <ServerIncidentTrigger />
       <GameOutcomeCoordinator />
       <MinigameOverlay />
+      <MvpReleaseOverlay />
       <GameOverOverlay />
+      <CampaignSuccessOverlay />
     </>
   )
 }

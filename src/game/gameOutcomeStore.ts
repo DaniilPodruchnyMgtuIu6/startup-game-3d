@@ -13,6 +13,7 @@ import {
   type GameOutcomeData,
   type LeadershipReviewStatus,
 } from './gameOutcomeRules'
+import { canRegisterSuccess, type CampaignSuccessSnapshot } from './mvpReleaseRules'
 
 // Feature 12 outcome state: the four defeat conditions, the leadership grace
 // period and the campaign deadline. Its own localStorage key so a failure (and
@@ -57,6 +58,9 @@ export function saveGameOutcome(storage: Storage | null, data: GameOutcomeData):
 export interface RegisterFailureResult {
   registered: boolean
 }
+export interface RegisterSuccessResult {
+  registered: boolean
+}
 export interface StoryTransitionResult {
   changed: boolean
 }
@@ -77,6 +81,10 @@ interface GameOutcomeStore extends GameOutcomeData {
   resolveLeadershipReview: (context: LeadershipReviewResolutionContext) => LeadershipReviewResolutionResult
   markCampaignDeadlineMet: (moment: StoryMoment) => StoryTransitionResult
   markCampaignDeadlineMissed: () => StoryTransitionResult
+  markMvpReleaseRunning: (moment: StoryMoment) => StoryTransitionResult
+  registerPendingSuccess: (snapshot: CampaignSuccessSnapshot) => RegisterSuccessResult
+  markSuccessScreenOpened: () => void
+  markMvpReleaseFailed: () => void
   resetGameOutcome: () => void
 }
 
@@ -88,8 +96,11 @@ export const useGameOutcomeStore = create<GameOutcomeStore>()((set, get) => {
       status: get().status,
       pendingFailure: get().pendingFailure,
       failure: get().failure,
+      pendingSuccess: get().pendingSuccess,
+      success: get().success,
       leadershipReview: get().leadershipReview,
       campaignDeadline: get().campaignDeadline,
+      campaignRelease: get().campaignRelease,
     })
 
   return {
@@ -164,10 +175,49 @@ export const useGameOutcomeStore = create<GameOutcomeStore>()((set, get) => {
       return { changed: true }
     },
 
+    // Feature 13: the player-confirmed MVP release scene has started.
+    markMvpReleaseRunning: (moment) => {
+      if (get().status !== 'playing' || get().campaignRelease.status !== 'not-started') return { changed: false }
+      set({ campaignRelease: { status: 'running', startedAt: moment } })
+      persist()
+      return { changed: true }
+    },
+
+    // Register a campaign win exactly once. Rejected over a pending/final failure
+    // or an existing success (first final outcome wins; failure has priority).
+    registerPendingSuccess: (snapshot) => {
+      if (!canRegisterSuccess(get().status)) return { registered: false }
+      set({ status: 'success-pending', pendingSuccess: snapshot })
+      persist()
+      return { registered: true }
+    },
+
+    // The coordinator calls this at a safe moment to open the campaign-success
+    // screen; the immutable snapshot backs it and the release is marked released.
+    markSuccessScreenOpened: () => {
+      const { status, pendingSuccess, campaignRelease } = get()
+      if (status !== 'success-pending' || !pendingSuccess) return
+      set({
+        status: 'succeeded',
+        success: pendingSuccess,
+        pendingSuccess: undefined,
+        campaignRelease: { ...campaignRelease, status: 'released', releasedAt: pendingSuccess.releasedAt },
+      })
+      persist()
+    },
+
+    // The release scene threw: rewind the release so the player can retry. A
+    // deadline already marked met during an early release is kept (§10).
+    markMvpReleaseFailed: () => {
+      if (get().campaignRelease.status !== 'running') return
+      set({ campaignRelease: { status: 'not-started' } })
+      persist()
+    },
+
     resetGameOutcome: () => {
-      // Explicit undefined so a stale pending/failure snapshot cannot survive the
+      // Explicit undefined so a stale pending/final snapshot cannot survive the
       // shallow merge zustand's set performs.
-      set({ ...initialGameOutcome(), pendingFailure: undefined, failure: undefined })
+      set({ ...initialGameOutcome(), pendingFailure: undefined, failure: undefined, pendingSuccess: undefined, success: undefined })
       persist()
     },
   }

@@ -7,6 +7,7 @@ import { hasCompletedCoreMvp } from './productRules'
 import { toWorkdayIndex } from './workdayIndex'
 import { CAMPAIGN_DEADLINE_SPRINT } from './gameOutcomeRules'
 import { registerGameFailureIfNeeded, startLeadershipGraceIfNeeded } from './registerGameFailure'
+import { ensureMvpReleaseTask } from './releaseOfficeFlowMvp'
 
 // Feature 12 migration from an old Feature 11 save (no outcome state). Runs once
 // at App module load. Never applies a defeat retroactively except an already
@@ -38,4 +39,8 @@ export function reconcileGameOutcomeAtStartup(): void {
   if (calculateBalance(useEconomyStore.getState().transactions) <= 0) {
     registerGameFailureIfNeeded('migration:hydration', { sprintNumber: sprint.sprintNumber, day: sprint.day })
   }
+
+  // Feature 13: a still-playing save that already finished all 14 tasks gets the
+  // release task (never auto-wins). Self-guarded on status playing + all done.
+  ensureMvpReleaseTask()
 }
