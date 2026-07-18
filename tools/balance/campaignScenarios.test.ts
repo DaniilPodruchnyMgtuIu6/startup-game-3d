@@ -23,23 +23,36 @@ const log = (tag: string, obj: unknown) => {
 
 // --- Wins --------------------------------------------------------------------
 
+const releaseDay = (m: { sprintNumber: number; day: number }) => (m.sprintNumber - 1) * 10 + m.day
+
 describe('BAL wins', () => {
-  it('BAL-01/13 — disciplined path with Ilya wins early with a high score', () => {
-    const r = runCleanCampaign({ withIlya: true })
-    log('BAL-01', { outcome: r.outcome, release: r.releaseMoment, budget: r.finalBudget, score: r.finalScore, salary: r.salaryCost })
+  it('BAL-01/13 — disciplined path with Ilya: win in the target window and budget band', () => {
+    const r = runCleanCampaign({ withIlya: true, withCorrectivePlan: true })
+    log('BAL-01', { outcome: r.outcome, release: r.releaseMoment, budget: r.finalBudget, score: r.finalScore, salary: r.salaryCost, fines: r.auditFines, sec: r.securityWorkdaysByEmployee })
     expect(r.outcome).toBe('win')
-    expect(r.finalBudget).toBeGreaterThan(0)
+    // §11 release window: not before mid-sprint 4, not after sprint 5 (clean expert path)
+    expect(releaseDay(r.releaseMoment!)).toBeGreaterThanOrEqual(35)
+    expect(releaseDay(r.releaseMoment!)).toBeLessThanOrEqual(50)
+    // §11 winner budget band with Ilya
+    expect(r.finalBudget).toBeGreaterThanOrEqual(250_000)
+    expect(r.finalBudget).toBeLessThanOrEqual(900_000)
     expect(r.finalScore ?? 0).toBeGreaterThanOrEqual(75)
-    // early release is allowed and correct (BAL-13)
-    expect(r.releaseMoment!.sprintNumber).toBeLessThanOrEqual(6)
+    expect(r.auditFines).toBe(0) // disciplined: findings closed before the audit
+    // Ilya (not Kirill) closes the findings — no product diversion
+    expect(r.securityWorkdaysByEmployee['kirill-morozov'] ?? 0).toBe(0)
   })
 
-  it('BAL-02 — disciplined path without Ilya is also winnable', () => {
-    const r = runCleanCampaign({ withIlya: false })
-    log('BAL-02', { outcome: r.outcome, release: r.releaseMoment, budget: r.finalBudget, salary: r.salaryCost })
+  it('BAL-02 — disciplined path without Ilya: winnable, harder, in its band', () => {
+    const r = runCleanCampaign({ withIlya: false, withCorrectivePlan: true })
+    log('BAL-02', { outcome: r.outcome, release: r.releaseMoment, budget: r.finalBudget, salary: r.salaryCost, fines: r.auditFines, sec: r.securityWorkdaysByEmployee })
     expect(r.outcome).toBe('win')
-    expect(r.finalBudget).toBeGreaterThan(0)
     expect(r.releaseMoment!.sprintNumber).toBeLessThanOrEqual(6)
+    // §11 winner budget band without Ilya
+    expect(r.finalBudget).toBeGreaterThanOrEqual(150_000)
+    expect(r.finalBudget).toBeLessThanOrEqual(900_000)
+    expect(r.auditFines).toBe(0)
+    // Kirill IS diverted to the technical findings on this branch (more than BAL-01)
+    expect(r.securityWorkdaysByEmployee['kirill-morozov'] ?? 0).toBeGreaterThan(0)
   })
 
   it('BAL-03/05/07 — one server incident (recovered) still wins with a lower budget', () => {
@@ -54,7 +67,9 @@ describe('BAL wins', () => {
     const r = buildResult()
     log('BAL-03', { released, outcome: r.outcome, budget: r.finalBudget, incident: r.incidentCosts, downtime: r.downtimeCosts })
     expect(r.outcome).toBe('win')
+    // §11 recovered-path band: positive but noticeably below the clean paths
     expect(r.finalBudget).toBeGreaterThan(0)
+    expect(r.finalBudget).toBeLessThanOrEqual(450_000)
     expect(r.incidentCosts).toBeGreaterThan(0) // the mistake had a real, one-time cost
     expect(useEconomyStore.getState().transactions.length).toBeGreaterThan(budgetBefore)
   })
@@ -63,17 +78,20 @@ describe('BAL wins', () => {
 // --- Ilya trade-off ----------------------------------------------------------
 
 describe('BAL Ilya trade-off', () => {
-  it('Ilya has a visible salary cost (strategic, not strictly dominant)', () => {
-    const withIlya = runCleanCampaign({ withIlya: true })
-    const without = runCleanCampaign({ withIlya: false })
+  it('Ilya trades a visible salary for keeping Kirill on product (not strictly dominant)', () => {
+    const withIlya = runCleanCampaign({ withIlya: true, withCorrectivePlan: true })
+    const without = runCleanCampaign({ withIlya: false, withCorrectivePlan: true })
     log('ILYA-TABLE', {
-      withIlya: { budget: withIlya.finalBudget, salary: withIlya.salaryCost },
-      without: { budget: without.finalBudget, salary: without.salaryCost },
+      withIlya: { budget: withIlya.finalBudget, salary: withIlya.salaryCost, release: withIlya.releaseMoment, kirillDiverted: withIlya.securityWorkdaysByEmployee['kirill-morozov'] ?? 0 },
+      without: { budget: without.finalBudget, salary: without.salaryCost, release: without.releaseMoment, kirillDiverted: without.securityWorkdaysByEmployee['kirill-morozov'] ?? 0 },
       salaryDelta: withIlya.salaryCost - without.salaryCost,
     })
-    // his salary is a real, noticeable cost
+    // his salary is a real, noticeable cost...
     expect(withIlya.salaryCost).toBeGreaterThan(without.salaryCost)
-    // both branches are winnable → hiring is not strictly required
+    // ...but he saves Kirill's product days (the MVP ships earlier)
+    expect(withIlya.securityWorkdaysByEmployee['kirill-morozov'] ?? 0).toBeLessThan(without.securityWorkdaysByEmployee['kirill-morozov'] ?? 0)
+    expect(releaseDay(withIlya.releaseMoment!)).toBeLessThan(releaseDay(without.releaseMoment!))
+    // both branches are winnable → hiring is not strictly required, refusing is not a trap
     expect(withIlya.outcome).toBe('win')
     expect(without.outcome).toBe('win')
   })

@@ -85,15 +85,25 @@ describe('completeWorkday applies product + finance + advance together', () => {
     expect(balance()).toBe(INITIAL_BUDGET - 37_000) // Alina salary still charged
   })
 
-  it('finishing all six prototype tasks yields the prototype at 37% readiness', () => {
-    planTasks(['auth-api', 'rooms-api', 'booking-api', 'login-screen', 'rooms-screen', 'booking-form'])
-    // 10 days is enough (Kirill 9, Alina 8)
-    for (let day = 1; day <= SPRINT_DAYS; day++) completeDay(day)
-    const states = useProductStore.getState().taskStates
+  it('finishing all six prototype tasks takes two sprints and yields the prototype at 34% readiness', () => {
     const proto = ['auth-api', 'rooms-api', 'booking-api', 'login-screen', 'rooms-screen', 'booking-form']
-    expect(proto.every((id) => states.find((t) => t.taskId === id)?.status === 'done')).toBe(true)
-    expect(productReadiness(states)).toBe(37)
-    expect(balance()).toBe(2_130_000) // 10 days × 37 000
+    planTasks(proto)
+    // Feature 15 balance: prototype is Kirill 16 / Alina 14 days — sprint 1 is
+    // no longer enough, the rest carries over into sprint 2.
+    for (let day = 1; day <= SPRINT_DAYS; day++) completeDay(day)
+    useSprintStore.setState({ phase: 'review' })
+    completeSprintAndPrepareNextPlanning()
+    let states = useProductStore.getState().taskStates
+    for (const id of proto) {
+      if (states.find((t) => t.taskId === id)?.status !== 'done') states = addToPlan(states, id, 2)
+    }
+    useProductStore.setState({ taskStates: states })
+    for (let day = 1; day <= 6; day++) completeDay(day)
+
+    const finalStates = useProductStore.getState().taskStates
+    expect(proto.every((id) => finalStates.find((t) => t.taskId === id)?.status === 'done')).toBe(true)
+    expect(productReadiness(finalStates)).toBe(34) // 30/87
+    expect(balance()).toBe(INITIAL_BUDGET - 16 * 37_000) // 16 charged days
   })
 })
 

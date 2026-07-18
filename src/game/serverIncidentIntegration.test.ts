@@ -94,10 +94,10 @@ describe('DATABASE incident without Ilya: Kirill diverted, downtime each day', (
     // three downtime days of 50 000 each
     expect(hasTx('server-downtime:database-exposure-review:sprint-3:day-2')).toBe(true)
     expect(hasTx('server-downtime:database-exposure-review:sprint-3:day-4')).toBe(true)
-    // Kirill made no product progress (diverted all three days); Alina finished
-    // her 2-day task (login-screen effort is 2, done by day 2)
+    // Kirill made no product progress (diverted all three days); Alina kept
+    // working her login-screen task (effort 4 → 3/4 after three days)
     expect(progressOf('auth-api')).toBe(0)
-    expect(progressOf('login-screen')).toBe(2)
+    expect(progressOf('login-screen')).toBe(3)
   })
 
   it('a pending server incident blocks the next day', () => {

@@ -23,6 +23,7 @@ import { startSprintWithPlan } from '../../src/game/startSprintWithPlan'
 import { completeSprintAndPrepareNextPlanning, completeCampaignDeadlineMet } from '../../src/game/completeSprintReview'
 import { releaseOfficeFlowMvp, finalizeMvpReleaseSuccess } from '../../src/game/releaseOfficeFlowMvp'
 import { INITIAL_SECURITY_BREACH } from '../../src/game/securityStoryRules'
+import { getSecurityFinding } from '../../src/game/securityFindingCatalog'
 import { INITIAL_SPRINT_STATE } from '../../src/game/sprintRules'
 import { initialTransactions, calculateBalance } from '../../src/game/economyRules'
 import { initialTaskStates, productReadiness, hasCompletedCoreMvp, completedProductTaskCount } from '../../src/game/productRules'
@@ -75,6 +76,10 @@ function note(text: string) {
 
 export interface ResetOptions {
   withIlya?: boolean
+  // Model the Feature 08 corrective plan (4 findings + follow-up audit) the way
+  // the real post-audit branch creates it. With Ilya he closes findings (Kirill
+  // stays on product); without him Kirill is diverted for the technical ones.
+  withCorrectivePlan?: boolean
 }
 
 // Fresh, deterministic game. Story is pre-completed so completeWorkday is not
@@ -110,6 +115,39 @@ export function resetCampaign(opts: ResetOptions = {}): void {
     ...(opts.withIlya ? [{ employeeId: ILYA, hiredAtSprint: 2, hiredAtDay: 1 }] : []),
   ]
   useTeamStore.setState({ hires, panelOpen: false })
+
+  if (opts.withCorrectivePlan) {
+    useSecurityAuditStore.getState().initializeCorrectiveActionPlan({
+      currentWorkdayIndex: 1,
+      staffingDecision: opts.withIlya ? 'approve-security-hire' : 'decline-security-hire',
+    })
+  }
+}
+
+// Assign every open finding to an eligible free employee. A disciplined player
+// with Ilya NEVER diverts Kirill from product — a technical finding waits in
+// Ilya's queue until he is free (assigned on a later day).
+export function assignOpenFindings(): void {
+  const withIlya = useTeamStore.getState().hires.some((h) => h.employeeId === ILYA)
+  for (const f of useSecurityAuditStore.getState().findings) {
+    if (f.status === 'closed' || f.assignedEmployeeId) continue
+    const def = getSecurityFinding(f.findingId)
+    if (!def) continue
+    const order = withIlya ? def.eligibleEmployeeIds.filter((e) => e !== KIRILL) : def.eligibleEmployeeIds
+    for (const emp of order) {
+      if (useSecurityAuditStore.getState().assignFinding(f.findingId, emp).assigned) break
+    }
+  }
+}
+
+// The follow-up audit scene's deterministic commit (the sim has no scene runner).
+export function resolvePendingAuditIfAny(): void {
+  if (useSecurityAuditStore.getState().followUpAudit.status !== 'pending') return
+  const s = useSprintStore.getState()
+  useSecurityAuditStore.getState().markAuditRunning()
+  useSecurityAuditStore.getState().resolvePendingAudit({ sprintNumber: s.sprintNumber, day: s.day })
+  useSecurityAuditStore.getState().acknowledgeAuditResult()
+  note('follow-up audit resolved')
 }
 
 // Hire the two developers through the real use-case (idempotent).
@@ -138,6 +176,9 @@ export interface DayHooks {
 // Completes one working day through the single real use-case, accumulating who
 // worked on product vs was diverted to security/recovery.
 export function completeDay(hooks: DayHooks = {}): ReturnType<typeof completeWorkday> {
+  // mandatory events first, matching the real event order (audit before the day)
+  resolvePendingAuditIfAny()
+  assignOpenFindings()
   hooks.before?.()
   useSprintStore.setState({ confirmingEndDay: true })
   const result = completeWorkday()
@@ -169,6 +210,8 @@ export function injectServerIncident(incidentId: string, assignee: string, withS
 }
 
 export function finishReview(): void {
+  // in the real game a due audit takes priority over the review overlay
+  resolvePendingAuditIfAny()
   const sprint = useSprintStore.getState()
   if (sprint.phase !== 'review') return
   if (sprint.sprintNumber === 6) {
@@ -201,6 +244,7 @@ export function developUntilComplete(maxSprints = 6): void {
 // Player-confirmed release (readiness → running → deadline met → scene → success),
 // with the scene finalize + success-screen open applied deterministically.
 export function releaseMvp(): boolean {
+  resolvePendingAuditIfAny()
   const s = useSprintStore.getState()
   const r = releaseOfficeFlowMvp({ sprintNumber: s.sprintNumber, day: s.day })
   if (!r.released) {
@@ -266,7 +310,10 @@ export function runCleanCampaign(opts: ResetOptions = {}): CampaignSimulationRes
   resetCampaign(opts)
   hireDevelopers()
   developUntilComplete(6)
-  if (hasCompletedCoreMvp(useProductStore.getState().taskStates) && useSprintStore.getState().phase === 'active') {
+  if (hasCompletedCoreMvp(useProductStore.getState().taskStates)) {
+    // finishing the last task on day 10 lands in the review — the review takes
+    // priority (real event order), then the release happens in the next sprint
+    if (useSprintStore.getState().phase === 'review') finishReview()
     releaseMvp()
   } else {
     note(`incomplete: ${completedProductTaskCount(useProductStore.getState().taskStates)}/14 done, phase ${useSprintStore.getState().phase}`)

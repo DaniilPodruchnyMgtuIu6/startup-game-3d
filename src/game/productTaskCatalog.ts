@@ -30,7 +30,7 @@ export const PRODUCT_TASK_CATALOG: ProductTaskDefinition[] = [
     description: 'Реализовать вход сотрудников и выдачу пользовательской сессии.',
     role: 'backend-developer',
     assigneeEmployeeId: KIRILL,
-    effortDays: 3,
+    effortDays: 6,
     group: 'prototype',
   },
   {
@@ -39,7 +39,7 @@ export const PRODUCT_TASK_CATALOG: ProductTaskDefinition[] = [
     description: 'Реализовать получение списка переговорных и их доступности.',
     role: 'backend-developer',
     assigneeEmployeeId: KIRILL,
-    effortDays: 3,
+    effortDays: 5,
     group: 'prototype',
   },
   {
@@ -48,7 +48,7 @@ export const PRODUCT_TASK_CATALOG: ProductTaskDefinition[] = [
     description: 'Реализовать создание и отмену бронирования переговорной.',
     role: 'backend-developer',
     assigneeEmployeeId: KIRILL,
-    effortDays: 3,
+    effortDays: 5,
     group: 'prototype',
   },
   {
@@ -57,7 +57,7 @@ export const PRODUCT_TASK_CATALOG: ProductTaskDefinition[] = [
     description: 'Создать интерфейс входа сотрудника в OfficeFlow.',
     role: 'frontend-developer',
     assigneeEmployeeId: ALINA,
-    effortDays: 2,
+    effortDays: 4,
     group: 'prototype',
   },
   {
@@ -66,7 +66,7 @@ export const PRODUCT_TASK_CATALOG: ProductTaskDefinition[] = [
     description: 'Создать экран со списком переговорных и их статусом.',
     role: 'frontend-developer',
     assigneeEmployeeId: ALINA,
-    effortDays: 3,
+    effortDays: 5,
     group: 'prototype',
   },
   {
@@ -75,7 +75,7 @@ export const PRODUCT_TASK_CATALOG: ProductTaskDefinition[] = [
     description: 'Создать пользовательскую форму бронирования переговорной.',
     role: 'frontend-developer',
     assigneeEmployeeId: ALINA,
-    effortDays: 3,
+    effortDays: 5,
     group: 'prototype',
   },
   // --- Rest of the MVP (8 tasks) ---
@@ -85,7 +85,7 @@ export const PRODUCT_TASK_CATALOG: ProductTaskDefinition[] = [
     description: 'Реализовать получение и редактирование учётных записей сотрудников.',
     role: 'backend-developer',
     assigneeEmployeeId: KIRILL,
-    effortDays: 4,
+    effortDays: 8,
     group: 'mvp',
   },
   {
@@ -94,7 +94,7 @@ export const PRODUCT_TASK_CATALOG: ProductTaskDefinition[] = [
     description: 'Реализовать создание и отзыв гостевых пропусков.',
     role: 'backend-developer',
     assigneeEmployeeId: KIRILL,
-    effortDays: 4,
+    effortDays: 7,
     group: 'mvp',
   },
   {
@@ -103,7 +103,7 @@ export const PRODUCT_TASK_CATALOG: ProductTaskDefinition[] = [
     description: 'Реализовать хранение и получение событий OfficeFlow.',
     role: 'backend-developer',
     assigneeEmployeeId: KIRILL,
-    effortDays: 3,
+    effortDays: 6,
     group: 'mvp',
   },
   {
@@ -112,7 +112,7 @@ export const PRODUCT_TASK_CATALOG: ProductTaskDefinition[] = [
     description: 'Реализовать создание и получение уведомлений.',
     role: 'backend-developer',
     assigneeEmployeeId: KIRILL,
-    effortDays: 3,
+    effortDays: 7,
     group: 'mvp',
   },
   {
@@ -121,7 +121,7 @@ export const PRODUCT_TASK_CATALOG: ProductTaskDefinition[] = [
     description: 'Создать интерфейс просмотра учётных записей сотрудников.',
     role: 'frontend-developer',
     assigneeEmployeeId: ALINA,
-    effortDays: 4,
+    effortDays: 8,
     group: 'mvp',
   },
   {
@@ -130,7 +130,7 @@ export const PRODUCT_TASK_CATALOG: ProductTaskDefinition[] = [
     description: 'Создать форму выдачи и экран списка гостевых пропусков.',
     role: 'frontend-developer',
     assigneeEmployeeId: ALINA,
-    effortDays: 4,
+    effortDays: 8,
     group: 'mvp',
   },
   {
@@ -139,7 +139,7 @@ export const PRODUCT_TASK_CATALOG: ProductTaskDefinition[] = [
     description: 'Создать интерфейс просмотра событий OfficeFlow.',
     role: 'frontend-developer',
     assigneeEmployeeId: ALINA,
-    effortDays: 3,
+    effortDays: 7,
     group: 'mvp',
   },
   {
@@ -148,7 +148,7 @@ export const PRODUCT_TASK_CATALOG: ProductTaskDefinition[] = [
     description: 'Создать интерфейс пользовательских уведомлений.',
     role: 'frontend-developer',
     assigneeEmployeeId: ALINA,
-    effortDays: 3,
+    effortDays: 6,
     group: 'mvp',
   },
 ]

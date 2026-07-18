@@ -48,9 +48,9 @@ describe('product catalog', () => {
     }
   })
 
-  it('total effort is 45 days, prototype is 17', () => {
-    expect(TOTAL_EFFORT_DAYS).toBe(45)
-    expect(PRODUCT_TASK_CATALOG.filter((t) => t.group === 'prototype').reduce((s, t) => s + t.effortDays, 0)).toBe(17)
+  it('total effort is 87 days, prototype is 30 (Feature 15 balance pass)', () => {
+    expect(TOTAL_EFFORT_DAYS).toBe(87)
+    expect(PRODUCT_TASK_CATALOG.filter((t) => t.group === 'prototype').reduce((s, t) => s + t.effortDays, 0)).toBe(30)
   })
 })
 
@@ -80,10 +80,10 @@ describe('planning', () => {
 
   it('load counts remaining (not original) effort; loadStatus thresholds', () => {
     let s = initialTaskStates()
-    s = plan(s, 'auth-api') // 3
-    s = plan(s, 'rooms-api') // 3
-    s = plan(s, 'booking-api') // 3
-    expect(plannedLoadForEmployee(s, KIRILL)).toBe(9)
+    s = plan(s, 'auth-api') // 6
+    s = plan(s, 'rooms-api') // 5
+    s = plan(s, 'booking-api') // 5
+    expect(plannedLoadForEmployee(s, KIRILL)).toBe(16)
     expect(loadStatus(8)).toBe('normal')
     expect(loadStatus(9)).toBe('full')
     expect(loadStatus(EMPLOYEE_SPRINT_CAPACITY_DAYS)).toBe('full')
@@ -92,8 +92,8 @@ describe('planning', () => {
 
   it('overload does not block starting but is detectable', () => {
     let s = initialTaskStates()
-    for (const id of ['auth-api', 'rooms-api', 'booking-api', 'employees-api']) s = plan(s, id) // 3+3+3+4 = 13
-    expect(plannedLoadForEmployee(s, KIRILL)).toBe(13)
+    for (const id of ['auth-api', 'rooms-api', 'booking-api', 'employees-api']) s = plan(s, id) // 6+5+5+8 = 24
+    expect(plannedLoadForEmployee(s, KIRILL)).toBe(24)
     expect(isPlanOverloaded(s, BOTH)).toBe(true)
   })
 
@@ -124,12 +124,11 @@ describe('deterministic daily progress', () => {
 
   it('completes a task and records completedAt when effort is reached', () => {
     let s = initialTaskStates()
-    s = plan(s, 'login-screen') // effort 2
-    ;({ states: s } = applyWorkdayProgress(s, 1, 1, [ALINA]))
-    ;({ states: s } = applyWorkdayProgress(s, 1, 2, [ALINA]))
+    s = plan(s, 'login-screen') // effort 4
+    for (let day = 1; day <= 4; day++) ({ states: s } = applyWorkdayProgress(s, 1, day, [ALINA]))
     const login = s.find((t) => t.taskId === 'login-screen')!
     expect(login.status).toBe('done')
-    expect(login.completedAt).toEqual({ sprintNumber: 1, day: 2 })
+    expect(login.completedAt).toEqual({ sprintNumber: 1, day: 4 })
   })
 
   it('idle result when no planned task, salary charged elsewhere', () => {
@@ -147,11 +146,11 @@ describe('readiness & prototype', () => {
         : s,
     )
 
-  it('readiness: 0/45=0, 1/45=2, 17/45=37, 45/45=100', () => {
+  it('readiness: 0/87=0, 1/87=1, 30/87=34, 87/87=100', () => {
     expect(productReadiness(initialTaskStates())).toBe(0)
     const one = initialTaskStates().map((s) => (s.taskId === 'auth-api' ? { ...s, progressDays: 1 } : s))
-    expect(productReadiness(one)).toBe(2)
-    expect(productReadiness(doneStates(FIRST_PROTOTYPE_TASK_IDS))).toBe(37)
+    expect(productReadiness(one)).toBe(1)
+    expect(productReadiness(doneStates(FIRST_PROTOTYPE_TASK_IDS))).toBe(34)
     expect(productReadiness(doneStates(PRODUCT_TASK_CATALOG.map((t) => t.id)))).toBe(100)
   })
 
@@ -185,14 +184,14 @@ describe('carry-over & normalisation', () => {
 
   it('normalizeTaskStates rebuilds 14 tasks, clamps progress, drops unknown', () => {
     const result = normalizeTaskStates([
-      { taskId: 'auth-api', status: 'in-progress', progressDays: 99 }, // clamp to 3 -> done
+      { taskId: 'auth-api', status: 'in-progress', progressDays: 99 }, // clamp to 6 -> done
       { taskId: 'ghost', status: 'done', progressDays: 5 }, // unknown dropped
       { taskId: 'auth-api', status: 'backlog', progressDays: 0 }, // duplicate dropped
       'garbage',
     ])
     expect(result).toHaveLength(14)
     const auth = result.find((t) => t.taskId === 'auth-api')!
-    expect(auth.progressDays).toBe(3)
+    expect(auth.progressDays).toBe(6)
     expect(auth.status).toBe('done')
     expect(result.find((t) => t.taskId === 'ghost')).toBeUndefined()
   })
