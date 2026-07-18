@@ -123,4 +123,4 @@ Claude Code не должен:
 
 На текущем этапе Claude Code нужно передать только:
 
-`03-team-and-first-developers.md`
+`04-product-backlog-and-sprint-progress.md`
