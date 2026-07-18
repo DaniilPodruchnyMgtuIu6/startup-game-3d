@@ -23,6 +23,9 @@ import { RISK_LEVEL_LABEL } from '../game/riskCatalog'
 import { useAccessControlStore } from '../game/accessControlStore'
 import { getAccessControlEffortDays, getRemainingAccessControlEffort, type AccessControlAssigneeId } from '../game/accessControlRules'
 import { ACCESS_CONTROL_INVESTMENT_COST } from '../game/economyRules'
+import { registerGameFailureIfNeeded } from '../game/registerGameFailure'
+import { useGameOutcomeStore } from '../game/gameOutcomeStore'
+import { getUnresolvedFindingIds } from '../game/securityAuditRules'
 import { useServerIncidentStore } from '../game/serverIncidentStore'
 import { getServerIncident } from '../game/serverIncidentCatalog'
 import { getEmployeeActiveSecurityWork, getRemainingServerRecoveryEffort, getServerDowntimeCost, getServerRecoveryEffort } from '../game/serverIncidentRules'
@@ -473,8 +476,12 @@ function AccessControlConfirm({ onClose }: { onClose: () => void }) {
   const sprintNumber = useSprintStore((s) => s.sprintNumber)
   const day = useSprintStore((s) => s.day)
   const balance = calculateBalance(useEconomyStore((s) => s.transactions))
+  const depletesBudget = balance - ACCESS_CONTROL_INVESTMENT_COST <= 0
   const confirm = () => {
     approve({ sprintNumber, day })
+    // Feature 12: an optional cost that empties the budget registers the defeat
+    // right after the confirmation closes (checked once, not via a balance watcher).
+    registerGameFailureIfNeeded('security-investment:access-control', { sprintNumber, day })
     onClose()
   }
   return (
@@ -496,6 +503,11 @@ function AccessControlConfirm({ onClose }: { onClose: () => void }) {
           </div>
         </dl>
         <p className="sprint-confirm-text">После оплаты потребуется назначить Соню или Илью на внедрение системы.</p>
+        {depletesBudget ? (
+          <p className="sprint-confirm-warning">
+            После этой операции бюджет будет исчерпан. Проект будет закрыт из-за невозможности оплачивать работу команды.
+          </p>
+        ) : null}
         <div className="sprint-confirm-actions">
           <button className="primary" onClick={confirm}>
             Одобрить
@@ -505,6 +517,27 @@ function AccessControlConfirm({ onClose }: { onClose: () => void }) {
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+// Feature 12: the final leadership deadline after the third failed audit.
+function LeadershipDeadline() {
+  const review = useGameOutcomeStore((s) => s.leadershipReview)
+  const findings = useSecurityAuditStore((s) => s.findings)
+  const sprintNumber = useSprintStore((s) => s.sprintNumber)
+  const day = useSprintStore((s) => s.day)
+  if (review.status !== 'grace-period' || review.dueWorkdayIndex === undefined) return null
+  const daysLeft = Math.max(0, review.dueWorkdayIndex - toWorkdayIndex(sprintNumber, day))
+  const openFindings = getUnresolvedFindingIds(findings).length
+  const critical = daysLeft <= 2
+  return (
+    <div className={critical ? 'sb-deadline sb-deadline--crit' : 'sb-deadline sb-deadline--due'}>
+      <strong>Финальное требование руководства.</strong>{' '}
+      {daysLeft === 0
+        ? 'Сегодня руководство принимает решение по проекту.'
+        : `До приостановки проекта: ${daysLeft} рабочих дней.`}{' '}
+      Открытых замечаний: {openFindings}.
     </div>
   )
 }
@@ -701,6 +734,7 @@ function SecurityBoard() {
         <h2 className="pb-title">Безопасность проекта</h2>
       </div>
       <SecurityDeadline />
+      <LeadershipDeadline />
       <div className="sb-cards">
         {findings.map((f) => (
           <FindingCard key={f.findingId} state={f} ctx={ctx} blocked={blocked} />

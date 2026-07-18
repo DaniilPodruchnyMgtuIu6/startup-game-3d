@@ -12,6 +12,7 @@ import { nearestWalkable } from './grid'
 import { planNextActivity, wanderPoint, createRng, type ActivityPlan, type ActivityPlanner } from './npcBehavior'
 import { getInteractions, isTargetFree, claimTarget, releaseClaims, targetKey } from '../interaction/interactionRegistry'
 import { useGameStore } from '../game/gameStore'
+import { useGameOutcomeStore } from '../game/gameOutcomeStore'
 
 // States in which an NPC is "settled" and its brain may schedule the next
 // activity after the current plan's stay duration.
@@ -30,6 +31,8 @@ function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivit
   const stateKind = useCharacterStore((s) => s.characters[id]?.state.kind)
   const gamePhase = useGameStore((s) => s.phase)
   const sceneOwned = useCharacterStore((s) => s.sceneOwned.has(id))
+  // Feature 12: a registered defeat freezes autonomous office life too.
+  const outcomeActive = useGameOutcomeStore((s) => s.status !== 'playing')
   const planRef = useRef<ActivityPlan | null>(null)
   const rngRef = useRef<(() => number) | null>(null)
   if (!rngRef.current) {
@@ -42,7 +45,7 @@ function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivit
     // story gating: NPCs live their office life only once the game reaches
     // free play (after the player has met the PM), and pause entirely while
     // a cutscene has taken direct control of this character
-    if (gamePhase !== 'free' || sceneOwned) return
+    if (gamePhase !== 'free' || sceneOwned || outcomeActive) return
     if (!stateKind || !SETTLED_STATES.has(stateKind)) return
     const rng = rngRef.current!
     // first decision after spawn comes quickly; afterwards stay durations rule
@@ -89,7 +92,7 @@ function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivit
       cancelled = true
       clearTimeout(timer)
     }
-  }, [stateKind, id, planActivity, gamePhase, sceneOwned])
+  }, [stateKind, id, planActivity, gamePhase, sceneOwned, outcomeActive])
 }
 
 function Npc({ definition, planActivity }: { definition: CharacterDefinition; planActivity?: ActivityPlanner }) {

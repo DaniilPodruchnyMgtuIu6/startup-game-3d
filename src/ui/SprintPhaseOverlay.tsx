@@ -7,17 +7,25 @@ import { useAccessControlStore } from '../game/accessControlStore'
 import { isOfficeIntrusionBlocking } from '../game/accessControlRules'
 import { useServerIncidentStore } from '../game/serverIncidentStore'
 import { anyServerIncidentBlocking } from '../game/serverIncidentRules'
+import { useGameOutcomeStore } from '../game/gameOutcomeStore'
 import { SPRINT_DAYS } from '../game/sprintRules'
 import { calculateBalance, formatRubles, sprintExpenseTotal } from '../game/economyRules'
 import {
   completedInSprint,
+  completedProductTaskCount,
   firstPrototypeDoneCount,
+  hasCompletedCoreMvp,
   hasFirstPrototype,
   incompletePlanned,
   productReadiness,
 } from '../game/productRules'
-import { getProductTask } from '../game/productTaskCatalog'
-import { completeSprintAndPrepareNextPlanning } from '../game/completeSprintReview'
+import { PRODUCT_TASK_CATALOG, getProductTask } from '../game/productTaskCatalog'
+import {
+  completeSprintAndPrepareNextPlanning,
+  completeCampaignDeadlineMet,
+  failCampaignDeadlineMissed,
+} from '../game/completeSprintReview'
+import { CAMPAIGN_DEADLINE_SPRINT } from '../game/gameOutcomeRules'
 import './ui.css'
 
 // Planning is a dismissable intro (not a hard blocker): the sprint is actually
@@ -36,8 +44,12 @@ export function SprintPhaseOverlay() {
   const followUpAudit = useSecurityAuditStore((s) => s.followUpAudit)
   const intrusion = useAccessControlStore((s) => s.intrusion)
   const serverIncidentBlocking = useServerIncidentStore((s) => anyServerIncidentBlocking(Object.values(s.incidents)))
+  // A registered defeat (pending or final) hands the screen to the game-over
+  // overlay: both planning and review are suppressed, so a hard failure preempts
+  // the review and the deadline review disappears once its defeat is registered.
+  const outcomeBlocking = useGameOutcomeStore((s) => s.status !== 'playing')
 
-  if (gamePhase !== 'free') return null
+  if (gamePhase !== 'free' || outcomeBlocking) return null
 
   if (sprintPhase === 'planning' && !planningDismissed) {
     return (
@@ -48,6 +60,19 @@ export function SprintPhaseOverlay() {
             Спринт длится {SPRINT_DAYS} условных рабочих дней. Время идёт только когда вы завершаете рабочий день.
             Подойдите к доске задач в переговорной, распределите работу между разработчиками и запустите спринт с доски.
           </p>
+          {sprintNumber < CAMPAIGN_DEADLINE_SPRINT ? (
+            <p className="sprint-panel-deadline">
+              {sprintNumber >= 5
+                ? `До дедлайна MVP осталось ${CAMPAIGN_DEADLINE_SPRINT - sprintNumber} спринт(а). Готовность OfficeFlow: ${productReadiness(taskStates)}%`
+                : `Дедлайн первого этапа: конец спринта ${CAMPAIGN_DEADLINE_SPRINT}`}
+            </p>
+          ) : (
+            <p className="sprint-panel-deadline sprint-panel-deadline--final">
+              Финальный спринт первого этапа. Незавершённых задач:{' '}
+              {PRODUCT_TASK_CATALOG.length - completedProductTaskCount(taskStates)}. После этого спринта проект должен
+              быть готов к выпуску.
+            </p>
+          )}
           <button className="primary" onClick={dismissPlanning}>
             Перейти в офис
           </button>
@@ -115,9 +140,36 @@ export function SprintPhaseOverlay() {
             </div>
           ) : null}
 
-          <button className="primary" onClick={() => completeSprintAndPrepareNextPlanning()}>
-            Перейти к следующему спринту
-          </button>
+          {sprintNumber === CAMPAIGN_DEADLINE_SPRINT ? (
+            hasCompletedCoreMvp(taskStates) ? (
+              <>
+                <div className="sprint-deadline sprint-deadline--met">
+                  <div className="sprint-deadline-title">Дедлайн первого этапа</div>
+                  <p>Все задачи OfficeFlow завершены. Основной объём MVP подготовлен в срок.</p>
+                </div>
+                <button className="primary" onClick={() => completeCampaignDeadlineMet()}>
+                  Продолжить подготовку к выпуску
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="sprint-deadline sprint-deadline--missed">
+                  <div className="sprint-deadline-title">MVP не подготовлен к дедлайну</div>
+                  <p>
+                    Завершено задач: {completedProductTaskCount(taskStates)} из {PRODUCT_TASK_CATALOG.length}. Готовность
+                    OfficeFlow: {productReadiness(taskStates)}%.
+                  </p>
+                </div>
+                <button className="primary" onClick={() => failCampaignDeadlineMissed()}>
+                  Посмотреть итог проекта
+                </button>
+              </>
+            )
+          ) : (
+            <button className="primary" onClick={() => completeSprintAndPrepareNextPlanning()}>
+              Перейти к следующему спринту
+            </button>
+          )}
         </div>
       </div>
     )

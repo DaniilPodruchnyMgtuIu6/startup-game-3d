@@ -274,6 +274,19 @@ export function getFirstPrototypeCompletion(states: ProductTaskState[]): { sprin
   return latest
 }
 
+// --- Core MVP completion (Feature 12 deadline) ------------------------------
+
+// The base MVP is ready when all 14 OfficeFlow tasks are done. Feature 13 will
+// extend release readiness with security conditions and the actual release
+// button; this selector only reports the task-completion baseline.
+export function hasCompletedCoreMvp(taskStates: ProductTaskState[]): boolean {
+  return PRODUCT_TASK_CATALOG.every((def) => findState(taskStates, def.id)?.status === 'done')
+}
+
+export function completedProductTaskCount(taskStates: ProductTaskState[]): number {
+  return PRODUCT_TASK_CATALOG.filter((def) => findState(taskStates, def.id)?.status === 'done').length
+}
+
 // --- Sprint results & carry-over --------------------------------------------
 
 export function completedInSprint(states: ProductTaskState[], sprintNumber: number): ProductTaskState[] {

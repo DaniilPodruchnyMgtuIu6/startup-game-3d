@@ -104,6 +104,14 @@ export function serverStabilizedSignals(role: ServerRole, moment: RiskCreationMo
   return [make(ref, domain, -2, 'server-minigame', ref, moment)]
 }
 
+// --- Leadership review recovery (Feature 12) --------------------------------
+
+// Closing every finding before the leadership deadline mitigates governance
+// risk. Idempotent by id (added once via addSignalsOnce).
+export function leadershipReviewRecoveredSignals(moment: RiskCreationMoment): RiskSignal[] {
+  return [make('leadership-review:recovered:governance', 'governance', -2, 'security-audit', 'leadership-review:recovered', moment)]
+}
+
 // --- Sprint plan (Feature 04) ----------------------------------------------
 
 export interface SprintLoad {

@@ -22,7 +22,14 @@ import { AuditResultOverlay } from './ui/AuditResultOverlay'
 import { IntrusionResultOverlay } from './ui/IntrusionResultOverlay'
 import { ServerIncidentResultOverlay } from './ui/ServerIncidentResultOverlay'
 import { MinigameOverlay } from './game/minigames/MinigameOverlay'
+import { GameOutcomeCoordinator } from './game/GameOutcomeCoordinator'
+import { GameOverOverlay } from './ui/GameOverOverlay'
 import { useCutsceneStore } from './cutscenes/cutsceneStore'
+import { isIntroReset } from './game/gameStore'
+import { useGameOutcomeStore } from './game/gameOutcomeStore'
+import { reconcileGameOutcomeAtStartup } from './game/reconcileGameOutcome'
+import { forceRegisterFailureForDev } from './game/registerGameFailure'
+import type { GameFailureReason } from './game/gameOutcomeRules'
 import { useServerIncidentsStore, type ServerRole } from './game/serverIncidentsStore'
 import { useSecurityStoryStore } from './game/securityStoryStore'
 import { useSprintStore } from './game/sprintStore'
@@ -54,6 +61,15 @@ reconcileAccessControlThreatAndProposal()
 // Feature 11: arm server-incident threats from an old Feature 10 save's risk +
 // rack instability (idempotent, never fires retroactively).
 reconcileServerIncidentThreatsAtStartup()
+// Feature 12: migrate an old save into the outcome model (old negative budget
+// fails now; shutdown recommendation / past deadline get a safe continuation).
+reconcileGameOutcomeAtStartup()
+
+// The shared reset flag has now been consumed by every store's module-load
+// hydration; strip ?intro so a later manual reload keeps the new game's progress.
+if (typeof window !== 'undefined' && isIntroReset(window.location.search)) {
+  window.history.replaceState(null, '', window.location.pathname)
+}
 
 if (import.meta.env.DEV) {
   ;(window as unknown as { __startCutscene?: (id: string) => void }).__startCutscene = (id: string) =>
@@ -114,6 +130,15 @@ if (import.meta.env.DEV) {
     if (!state || state.status === 'resolved') return
     useServerIncidentStore.setState({ incidents: { ...incidents, [state.incidentId]: { ...state, status: 'pending' } } })
   }
+  // Read-only outcome inspector.
+  ;(window as unknown as { __getGameOutcome?: () => unknown }).__getGameOutcome = () => {
+    const o = useGameOutcomeStore.getState()
+    return { status: o.status, pendingFailure: o.pendingFailure, failure: o.failure, leadershipReview: o.leadershipReview, campaignDeadline: o.campaignDeadline }
+  }
+  // Force a defeat with the current statistics through the normal register flow.
+  ;(window as unknown as { __triggerGameFailure?: (reason?: GameFailureReason) => void }).__triggerGameFailure = (
+    reason: GameFailureReason = 'budget-exhausted',
+  ) => forceRegisterFailureForDev(reason)
   // Read-only risk inspector: signals + actual/detected score & level per domain.
   ;(window as unknown as { __getRiskState?: () => unknown }).__getRiskState = () => {
     const signals = useRiskStore.getState().signals
@@ -181,7 +206,9 @@ export function App() {
       <SecurityFollowUpAuditTrigger />
       <OfficeIntrusionTrigger />
       <ServerIncidentTrigger />
+      <GameOutcomeCoordinator />
       <MinigameOverlay />
+      <GameOverOverlay />
     </>
   )
 }

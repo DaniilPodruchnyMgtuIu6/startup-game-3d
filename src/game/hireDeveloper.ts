@@ -2,6 +2,7 @@ import { useSprintStore } from './sprintStore'
 import { useTeamStore, type HireEmployeeResult } from './teamStore'
 import { useGameStore } from './gameStore'
 import { hasInitialDevelopmentTeam } from './teamRules'
+import { isGameOutcomeBlocking } from './registerGameFailure'
 
 // The single game operation for hiring a developer. Reads the current sprint as
 // the hire context, blocks hiring during a sprint review, records the hire, and
@@ -18,6 +19,8 @@ export function hireDeveloper(employeeId: string): HireEmployeeResult {
   const sprint = useSprintStore.getState()
   // Team changes are not allowed while reviewing a finished sprint.
   if (sprint.phase === 'review') return { hired: false, reason: 'invalid-game-state' }
+  // A registered defeat freezes every game action.
+  if (isGameOutcomeBlocking()) return { hired: false, reason: 'invalid-game-state' }
 
   const result = useTeamStore.getState().hireEmployee(employeeId, {
     sprintNumber: sprint.sprintNumber,

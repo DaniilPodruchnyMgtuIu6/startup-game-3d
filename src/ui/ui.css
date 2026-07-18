@@ -1609,3 +1609,113 @@ button.primary:hover {
   color: #8ea0b3;
   font-size: 13px;
 }
+
+/* Feature 12: campaign deadline + game-over screen */
+.sprint-panel-deadline {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #9fb4c8;
+}
+.sprint-panel-deadline--final {
+  color: #ffcf8a;
+}
+.sprint-deadline {
+  margin: 14px 0 4px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #111a24;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: left;
+}
+.sprint-deadline--met {
+  border-color: rgba(67, 160, 106, 0.5);
+}
+.sprint-deadline--missed {
+  border-color: rgba(229, 72, 77, 0.5);
+}
+.sprint-deadline-title {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.gameover-backdrop {
+  background: rgba(6, 9, 13, 0.86);
+  z-index: 60;
+}
+.gameover-panel {
+  width: min(560px, 92vw);
+  max-height: 88vh;
+  overflow: auto;
+  background: #0e151d;
+  border: 1px solid rgba(229, 72, 77, 0.45);
+  border-radius: 16px;
+  padding: 28px 30px;
+  color: #dbe6f2;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+.gameover-reason {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 12px;
+  color: #e5484d;
+  font-weight: 700;
+}
+.gameover-title {
+  margin: 8px 0 12px;
+  font-size: 26px;
+  line-height: 1.2;
+}
+.gameover-desc {
+  color: #a9bccd;
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+.gameover-stats {
+  margin: 20px 0 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 16px;
+}
+.gameover-stats > div {
+  display: contents;
+}
+.gameover-stats dt {
+  color: #8ea0b3;
+  font-size: 13px;
+  padding: 4px 0;
+}
+.gameover-stats dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  padding: 4px 0;
+}
+.gameover-contributing {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.gameover-contributing-label {
+  color: #8ea0b3;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.gameover-contributing ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #c6b089;
+  font-size: 13px;
+}
+.gameover-actions {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+}
+.sprint-confirm-warning {
+  margin: 4px 0 0;
+  color: #ff8a8a;
+  font-size: 13px;
+  font-weight: 600;
+}

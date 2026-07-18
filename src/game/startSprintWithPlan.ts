@@ -7,6 +7,7 @@ import { useRiskStore } from './riskStore'
 import { sprintPlanSignals } from './riskSignals'
 import { getActivePositiveRiskSignals } from './riskRules'
 import { riskMomentNow } from './riskContext'
+import { isGameOutcomeBlocking } from './registerGameFailure'
 
 // The single use-case that starts a sprint from the whiteboard plan. The
 // low-level sprintStore.startSprint must not be called by components directly -
@@ -29,6 +30,8 @@ export function getStartSprintWarnings(): { overloaded: boolean; employeesWithou
 export function canStartSprintWithPlan(): StartSprintResult {
   const sprint = useSprintStore.getState()
   if (sprint.phase !== 'planning') return { started: false, reason: 'not-planning' }
+  // A registered defeat (pending or final) freezes every game action.
+  if (isGameOutcomeBlocking()) return { started: false, reason: 'not-planning' }
 
   const hires = useTeamStore.getState().hires
   const states = useProductStore.getState().taskStates

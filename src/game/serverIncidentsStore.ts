@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { isIntroReset } from './gameStore'
+import { useGameOutcomeStore } from './gameOutcomeStore'
 
 export type ServerRole = 'gateway' | 'auth' | 'database' | 'backup'
 export type RackStatus = 'ok' | 'broken' | 'repairing'
@@ -194,6 +195,8 @@ export const useServerIncidentsStore = create<ServerIncidentsStore>()((set, get)
     // Player arrived at the rack → open the overlay for its bound mini-game.
     beginRepair: (role) => {
       if (get().racks[role].status === 'ok') return
+      // A registered defeat (pending or final) freezes every game action.
+      if (useGameOutcomeStore.getState().status !== 'playing') return
       set((s) => ({
         racks: { ...s.racks, [role]: { ...s.racks[role], status: 'repairing' } },
         activeMinigame: { role, kind: MINIGAME_BY_ROLE[role] },

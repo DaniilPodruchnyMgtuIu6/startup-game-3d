@@ -7,6 +7,12 @@ import { useSecurityAuditStore, isFollowUpAuditBlocking, type ApplySecurityWorkd
 import { useAccessControlStore, syncAccessLogsTask, type ApplyAccessControlWorkdayResult } from './accessControlStore'
 import { useServerIncidentStore, type ApplyServerRecoveryWorkdayResult } from './serverIncidentStore'
 import { useServerIncidentsStore } from './serverIncidentsStore'
+import {
+  isGameOutcomeBlocking,
+  registerGameFailureIfNeeded,
+  startLeadershipGraceIfNeeded,
+  resolveLeadershipReviewForWorkday,
+} from './registerGameFailure'
 import { getEmployeeSalaryExpenses, getHiredEmployeeIds, getHiredDeveloperIds, hasSecuritySpecialist } from './teamRules'
 import { isPostAuditConversationRequired } from './securityStoryRules'
 import { isOfficeIntrusionBlocking, canUnlockAccessControlProposal } from './accessControlRules'
@@ -25,7 +31,7 @@ import type { WorkdayProgressRecord } from './productRules'
 
 export interface CompleteWorkdayResult {
   completed: boolean
-  reason?: 'invalid-sprint-state' | 'required-story-conversation' | 'required-follow-up-audit' | 'required-office-intrusion' | 'required-server-incident'
+  reason?: 'invalid-sprint-state' | 'required-story-conversation' | 'required-follow-up-audit' | 'required-office-intrusion' | 'required-server-incident' | 'game-outcome-pending'
   economyApplied?: boolean
   chargedAmount?: number
   workday?: WorkdayProgressRecord
@@ -48,6 +54,10 @@ export function completeWorkday(): CompleteWorkdayResult {
   const sprint = useSprintStore.getState()
   if (!canCompleteCurrentWorkday()) {
     return { completed: false, reason: 'invalid-sprint-state' }
+  }
+  // A registered defeat (pending or final) freezes the day: no new day starts.
+  if (isGameOutcomeBlocking()) {
+    return { completed: false, reason: 'game-outcome-pending' }
   }
   // A required post-audit conversation must be held before the day can end.
   if (isPostAuditConversationRequired(useSecurityStoryStore.getState().postAuditConversation)) {
@@ -121,9 +131,17 @@ export function completeWorkday(): CompleteWorkdayResult {
   // 12. surface the day's report to the player (does not re-run any calc)
   useProductStore.getState().showReport(productResult.record)
 
-  // 13. a server may break on schedule for the player to fix via a mini-game
-  // (deterministic; only while the sprint stays active, never during a review)
-  if (useSprintStore.getState().phase === 'active') {
+  // 13. Feature 12 outcome: arm the leadership grace period once the third audit
+  // has recommended shutdown, resolve it for this day, then register a defeat if
+  // any condition now holds (budget / leadership / service downtime). The
+  // coordinator opens the game-over screen once the day's UI is free.
+  startLeadershipGraceIfNeeded(completedWorkdayIndex)
+  resolveLeadershipReviewForWorkday(sprintNumber, day, completedWorkdayIndex)
+  registerGameFailureIfNeeded(`complete-workday:sprint-${sprintNumber}:day-${day}`, { sprintNumber, day })
+
+  // 14. a server may break on schedule for the player to fix via a mini-game
+  // (deterministic; only while the sprint stays active and the game is not over)
+  if (useSprintStore.getState().phase === 'active' && !isGameOutcomeBlocking()) {
     useServerIncidentsStore.getState().autoBreakForWorkday(completedWorkdayIndex, sprintNumber)
   }
 
