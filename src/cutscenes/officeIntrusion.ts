@@ -1,5 +1,5 @@
 import { useGLTF } from '@react-three/drei'
-import { businessMan } from '../character/characters/businessMan'
+import { intruder } from '../character/characters/intruder'
 import { femalePm } from '../character/characters/femalePm'
 import { ilyaVlasov } from '../character/characters/ilyaVlasov'
 import { useSprintStore } from '../game/sprintStore'
@@ -8,9 +8,9 @@ import { useAccessControlStore } from '../game/accessControlStore'
 import { hasSecuritySpecialist } from '../game/teamRules'
 import type { CutsceneScript, Point } from './types'
 
-// Preload the intruder model (the generic office-visitor mesh) in the combined
-// form the CharacterModel looks up, so spawnModeledActor never suspends mid-scene.
-useGLTF.preload(Object.values(businessMan.model.clips))
+// Preload the intruder model in the combined form the CharacterModel looks up,
+// so spawnModeledActor never suspends mid-scene.
+useGLTF.preload(Object.values(intruder.model.clips))
 
 const INTRUDER_SPAWN: Point = [5, 0, 7.4]
 const INTRUDER_STOP_EARLY: Point = [3, 0, 5] // contained near the entrance (Ilya branch)
@@ -40,7 +40,7 @@ export const officeIntrusionScene: CutsceneScript = async (director) => {
 
   try {
     await director.camera(CAMERA_TARGET, { position: CAMERA_POSITION, durationMs: 1000 })
-    director.spawnModeledActor('intruder', INTRUDER_SPAWN, businessMan, Math.PI)
+    director.spawnModeledActor('intruder', INTRUDER_SPAWN, intruder, Math.PI)
 
     if (withIlya) {
       await director.walk('intruder', INTRUDER_STOP_EARLY)

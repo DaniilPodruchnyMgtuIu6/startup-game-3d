@@ -55,6 +55,8 @@ const ALL_CLIPS = [
   { file: 'cybersecurity/sitIdle', name: 'sitIdle', out: 'cybersecurity/sitIdle' },
   { file: 'cybersecurity/sofaSit', name: 'sofaSit', out: 'cybersecurity/sofaSit' },
   { file: 'cybersecurity/talk', name: 'talk', out: 'cybersecurity/talk' },
+  { file: 'intruder/intruder_idle', name: 'idle', out: 'intruder/idle', keepMesh: true },
+  { file: 'intruder/intruder_walking', name: 'walk', out: 'intruder/walk' },
 ]
 // pass name fragments as CLI args to convert a subset, e.g.
 //   node scripts/convert-character.mjs female_pm
