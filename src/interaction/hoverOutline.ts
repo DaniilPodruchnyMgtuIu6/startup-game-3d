@@ -23,6 +23,13 @@ function isInvisible(material: Material | Material[]): boolean {
 }
 
 export function attachHoverOutline(root: Object3D): () => void {
+  // Reentrancy guard: a broken server carries a persistent outline (see
+  // ServerRack) AND its interaction trigger adds a hover outline to the same
+  // group. Without this, the two overlap and z-fight. First caller owns it;
+  // later calls no-op until it is released.
+  if (root.userData.hasOutline) return () => {}
+  root.userData.hasOutline = true
+
   const added: Mesh[] = []
   root.traverse((object) => {
     if (!(object instanceof Mesh)) return
@@ -45,5 +52,6 @@ export function attachHoverOutline(root: Object3D): () => void {
   })
   return () => {
     for (const shell of added) shell.parent?.remove(shell)
+    root.userData.hasOutline = false
   }
 }

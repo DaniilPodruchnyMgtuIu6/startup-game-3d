@@ -1593,6 +1593,10 @@ button.primary:hover {
   background: rgba(255, 122, 122, 0.22);
   outline: 1px solid rgba(255, 122, 122, 0.5);
 }
+.mg-log-line--picked {
+  background: rgba(105, 178, 255, 0.2);
+  outline: 1px solid rgba(105, 178, 255, 0.55);
+}
 .mg-query {
   font: 13px ui-monospace, monospace;
   background: #0e151d;

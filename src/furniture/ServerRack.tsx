@@ -5,6 +5,7 @@ import { useMaterials } from '../materials/MaterialsContext'
 import { useObstacle } from '../character/useObstacle'
 import { ledStatusFor, ledMaterialKeyFor, ledIntensityAt, alarmIntensityAt } from './serverRackLights'
 import { ServerAlertMarker } from './ServerAlertMarker'
+import { attachHoverOutline } from '../interaction/hoverOutline'
 import { InteractionTrigger } from '../interaction/InteractionTrigger'
 import type { TriggerTarget } from '../interaction/triggerPayload'
 import { useServerIncidentsStore, ROLE_BY_SEED, ROLE_LABEL } from '../game/serverIncidentsStore'
@@ -60,6 +61,15 @@ export function ServerRack({ position = [0, 0, 0], rotation = [0, 0, 0], seed = 
     return texture
   }, [role, broken])
   useEffect(() => () => plateTexture?.dispose(), [plateTexture])
+
+  // A broken rack stays outlined in white the whole time it needs attention
+  // (not only on hover), reusing the shared outline shell. Runs after the rack
+  // meshes have mounted, so the traversal picks them all up.
+  useEffect(() => {
+    if (!broken || !group.current) return
+    const detach = attachHoverOutline(group.current)
+    return detach
+  }, [broken])
 
   useFrame((_, delta) => {
     elapsed.current += delta

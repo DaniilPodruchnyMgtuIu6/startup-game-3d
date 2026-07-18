@@ -6,6 +6,7 @@ import { useSecurityStoryStore } from './securityStoryStore'
 import { useSecurityAuditStore, isFollowUpAuditBlocking, type ApplySecurityWorkdayResult, type ScheduleAuditResult } from './securityAuditStore'
 import { useAccessControlStore, syncAccessLogsTask, type ApplyAccessControlWorkdayResult } from './accessControlStore'
 import { useServerIncidentStore, type ApplyServerRecoveryWorkdayResult } from './serverIncidentStore'
+import { useServerIncidentsStore } from './serverIncidentsStore'
 import { getEmployeeSalaryExpenses, getHiredEmployeeIds, getHiredDeveloperIds, hasSecuritySpecialist } from './teamRules'
 import { isPostAuditConversationRequired } from './securityStoryRules'
 import { isOfficeIntrusionBlocking, canUnlockAccessControlProposal } from './accessControlRules'
@@ -119,6 +120,12 @@ export function completeWorkday(): CompleteWorkdayResult {
 
   // 12. surface the day's report to the player (does not re-run any calc)
   useProductStore.getState().showReport(productResult.record)
+
+  // 13. a server may break on schedule for the player to fix via a mini-game
+  // (deterministic; only while the sprint stays active, never during a review)
+  if (useSprintStore.getState().phase === 'active') {
+    useServerIncidentsStore.getState().autoBreakForWorkday(completedWorkdayIndex, sprintNumber)
+  }
 
   return {
     completed: true,

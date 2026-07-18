@@ -1,5 +1,6 @@
 import type { FC } from 'react'
 import type { MinigameKind } from '../serverIncidentsStore'
+import { backupModule } from './backup.tsx'
 import { firewallModule } from './firewall.tsx'
 import { logsModule } from './logs.tsx'
 import { sqliModule } from './sqli.tsx'
@@ -23,4 +24,5 @@ export const MINIGAME_MODULES: Record<MinigameKind, MinigameModule<any>> = {
   firewall: firewallModule,
   logs: logsModule,
   sqli: sqliModule,
+  backup: backupModule,
 }

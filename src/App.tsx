@@ -60,6 +60,13 @@ if (import.meta.env.DEV) {
     useCutsceneStore.getState().startScene(id)
   ;(window as unknown as { __breakServer?: (role?: ServerRole) => void }).__breakServer = (role?: ServerRole) =>
     useServerIncidentsStore.getState().breakServer(role)
+  // Opens a rack's repair mini-game directly (breaking it first if needed), so a
+  // server mini-game can be reviewed without walking the player over to the rack.
+  ;(window as unknown as { __repairServer?: (role: ServerRole) => void }).__repairServer = (role: ServerRole) => {
+    const store = useServerIncidentsStore.getState()
+    if (store.racks[role].status === 'ok') store.breakServer(role)
+    store.beginRepair(role)
+  }
   // Story testing: put the post-audit conversation into its pending state (the
   // marker over Sonya + the objective) without replaying the whole breach. Uses
   // the same unlock the scene does, so it never duplicates the task or decision.
