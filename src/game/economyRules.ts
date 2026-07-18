@@ -7,7 +7,14 @@
 import { SPRINT_DAYS } from './sprintRules'
 
 export type MoneyTransactionKind = 'income' | 'expense'
-export type MoneyTransactionCategory = 'funding' | 'operations' | 'audit-fine' | 'security-investment' | 'security-incident'
+export type MoneyTransactionCategory =
+  | 'funding'
+  | 'operations'
+  | 'audit-fine'
+  | 'security-investment'
+  | 'security-incident'
+  | 'server-incident'
+  | 'service-downtime'
 
 export interface ExpenseBreakdownItem {
   code: string
@@ -158,6 +165,28 @@ export function createSecurityIncidentTransaction(amount: number, sprintNumber: 
   }
 }
 
+// --- Server incidents & downtime (Feature 11) -------------------------------
+
+export function serverIncidentTransactionId(incidentId: string): string {
+  return `server-incident:${incidentId}`
+}
+
+// One-off emergency-response expense for a server incident. Its own category so
+// it never mixes into the per-sprint operations total.
+export function createServerIncidentTransaction(incidentId: string, title: string, amount: number, sprintNumber: number, day: number): MoneyTransaction {
+  return { id: serverIncidentTransactionId(incidentId), kind: 'expense', category: 'server-incident', title, amount, sprintNumber, day }
+}
+
+export function serverDowntimeTransactionId(incidentId: string, sprintNumber: number, day: number): string {
+  return `server-downtime:${incidentId}:sprint-${sprintNumber}:day-${day}`
+}
+
+// Per-day downtime expense while a server incident is unresolved (one per
+// incident per day, deterministic id so a day is never charged twice).
+export function createServerDowntimeTransaction(incidentId: string, title: string, amount: number, sprintNumber: number, day: number): MoneyTransaction {
+  return { id: serverDowntimeTransactionId(incidentId, sprintNumber, day), kind: 'expense', category: 'service-downtime', title, amount, sprintNumber, day }
+}
+
 // Appends a transaction only if its id is not already present. `applied` tells
 // the caller whether the journal (and therefore the balance) actually changed.
 export function appendTransactionOnce(
@@ -240,7 +269,15 @@ export function formatRubles(amount: number): string {
 // --- Persistence normalisation ---------------------------------------------
 
 const KINDS: MoneyTransactionKind[] = ['income', 'expense']
-const CATEGORIES: MoneyTransactionCategory[] = ['funding', 'operations', 'audit-fine', 'security-investment', 'security-incident']
+const CATEGORIES: MoneyTransactionCategory[] = [
+  'funding',
+  'operations',
+  'audit-fine',
+  'security-investment',
+  'security-incident',
+  'server-incident',
+  'service-downtime',
+]
 
 function isPositiveInt(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value > 0

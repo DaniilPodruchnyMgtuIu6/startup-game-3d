@@ -5,6 +5,8 @@ import { useProductStore } from '../game/productStore'
 import { useSecurityAuditStore, isFollowUpAuditBlocking } from '../game/securityAuditStore'
 import { useAccessControlStore } from '../game/accessControlStore'
 import { isOfficeIntrusionBlocking } from '../game/accessControlRules'
+import { useServerIncidentStore } from '../game/serverIncidentStore'
+import { anyServerIncidentBlocking } from '../game/serverIncidentRules'
 import { SPRINT_DAYS } from '../game/sprintRules'
 import { calculateBalance, formatRubles, sprintExpenseTotal } from '../game/economyRules'
 import {
@@ -33,6 +35,7 @@ export function SprintPhaseOverlay() {
   // priority over the review: the review stays hidden until both are resolved.
   const followUpAudit = useSecurityAuditStore((s) => s.followUpAudit)
   const intrusion = useAccessControlStore((s) => s.intrusion)
+  const serverIncidentBlocking = useServerIncidentStore((s) => anyServerIncidentBlocking(Object.values(s.incidents)))
 
   if (gamePhase !== 'free') return null
 
@@ -53,7 +56,7 @@ export function SprintPhaseOverlay() {
     )
   }
 
-  if (sprintPhase === 'review' && !isFollowUpAuditBlocking(followUpAudit) && !isOfficeIntrusionBlocking(intrusion)) {
+  if (sprintPhase === 'review' && !isFollowUpAuditBlocking(followUpAudit) && !isOfficeIntrusionBlocking(intrusion) && !serverIncidentBlocking) {
     const spent = sprintExpenseTotal(transactions, sprintNumber)
     const balance = calculateBalance(transactions)
     const completed = completedInSprint(taskStates, sprintNumber)

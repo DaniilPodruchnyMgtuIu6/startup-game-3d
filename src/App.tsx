@@ -17,8 +17,10 @@ import { PrototypeMock } from './ui/PrototypeMock'
 import { SecurityStoryTrigger } from './game/securityStoryTrigger'
 import { SecurityFollowUpAuditTrigger } from './game/SecurityFollowUpAuditTrigger'
 import { OfficeIntrusionTrigger } from './game/OfficeIntrusionTrigger'
+import { ServerIncidentTrigger } from './game/ServerIncidentTrigger'
 import { AuditResultOverlay } from './ui/AuditResultOverlay'
 import { IntrusionResultOverlay } from './ui/IntrusionResultOverlay'
+import { ServerIncidentResultOverlay } from './ui/ServerIncidentResultOverlay'
 import { MinigameOverlay } from './game/minigames/MinigameOverlay'
 import { useCutsceneStore } from './cutscenes/cutsceneStore'
 import { useServerIncidentsStore, type ServerRole } from './game/serverIncidentsStore'
@@ -30,6 +32,8 @@ import { useAccessControlStore } from './game/accessControlStore'
 import { initializeSecurityAuditIfReady } from './game/initializeSecurityAudit'
 import { reconcileRiskSignals } from './game/reconcileRiskSignals'
 import { reconcileAccessControlThreatAndProposal } from './game/reconcileAccessControl'
+import { reconcileServerIncidentThreatsAtStartup } from './game/reconcileServerIncidents'
+import { useServerIncidentStore } from './game/serverIncidentStore'
 import { useRiskStore } from './game/riskStore'
 import { RISK_DOMAINS } from './game/riskCatalog'
 import { getActualRiskScore, getActualRiskLevel, getDetectedRiskScore, getDetectedRiskLevel } from './game/riskRules'
@@ -47,6 +51,9 @@ reconcileRiskSignals()
 // Feature 10: open the СКУД proposal / arm the intrusion threat from an old
 // Feature 09 save's office-access risk (idempotent, never fires retroactively).
 reconcileAccessControlThreatAndProposal()
+// Feature 11: arm server-incident threats from an old Feature 10 save's risk +
+// rack instability (idempotent, never fires retroactively).
+reconcileServerIncidentThreatsAtStartup()
 
 if (import.meta.env.DEV) {
   ;(window as unknown as { __startCutscene?: (id: string) => void }).__startCutscene = (id: string) =>
@@ -92,6 +99,13 @@ if (import.meta.env.DEV) {
     const intrusion = useAccessControlStore.getState().intrusion
     if (intrusion.status === 'resolved' || intrusion.status === 'prevented') return
     useAccessControlStore.setState({ intrusion: { ...intrusion, status: 'pending', effectsApplied: intrusion.effectsApplied } })
+  }
+  // Story testing: force a specific server incident to pending (default gateway).
+  ;(window as unknown as { __triggerServerIncident?: (id?: string) => void }).__triggerServerIncident = (id = 'gateway-outage') => {
+    const incidents = useServerIncidentStore.getState().incidents
+    const state = incidents[id as keyof typeof incidents]
+    if (!state || state.status === 'resolved') return
+    useServerIncidentStore.setState({ incidents: { ...incidents, [state.incidentId]: { ...state, status: 'pending' } } })
   }
   // Read-only risk inspector: signals + actual/detected score & level per domain.
   ;(window as unknown as { __getRiskState?: () => unknown }).__getRiskState = () => {
@@ -155,9 +169,11 @@ export function App() {
       <DailyReport />
       <AuditResultOverlay />
       <IntrusionResultOverlay />
+      <ServerIncidentResultOverlay />
       <SecurityStoryTrigger />
       <SecurityFollowUpAuditTrigger />
       <OfficeIntrusionTrigger />
+      <ServerIncidentTrigger />
       <MinigameOverlay />
     </>
   )

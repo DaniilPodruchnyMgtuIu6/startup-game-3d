@@ -23,6 +23,9 @@ import { RISK_LEVEL_LABEL } from '../game/riskCatalog'
 import { useAccessControlStore } from '../game/accessControlStore'
 import { getAccessControlEffortDays, getRemainingAccessControlEffort, type AccessControlAssigneeId } from '../game/accessControlRules'
 import { ACCESS_CONTROL_INVESTMENT_COST } from '../game/economyRules'
+import { useServerIncidentStore } from '../game/serverIncidentStore'
+import { getServerIncident } from '../game/serverIncidentCatalog'
+import { getEmployeeActiveSecurityWork, getRemainingServerRecoveryEffort, getServerDowntimeCost, getServerRecoveryEffort } from '../game/serverIncidentRules'
 import {
   completedInSprint,
   firstPrototypeDoneCount,
@@ -606,6 +609,74 @@ function AccessControlCard() {
   )
 }
 
+// Ongoing infrastructure incidents + their recovery assignment (Feature 11).
+function ServerIncidentsCard() {
+  const incidents = useServerIncidentStore((s) => s.incidents)
+  const assign = useServerIncidentStore((s) => s.assignServerRecovery)
+  const unassign = useServerIncidentStore((s) => s.unassignServerRecovery)
+  const findings = useSecurityAuditStore((s) => s.findings)
+  const followUpAudit = useSecurityAuditStore((s) => s.followUpAudit)
+  const accessControl = useAccessControlStore((s) => s.accessControl)
+  const hires = useTeamStore((s) => s.hires)
+
+  const active = Object.values(incidents).filter((s) => s.status === 'recovery-required' || s.status === 'recovering')
+  if (active.length === 0) return null
+
+  const hasIlya = hasSecuritySpecialist(hires)
+  const blocked = isFollowUpAuditBlocking(followUpAudit)
+  const incidentStates = Object.values(incidents)
+
+  return (
+    <div className="sb-observations">
+      <h3 className="team-section-title">Инфраструктурные инциденты</h3>
+      {active.map((state) => {
+        const def = getServerIncident(state.incidentId)!
+        const effort = getServerRecoveryEffort(state.incidentId, state.hadSecuritySpecialistAtIncident === true)
+        return (
+          <div className="sb-card" key={state.incidentId}>
+            <div className="sb-card-title">{def.title}</div>
+            <div className="sb-card-status">Сервис ограничен</div>
+            <div className="sb-card-progress">
+              Простой: {formatRubles(getServerDowntimeCost(state.incidentId))} за рабочий день
+              <br />
+              Восстановление: {state.recoveryProgressDays}/{effort}
+              {state.assignedEmployeeId ? ` · осталось ${getRemainingServerRecoveryEffort(state)} дн` : ''}
+            </div>
+            {state.assignedEmployeeId ? (
+              <div className="sb-card-assignee">
+                <span>Исполнитель: {securityEmployeeName(state.assignedEmployeeId)}</span>
+                <button className="sb-btn" disabled={blocked} onClick={() => unassign(state.incidentId)}>
+                  Снять назначение
+                </button>
+              </div>
+            ) : (
+              <div className="sb-card-assign">
+                <span className="sb-card-assign-label">Исполнитель:</span>
+                {def.eligibleEmployeeIds.map((empId) => {
+                  const notHired = empId === 'ilya-vlasov' && !hasIlya
+                  const active = getEmployeeActiveSecurityWork(empId, findings, accessControl, incidentStates)
+                  const busy = !!active && !(active.kind === 'server-recovery' && active.id === state.incidentId)
+                  return (
+                    <button
+                      key={empId}
+                      className="sb-btn"
+                      disabled={notHired || busy || blocked}
+                      title={notHired ? 'Илья не нанят' : busy ? 'Сотрудник занят другой работой по безопасности' : undefined}
+                      onClick={() => assign(state.incidentId, empId)}
+                    >
+                      {securityEmployeeName(empId)}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function SecurityBoard() {
   const findings = useSecurityAuditStore((s) => s.findings)
   const followUpAudit = useSecurityAuditStore((s) => s.followUpAudit)
@@ -635,6 +706,7 @@ function SecurityBoard() {
           <FindingCard key={f.findingId} state={f} ctx={ctx} blocked={blocked} />
         ))}
       </div>
+      <ServerIncidentsCard />
       <AccessControlCard />
       <RiskObservations />
     </div>

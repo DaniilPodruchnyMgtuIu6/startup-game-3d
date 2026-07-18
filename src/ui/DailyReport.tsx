@@ -4,6 +4,9 @@ import { useTeamStore } from '../game/teamStore'
 import { useSecurityAuditStore, isFollowUpAuditBlocking } from '../game/securityAuditStore'
 import { useAccessControlStore } from '../game/accessControlStore'
 import { accessControlWorkdayId, getAccessControlEffortDays } from '../game/accessControlRules'
+import { useServerIncidentStore } from '../game/serverIncidentStore'
+import { getServerIncident } from '../game/serverIncidentCatalog'
+import { serverRecoveryWorkdayId, getServerRecoveryEffort } from '../game/serverIncidentRules'
 import { useRiskStore } from '../game/riskStore'
 import { getProductTask } from '../game/productTaskCatalog'
 import { getEmployee, PROJECT_MANAGER } from '../game/teamCatalog'
@@ -49,6 +52,57 @@ function EmployeeLine({ result }: { result: WorkdayEmployeeProgress }) {
         {def?.title}: {result.beforeProgressDays}/{def?.effortDays} → {result.afterProgressDays}/{def?.effortDays}
       </div>
       {result.completedTask ? <div className="dr-emp-done">Задача завершена</div> : null}
+    </div>
+  )
+}
+
+// Server incident recovery progress + downtime for the completed day (Feature 11
+// §28). Only shown if there was a recovery record that day.
+function InfrastructureReportSection({ sprintNumber, day }: { sprintNumber: number; day: number }) {
+  const record = useServerIncidentStore((s) => s.workdayHistory.find((w) => w.id === serverRecoveryWorkdayId(sprintNumber, day)))
+  const incidents = useServerIncidentStore((s) => s.incidents)
+  const transactions = useEconomyStore((s) => s.transactions)
+  if (!record || record.incidentResults.length === 0) return null
+
+  const downtimeItems = record.downtimeTransactionIds
+    .map((id) => transactions.find((t) => t.id === id))
+    .filter((t): t is NonNullable<typeof t> => !!t)
+
+  return (
+    <div className="dr-security">
+      <div className="dr-security-title">Инфраструктура</div>
+      {record.incidentResults.map((r) => {
+        const def = getServerIncident(r.incidentId)
+        if (r.idleReason === 'no-assignee') {
+          return (
+            <div className="dr-emp-idle" key={r.incidentId}>
+              Инцидент «{def?.title}» не устранялся: исполнитель не назначен.
+            </div>
+          )
+        }
+        const effort = getServerRecoveryEffort(r.incidentId, incidents[r.incidentId].hadSecuritySpecialistAtIncident === true)
+        return (
+          <div className="dr-emp" key={r.incidentId}>
+            <div className="dr-emp-name">{r.employeeId ? securityEmployeeName(r.employeeId) : ''}</div>
+            <div className="dr-emp-task">
+              Восстановление · {def?.title}: {r.beforeProgressDays}/{effort} → {r.afterProgressDays}/{effort}
+            </div>
+            {r.completed ? <div className="dr-emp-done">Инцидент устранён. OfficeFlow снова работает без ограничений.</div> : null}
+          </div>
+        )
+      })}
+      {downtimeItems.length > 0 ? (
+        <div className="dr-security-deadline">
+          Расходы из-за простоя:
+          <ul className="dr-risk-factors">
+            {downtimeItems.map((t) => (
+              <li key={t.id}>
+                {t.title} — {formatRubles(t.amount)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -204,6 +258,8 @@ export function DailyReport() {
         </div>
 
         {auditInitialized ? <SecuritySection record={securityRecord} sprintNumber={report.sprintNumber} day={report.day} /> : null}
+
+        <InfrastructureReportSection sprintNumber={report.sprintNumber} day={report.day} />
 
         <AccessControlReportSection sprintNumber={report.sprintNumber} day={report.day} />
 

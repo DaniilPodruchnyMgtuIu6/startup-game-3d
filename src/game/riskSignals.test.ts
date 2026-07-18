@@ -6,6 +6,8 @@ import {
   declineStaffingSignals,
   findingClosedSignals,
   officeIntrusionSignals,
+  serverIncidentOccurredSignals,
+  serverIncidentRecoveredSignals,
   rebuildRiskSignalsFromGameState,
   securityHireSignals,
   serverFailureSignals,
@@ -102,6 +104,17 @@ describe('access control & intrusion signals', () => {
     const s = officeIntrusionSignals(false, moment)
     expect(s.find((x) => x.domain === 'office-access')!.impact).toBe(3)
     expect(s.find((x) => x.domain === 'sensitive-data')).toMatchObject({ impact: 2, source: 'access-control-incident' })
+  })
+})
+
+describe('server incident signals', () => {
+  it('occurred is +3 in the incident domain; recovered is -4', () => {
+    expect(serverIncidentOccurredSignals('gateway-outage', 'service-continuity', moment)).toMatchObject([
+      { id: 'server-incident:gateway-outage:occurred', domain: 'service-continuity', impact: 3, source: 'server-incident' },
+    ])
+    expect(serverIncidentRecoveredSignals('database-exposure-review', 'sensitive-data', moment)).toMatchObject([
+      { id: 'server-incident:database-exposure-review:recovered', domain: 'sensitive-data', impact: -4 },
+    ])
   })
 })
 

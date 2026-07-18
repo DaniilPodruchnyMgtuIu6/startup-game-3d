@@ -24,6 +24,7 @@ export type RiskSignalSource =
   | 'access-control-decision'
   | 'access-control-implementation'
   | 'access-control-incident'
+  | 'server-incident'
 
 export interface RiskMoment {
   sprintNumber: number
@@ -167,6 +168,13 @@ export function getRiskSignalFactorLabel(signal: RiskSignal): string {
     if (overload) return `План ${OVERLOAD_NAME[overload[1]] ?? 'сотрудника'} превысил вместимость спринта.`
   }
 
+  if (signal.source === 'server-incident') {
+    if (signal.sourceRef.endsWith(':recovered')) return 'Серверный инцидент устранён, сервис восстановлен.'
+    if (signal.sourceRef === 'gateway-outage') return 'Произошёл отказ внешнего шлюза OfficeFlow.'
+    if (signal.sourceRef === 'auth-account-incident') return 'Произошёл инцидент с учётными записями.'
+    if (signal.sourceRef === 'database-exposure-review') return 'Зафиксированы подозрительные запросы к базе данных.'
+  }
+
   if (signal.sourceRef === 'postpone-access-control') return 'Решение о внедрении СКУД отложено.'
   if (signal.sourceRef === 'access-control-active') return 'Внедрена система контроля доступа.'
   if (signal.sourceRef === 'office-intrusion:contained-early') return 'Постороннего остановили до рабочей зоны.'
@@ -228,6 +236,7 @@ const SOURCES: RiskSignalSource[] = [
   'access-control-decision',
   'access-control-implementation',
   'access-control-incident',
+  'server-incident',
 ]
 
 function validMoment(raw: unknown): RiskMoment | undefined {

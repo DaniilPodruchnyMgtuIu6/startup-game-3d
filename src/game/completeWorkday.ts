@@ -5,9 +5,11 @@ import { useProductStore } from './productStore'
 import { useSecurityStoryStore } from './securityStoryStore'
 import { useSecurityAuditStore, isFollowUpAuditBlocking, type ApplySecurityWorkdayResult, type ScheduleAuditResult } from './securityAuditStore'
 import { useAccessControlStore, syncAccessLogsTask, type ApplyAccessControlWorkdayResult } from './accessControlStore'
+import { useServerIncidentStore, type ApplyServerRecoveryWorkdayResult } from './serverIncidentStore'
 import { getEmployeeSalaryExpenses, getHiredEmployeeIds, getHiredDeveloperIds, hasSecuritySpecialist } from './teamRules'
 import { isPostAuditConversationRequired } from './securityStoryRules'
 import { isOfficeIntrusionBlocking, canUnlockAccessControlProposal } from './accessControlRules'
+import { anyServerIncidentBlocking } from './serverIncidentRules'
 import { useRiskStore } from './riskStore'
 import { getActualRiskLevel, getDetectedRiskLevel } from './riskRules'
 import { toWorkdayIndex } from './workdayIndex'
@@ -22,12 +24,13 @@ import type { WorkdayProgressRecord } from './productRules'
 
 export interface CompleteWorkdayResult {
   completed: boolean
-  reason?: 'invalid-sprint-state' | 'required-story-conversation' | 'required-follow-up-audit' | 'required-office-intrusion'
+  reason?: 'invalid-sprint-state' | 'required-story-conversation' | 'required-follow-up-audit' | 'required-office-intrusion' | 'required-server-incident'
   economyApplied?: boolean
   chargedAmount?: number
   workday?: WorkdayProgressRecord
   securityResult?: ApplySecurityWorkdayResult
   accessControlResult?: ApplyAccessControlWorkdayResult
+  serverRecoveryResult?: ApplyServerRecoveryWorkdayResult
   auditScheduleResult?: ScheduleAuditResult
   sprintNumber?: number
   day?: number
@@ -57,16 +60,24 @@ export function completeWorkday(): CompleteWorkdayResult {
   if (isOfficeIntrusionBlocking(useAccessControlStore.getState().intrusion)) {
     return { completed: false, reason: 'required-office-intrusion' }
   }
+  // A pending/running server incident scene must be resolved before the next day.
+  if (anyServerIncidentBlocking(Object.values(useServerIncidentStore.getState().incidents))) {
+    return { completed: false, reason: 'required-server-incident' }
+  }
 
   const { sprintNumber, day } = sprint
   const hiredIds = getHiredEmployeeIds(useTeamStore.getState().hires)
 
-  // 1. access-control implementation progress for the day (idempotent)
+  // 1. server incident recovery + downtime (unresolved-at-start of the day)
+  const serverRecoveryResult = useServerIncidentStore.getState().applyServerRecoveryWorkday(sprintNumber, day)
+  // 2. access-control implementation progress for the day (idempotent)
   const accessControlResult = useAccessControlStore.getState().applyAccessControlWorkday(sprintNumber, day)
-  // 2. security corrective work for the day (idempotent) - who was diverted?
+  // 3. security corrective work for the day (idempotent) - who was diverted?
   const securityResult = useSecurityAuditStore.getState().applySecurityWorkday(sprintNumber, day)
   const developerIds = getHiredDeveloperIds(useTeamStore.getState().hires)
-  const excludedDeveloperIds = developerIds.filter((id) => securityResult.divertedEmployeeIds.includes(id))
+  // developers diverted to a corrective finding OR a server recovery make no product
+  const divertedToSecurity = new Set([...securityResult.divertedEmployeeIds, ...serverRecoveryResult.divertedEmployeeIds])
+  const excludedDeveloperIds = developerIds.filter((id) => divertedToSecurity.has(id))
 
   // 3. deterministic development progress (diverted developers make none), THEN
   const productResult = useProductStore.getState().applyWorkday(sprintNumber, day, developerIds, excludedDeveloperIds)
@@ -103,7 +114,10 @@ export function completeWorkday(): CompleteWorkdayResult {
     dueWorkdayIndex: ac.intrusion.dueWorkdayIndex,
   })
 
-  // 11. surface the day's report to the player (does not re-run any calc)
+  // 11. reconcile server incident threats against ACTUAL domain risk + rack instability
+  useServerIncidentStore.getState().reconcileServerIncidentThreats(completedWorkdayIndex)
+
+  // 12. surface the day's report to the player (does not re-run any calc)
   useProductStore.getState().showReport(productResult.record)
 
   return {
@@ -113,6 +127,7 @@ export function completeWorkday(): CompleteWorkdayResult {
     workday: productResult.record,
     securityResult,
     accessControlResult,
+    serverRecoveryResult,
     auditScheduleResult,
     sprintNumber,
     day,

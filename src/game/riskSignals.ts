@@ -174,6 +174,16 @@ export function officeIntrusionSignals(hasSecuritySpecialist: boolean, moment: R
   ]
 }
 
+// --- Server incidents (Feature 11) ------------------------------------------
+
+export function serverIncidentOccurredSignals(incidentId: string, domain: RiskDomain, moment: RiskCreationMoment): RiskSignal[] {
+  return [make(`server-incident:${incidentId}:occurred`, domain, 3, 'server-incident', incidentId, moment)]
+}
+
+export function serverIncidentRecoveredSignals(incidentId: string, domain: RiskDomain, moment: RiskCreationMoment): RiskSignal[] {
+  return [make(`server-incident:${incidentId}:recovered`, domain, -4, 'server-incident', `${incidentId}:recovered`, moment)]
+}
+
 // --- Migration rebuild (from an old Feature 08 save) ------------------------
 
 export interface RiskRebuildSnapshot {
