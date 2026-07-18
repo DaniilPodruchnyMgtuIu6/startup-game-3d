@@ -25,6 +25,7 @@ import { getAccessControlEffortDays, getRemainingAccessControlEffort, type Acces
 import { ACCESS_CONTROL_INVESTMENT_COST } from '../game/economyRules'
 import { registerGameFailureIfNeeded } from '../game/registerGameFailure'
 import { useGameOutcomeStore } from '../game/gameOutcomeStore'
+import { countServerDowntimeDays, MAX_SERVER_DOWNTIME_DAYS } from '../game/gameOutcomeRules'
 import { getUnresolvedFindingIds } from '../game/securityAuditRules'
 import { useServerIncidentStore } from '../game/serverIncidentStore'
 import { getServerIncident } from '../game/serverIncidentCatalog'
@@ -647,6 +648,7 @@ function ServerIncidentsCard() {
   const incidents = useServerIncidentStore((s) => s.incidents)
   const assign = useServerIncidentStore((s) => s.assignServerRecovery)
   const unassign = useServerIncidentStore((s) => s.unassignServerRecovery)
+  const transactions = useEconomyStore((s) => s.transactions)
   const findings = useSecurityAuditStore((s) => s.findings)
   const followUpAudit = useSecurityAuditStore((s) => s.followUpAudit)
   const accessControl = useAccessControlStore((s) => s.accessControl)
@@ -665,6 +667,8 @@ function ServerIncidentsCard() {
       {active.map((state) => {
         const def = getServerIncident(state.incidentId)!
         const effort = getServerRecoveryEffort(state.incidentId, state.hadSecuritySpecialistAtIncident === true)
+        const daysLeft = Math.max(0, MAX_SERVER_DOWNTIME_DAYS - countServerDowntimeDays(transactions, state.incidentId))
+        const criticalDowntime = daysLeft <= 2
         return (
           <div className="sb-card" key={state.incidentId}>
             <div className="sb-card-title">{def.title}</div>
@@ -674,6 +678,12 @@ function ServerIncidentsCard() {
               <br />
               Восстановление: {state.recoveryProgressDays}/{effort}
               {state.assignedEmployeeId ? ` · осталось ${getRemainingServerRecoveryEffort(state)} дн` : ''}
+            </div>
+            <div className={criticalDowntime ? 'sb-card-downtime sb-card-downtime--crit' : 'sb-card-downtime'}>
+              {criticalDowntime
+                ? `Критический простой: осталось ${daysLeft} рабочих дня. Иначе проект будет остановлен.`
+                : `До остановки проекта: ${daysLeft} рабочих дней`}
+              {!state.assignedEmployeeId ? ' · Исполнитель восстановления не назначен.' : ''}
             </div>
             {state.assignedEmployeeId ? (
               <div className="sb-card-assignee">
