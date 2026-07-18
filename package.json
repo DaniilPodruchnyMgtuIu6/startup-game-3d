@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "start": "vite preview --host 127.0.0.1",
     "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "verify": "tsc --noEmit && vitest run && vite build",
     "convert-character": "node scripts/convert-character.mjs"
   },
   "dependencies": {
