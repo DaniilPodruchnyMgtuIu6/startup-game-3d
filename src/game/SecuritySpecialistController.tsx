@@ -31,7 +31,10 @@ const ILYA = ilyaVlasov.id
 export function SecuritySpecialistController() {
   const gamePhase = useGameStore((s) => s.phase)
   const hired = useTeamStore((s) => hasSecuritySpecialist(s.hires))
-  if (gamePhase !== 'free' || !hired) return null
+  // Only the one-time static onboarding lives here; once introduced, Ilya's
+  // clicks are handled by the optional DeepSeek free chat (Feature 14).
+  const introduced = useSecurityStoryStore((s) => s.hasIntroducedSecuritySpecialist)
+  if (gamePhase !== 'free' || !hired || introduced) return null
   return <IlyaTalkTarget />
 }
 

@@ -4,3 +4,11 @@ dist
 character-source
 .claude/
 /dialogue_pictures/
+
+# Local secrets — never commit (Feature 14 DeepSeek). Only .env.example is tracked.
+.env
+.env.local
+.env.*.local
+server/.env
+server/.env.local
+server/.env.*.local

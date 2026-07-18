@@ -26,6 +26,7 @@ import { GameOutcomeCoordinator } from './game/GameOutcomeCoordinator'
 import { GameOverOverlay } from './ui/GameOverOverlay'
 import { MvpReleaseOverlay } from './ui/MvpReleaseOverlay'
 import { CampaignSuccessOverlay } from './ui/CampaignSuccessOverlay'
+import { NpcConversationPanel } from './ui/NpcConversationPanel'
 import { useCutsceneStore } from './cutscenes/cutsceneStore'
 import { isIntroReset } from './game/gameStore'
 import { useGameOutcomeStore } from './game/gameOutcomeStore'
@@ -223,6 +224,7 @@ export function App() {
       <ServerIncidentTrigger />
       <GameOutcomeCoordinator />
       <MinigameOverlay />
+      <NpcConversationPanel />
       <MvpReleaseOverlay />
       <GameOverOverlay />
       <CampaignSuccessOverlay />

@@ -18,6 +18,7 @@ import { FloorClickCatcher } from '../character/FloorClickCatcher'
 import { MeetPmController } from '../game/MeetPmController'
 import { PostAuditConversationController } from '../game/PostAuditConversationController'
 import { SecuritySpecialistController } from '../game/SecuritySpecialistController'
+import { FreeNpcChatController } from '../game/FreeNpcChatController'
 import { AccessControlReader } from '../furniture/AccessControlReader'
 import { CutsceneRunner } from '../cutscenes/CutsceneRunner'
 
@@ -56,6 +57,7 @@ export function Office({
         <StoryComponent />
         <PostAuditConversationController />
         <SecuritySpecialistController />
+        <FreeNpcChatController />
         <AccessControlReader />
         <CutsceneRunner />
       </MaterialsProvider>
