@@ -3,7 +3,9 @@ import { useGLTF } from '@react-three/drei'
 import { CharacterModel } from './CharacterModel'
 import { NPC_CHARACTERS, DEVELOPER_CHARACTERS, getCharacterById, type CharacterDefinition } from './characters'
 import { useTeamStore } from '../game/teamStore'
-import { getHiredCharacterIds } from '../game/teamRules'
+import { getHiredEmployeeIds } from '../game/teamRules'
+import { getEmployee } from '../game/teamCatalog'
+import { developerPlanActivity } from '../game/developerPlanner'
 import { useCharacterStore } from './characterStore'
 import { nearestWalkable } from './grid'
 import { planNextActivity, wanderPoint, createRng, type ActivityPlan, type ActivityPlanner } from './npcBehavior'
@@ -83,7 +85,7 @@ function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivit
   }, [stateKind, id, planActivity, gamePhase, sceneOwned])
 }
 
-function Npc({ definition }: { definition: CharacterDefinition }) {
+function Npc({ definition, planActivity }: { definition: CharacterDefinition; planActivity?: ActivityPlanner }) {
   const npc = definition.npc!
   useEffect(() => {
     const store = useCharacterStore.getState()
@@ -94,7 +96,7 @@ function Npc({ definition }: { definition: CharacterDefinition }) {
     }
   }, [definition, npc])
 
-  useNpcBrain(definition.id, npc.planActivity)
+  useNpcBrain(definition.id, planActivity ?? npc.planActivity)
   return <CharacterModel characterId={definition.id} config={definition.model} />
 }
 
@@ -105,17 +107,21 @@ function Npc({ definition }: { definition: CharacterDefinition }) {
 // planner as every other body.
 export function Npcs() {
   const hires = useTeamStore((s) => s.hires)
-  const hiredDevelopers = getHiredCharacterIds(hires)
-    .map((id) => getCharacterById(id))
-    .filter((d): d is CharacterDefinition => d !== undefined)
+  const hiredDevelopers = getHiredEmployeeIds(hires)
+    .map((employeeId) => {
+      const employee = getEmployee(employeeId)
+      const definition = employee ? getCharacterById(employee.characterId) : undefined
+      return employee && definition ? { employeeId, definition } : null
+    })
+    .filter((d): d is { employeeId: string; definition: CharacterDefinition } => d !== null)
 
   return (
     <>
       {NPC_CHARACTERS.map((definition) => (
         <Npc key={definition.id} definition={definition} />
       ))}
-      {hiredDevelopers.map((definition) => (
-        <Npc key={definition.id} definition={definition} />
+      {hiredDevelopers.map(({ employeeId, definition }) => (
+        <Npc key={definition.id} definition={definition} planActivity={developerPlanActivity(employeeId)} />
       ))}
     </>
   )

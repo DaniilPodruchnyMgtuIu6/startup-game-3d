@@ -7,11 +7,13 @@ import { Office } from './scene/Office'
 import { SceneBackground } from './scene/SceneBackground'
 import { IntroOverlay } from './ui/IntroOverlay'
 import { DialoguePanel } from './ui/DialoguePanel'
-import { TaskBoard } from './ui/TaskBoard'
+import { WhiteboardPanel } from './ui/WhiteboardPanel'
 import { SprintHud } from './ui/SprintHud'
 import { SprintPhaseOverlay } from './ui/SprintPhaseOverlay'
 import { FinancePanel } from './ui/FinancePanel'
 import { TeamPanel } from './ui/TeamPanel'
+import { DailyReport } from './ui/DailyReport'
+import { PrototypeMock } from './ui/PrototypeMock'
 import { MinigameOverlay } from './game/minigames/MinigameOverlay'
 import { useCutsceneStore } from './cutscenes/cutsceneStore'
 import { useServerIncidentsStore, type ServerRole } from './game/serverIncidentsStore'
@@ -56,11 +58,13 @@ export function App() {
       </Canvas>
       <IntroOverlay />
       <DialoguePanel />
-      <TaskBoard />
+      <WhiteboardPanel />
       <SprintHud />
       <SprintPhaseOverlay />
       <FinancePanel />
       <TeamPanel />
+      <PrototypeMock />
+      <DailyReport />
       <MinigameOverlay />
     </>
   )

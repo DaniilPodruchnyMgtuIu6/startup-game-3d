@@ -1,20 +1,23 @@
 import { useSprintStore } from './sprintStore'
 import { useEconomyStore } from './economyStore'
 import { useTeamStore } from './teamStore'
+import { useProductStore } from './productStore'
 import { getEmployeeSalaryExpenses, getHiredEmployeeIds } from './teamRules'
+import type { WorkdayProgressRecord } from './productRules'
 
 // The single game operation that finalises a working day. It is the ONLY path
-// that advances the day, and it always charges the day's expenses first. The
-// low-level sprintStore.confirmEndDay stays available as a primitive but must
-// not be called by components directly - doing so would move the day without
-// the financial calculation. Kept out of React so the money math is testable in
-// isolation (a button component only calls this and shows the result).
+// that advances the day, and it always applies development progress and charges
+// the day's expenses first. The low-level sprintStore.confirmEndDay stays a
+// primitive but must not be called by components directly - doing so would move
+// the day without the product and financial calculations. Kept out of React so
+// the math is testable in isolation (a button component only calls this).
 
 export interface CompleteWorkdayResult {
   completed: boolean
   reason?: 'invalid-sprint-state'
   economyApplied?: boolean
   chargedAmount?: number
+  workday?: WorkdayProgressRecord
   sprintNumber?: number
   day?: number
 }
@@ -33,21 +36,24 @@ export function completeWorkday(): CompleteWorkdayResult {
   }
 
   const { sprintNumber, day } = sprint
+  const hiredIds = getHiredEmployeeIds(useTeamStore.getState().hires)
 
-  // Salaries are computed from the team composition at the moment this day is
-  // confirmed, so a developer hired earlier today is charged and one hired
-  // after this stays off today's transaction.
-  const salaryItems = getEmployeeSalaryExpenses(getHiredEmployeeIds(useTeamStore.getState().hires))
-
-  // 1. charge the day being completed (idempotent), THEN
+  // 1. deterministic development progress for the day (idempotent), THEN
+  const productResult = useProductStore.getState().applyWorkday(sprintNumber, day, hiredIds)
+  // 2. financial expenses incl. salaries of the current team, THEN
+  const salaryItems = getEmployeeSalaryExpenses(hiredIds)
   const economyResult = useEconomyStore.getState().applyDailyOperatingExpense(sprintNumber, day, salaryItems)
-  // 2. advance the sprint clock (day -> day+1, or day 10 -> review)
+  // 3. advance the sprint clock (day -> day+1, or day 10 -> review)
   useSprintStore.getState().confirmEndDay()
+
+  // 4. surface the day's report to the player (does not re-run any calc)
+  useProductStore.getState().showReport(productResult.record)
 
   return {
     completed: true,
     economyApplied: economyResult.applied,
     chargedAmount: economyResult.transaction.amount,
+    workday: productResult.record,
     sprintNumber,
     day,
   }

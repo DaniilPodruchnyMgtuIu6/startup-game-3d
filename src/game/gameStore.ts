@@ -96,8 +96,6 @@ interface GameStore {
   activeChoice: ActiveChoice | null
   tasks: BoardTask[]
   reprimands: number
-  // the meeting room whiteboard with the task reminders
-  taskBoardOpen: boolean
   completeIntro: (name: string) => void
   refuseJob: () => void
   restartGame: () => void
@@ -110,8 +108,6 @@ interface GameStore {
   // or the id is unknown - the id is expected to exist in the seeded board.
   completeTask: (id: string) => void
   addReprimand: () => void
-  openTaskBoard: () => void
-  closeTaskBoard: () => void
 }
 
 const initial = loadProgress(safeStorage(), typeof window === 'undefined' ? '' : window.location.search)
@@ -123,7 +119,6 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   activeChoice: null,
   tasks: initial.tasks,
   reprimands: initial.reprimands,
-  taskBoardOpen: false,
   completeIntro: (name) => {
     const playerName = name.trim()
     if (!playerName) return
@@ -172,8 +167,6 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     const { playerName, phase, tasks, reprimands } = get()
     saveProgress(safeStorage(), { playerName, phase, tasks, reprimands })
   },
-  openTaskBoard: () => set({ taskBoardOpen: true }),
-  closeTaskBoard: () => set({ taskBoardOpen: false }),
   advanceDialogue: () => {
     const dialogue = get().activeDialogue
     if (!dialogue) return

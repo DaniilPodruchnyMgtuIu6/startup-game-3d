@@ -3,6 +3,7 @@ import { useSprintStore } from '../game/sprintStore'
 import { useServerIncidentsStore } from '../game/serverIncidentsStore'
 import { useEconomyStore } from '../game/economyStore'
 import { useTeamStore } from '../game/teamStore'
+import { useProductStore } from '../game/productStore'
 import { useCharacterStore } from '../character/characterStore'
 import { SPRINT_DAYS } from '../game/sprintRules'
 import {
@@ -43,12 +44,15 @@ export function SprintHud() {
   const hires = useTeamStore((s) => s.hires)
   const teamPanelOpen = useTeamStore((s) => s.panelOpen)
   const openTeam = useTeamStore((s) => s.openPanel)
+  const planningDismissed = useProductStore((s) => s.planningDismissed)
+  const boardOpen = useProductStore((s) => s.boardOpen)
+  const dailyReportOpen = useProductStore((s) => s.activeReport !== null)
+  const prototypeOpen = useProductStore((s) => s.prototypeOpen)
 
   // Existing "the interface is busy" signals - no new global lock is added.
   const inputLocked = useCharacterStore((s) => s.inputLocked)
   const activeDialogue = useGameStore((s) => s.activeDialogue)
   const activeChoice = useGameStore((s) => s.activeChoice)
-  const taskBoardOpen = useGameStore((s) => s.taskBoardOpen)
   const activeMinigame = useServerIncidentsStore((s) => s.activeMinigame)
 
   if (gamePhase !== 'free') return null
@@ -65,7 +69,15 @@ export function SprintHud() {
   const teamCount = 1 + getHiredEmployeeIds(hires).length
 
   const busy =
-    inputLocked || !!activeDialogue || !!activeChoice || taskBoardOpen || financePanelOpen || teamPanelOpen || !!activeMinigame
+    inputLocked ||
+    !!activeDialogue ||
+    !!activeChoice ||
+    financePanelOpen ||
+    teamPanelOpen ||
+    boardOpen ||
+    dailyReportOpen ||
+    prototypeOpen ||
+    !!activeMinigame
   const canEndDay = sprintPhase === 'active' && !busy
 
   // Daily cost includes developer salaries at the moment the day is confirmed.
@@ -91,6 +103,10 @@ export function SprintHud() {
           </button>
         ) : null}
       </div>
+
+      {sprintPhase === 'planning' && planningDismissed ? (
+        <div className="sprint-hud-planning-hint">Подойдите к доске задач в переговорной и спланируйте спринт.</div>
+      ) : null}
 
       {confirming ? (
         <div className="overlay-backdrop" onClick={cancelEndDay}>

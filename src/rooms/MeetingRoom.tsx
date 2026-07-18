@@ -4,9 +4,12 @@ import { MeetingTable } from '../furniture/MeetingTable'
 import { Chair } from '../furniture/Chair'
 import { TVPanel } from '../furniture/TVPanel'
 import { Whiteboard } from '../furniture/Whiteboard'
+import { PlanningMarker } from '../furniture/PlanningMarker'
 import { TrackLight } from '../furniture/TrackLight'
 import { useCharacterStore } from '../character/characterStore'
 import { useGameStore } from '../game/gameStore'
+import { useSprintStore } from '../game/sprintStore'
+import { useProductStore } from '../game/productStore'
 import type { TriggerTarget } from '../interaction/triggerPayload'
 import { ROOMS, roomCenter, roomSize } from '../scene/layout'
 
@@ -17,6 +20,8 @@ export function MeetingRoom() {
   const center = roomCenter(bounds)
   const { width, depth } = roomSize(bounds)
   const onSeat = (target: TriggerTarget) => useCharacterStore.getState().clickSeat(target)
+  // Highlight the whiteboard while the player must plan the sprint.
+  const showPlanningMarker = useGameStore((s) => s.phase) === 'free' && useSprintStore((s) => s.phase) === 'planning'
 
   return (
     <group position={center}>
@@ -35,8 +40,13 @@ export function MeetingRoom() {
       <Whiteboard
         position={[0, 1.4, depth / 2 - 0.15]}
         rotation={[0, Math.PI, 0]}
-        onSelect={() => useGameStore.getState().openTaskBoard()}
+        onSelect={() => useProductStore.getState().openBoard('product')}
       />
+      {showPlanningMarker ? (
+        <group position={[0, 0, depth / 2 - 0.15]}>
+          <PlanningMarker y={2.25} />
+        </group>
+      ) : null}
       <TrackLight position={[0, 2.7, -1]} withSpot />
     </group>
   )

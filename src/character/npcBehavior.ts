@@ -27,13 +27,25 @@ export interface ActivityContext {
 // character's persona) implement the same contract and may be asynchronous.
 export type ActivityPlanner = (rng: () => number, ctx: ActivityContext) => ActivityPlan | Promise<ActivityPlan>
 
+export type ActivityWeights = Array<[ActivityKind, number]>
+
 // Work dominates - it is an office - with breaks sprinkled in.
-const WEIGHTS: Array<[ActivityKind, number]> = [
+const WEIGHTS: ActivityWeights = [
   ['work', 0.5],
   ['coffee', 0.15],
   ['meeting', 0.13],
   ['sofa', 0.12],
   ['wander', 0.1],
+]
+
+// A developer with an unfinished sprint task strongly favours work (0.70), the
+// rest of the activities sharing 0.30. Feature 04 wires this in for hired devs.
+export const WORK_BIASED_WEIGHTS: ActivityWeights = [
+  ['work', 0.7],
+  ['coffee', 0.1],
+  ['meeting', 0.08],
+  ['sofa', 0.07],
+  ['wander', 0.05],
 ]
 
 const STAY_RANGES_MS: Record<ActivityKind, [number, number]> = {
@@ -48,10 +60,10 @@ function key(target: TriggerTarget): string {
   return `${target.point[0].toFixed(2)}|${target.point[2].toFixed(2)}`
 }
 
-function pickKind(rng: () => number, previousKind?: ActivityKind): ActivityKind {
+function pickKind(rng: () => number, previousKind?: ActivityKind, weights: ActivityWeights = WEIGHTS): ActivityKind {
   const roll = () => {
     let r = rng()
-    for (const [kind, weight] of WEIGHTS) {
+    for (const [kind, weight] of weights) {
       r -= weight
       if (r < 0) return kind
     }
@@ -78,8 +90,12 @@ function stayFor(rng: () => number, kind: ActivityKind): number {
   return Math.round(min + rng() * (max - min))
 }
 
-export function planNextActivity(rng: () => number, ctx: ActivityContext): ActivityPlan {
-  const kind = pickKind(rng, ctx.previousKind)
+export function planNextActivity(
+  rng: () => number,
+  ctx: ActivityContext,
+  weights: ActivityWeights = WEIGHTS,
+): ActivityPlan {
+  const kind = pickKind(rng, ctx.previousKind, weights)
   const candidates: Record<Exclude<ActivityKind, 'wander'>, TriggerTarget[]> = {
     work: ctx.workstations,
     coffee: ctx.coffeeMachines,
