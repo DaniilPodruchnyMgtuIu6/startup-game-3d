@@ -4,6 +4,9 @@ import { femalePm } from '../character/characters/femalePm'
 import { security1 } from '../character/characters/security1'
 import { security2 } from '../character/characters/security2'
 import { useGameStore } from '../game/gameStore'
+import { useSprintStore } from '../game/sprintStore'
+import { useSecurityStoryStore } from '../game/securityStoryStore'
+import { mapCutsceneChoiceToSecurityDecision, type SecurityBreachDecision } from '../game/securityStoryRules'
 import type { CutsceneScript, Point } from './types'
 
 // Preloaded at module load so the guards' GLTFs are already cached by the
@@ -84,6 +87,31 @@ export const securityBreachScene: CutsceneScript = async (director) => {
     portrait: '/dialogue_pictures/businessman/businessmen_sad.png',
   }
 
+  const story = useSecurityStoryStore.getState
+  const moment = () => {
+    const s = useSprintStore.getState()
+    return { sprintNumber: s.sprintNumber, day: s.day }
+  }
+
+  // Drive the story lifecycle from the scene itself, so the auto-trigger and the
+  // manual __startCutscene both go through the exact same states. On any failure
+  // the story returns to not-started so it can be reached again.
+  story().markSecurityBreachRunning(moment())
+  try {
+    await runScene(director, { PLAYER_SHOCKED, PLAYER_SAD })
+    story().markSecurityBreachCompleted(moment())
+  } catch (error) {
+    story().markSecurityBreachFailed()
+    throw error
+  }
+}
+
+interface PlayerLines {
+  PLAYER_SHOCKED: { speaker: string; speakerRole: string; portrait: string }
+  PLAYER_SAD: { speaker: string; speakerRole: string; portrait: string }
+}
+
+async function runScene(director: Parameters<CutsceneScript>[0], { PLAYER_SHOCKED, PLAYER_SAD }: PlayerLines) {
   await director.camera(PM_DESK_CAMERA_TARGET, { position: PM_DESK_CAMERA_POSITION, durationMs: 1200 })
   await director.sit(femalePm.id, { point: PM_SEAT, facing: 0 }, 'workstation')
   await director.wait(800)
@@ -120,19 +148,29 @@ export const securityBreachScene: CutsceneScript = async (director) => {
   await director.say([
     {
       ...GUARD1_ANGRY,
-      text: 'У вас в отделе только что нашли разблокированный компьютер без присмотра. Это прямое нарушение политики безопасности.',
+      text: 'У вас в отделе нашли незаблокированный компьютер без присмотра. И это уже не мелочь: у продукта есть рабочие учётные записи и данные — прямое нарушение политики безопасности.',
     },
     { ...GUARD2_ANGRY, text: 'Мы обязаны сообщать о таком наверх. Но для начала хотим услышать вашу версию.' },
     { ...PLAYER_SHOCKED, text: 'Что?! Оставила компьютер разблокированным средь бела дня?' },
   ])
 
-  const pick = await director.choice([
-    { id: 'accept', label: 'Беру ответственность на себя, разберёмся.' },
-    { id: 'blame', label: 'Это недосмотр PM, я тут ни при чём.' },
-  ])
+  // The choice is skipped when a decision was already recorded (e.g. a reload
+  // after choosing), so the saved choice stays the single source of truth.
+  const savedDecision = useSecurityStoryStore.getState().securityBreach.decision
+  let decision: SecurityBreachDecision
+  if (savedDecision) {
+    decision = savedDecision
+  } else {
+    const pick = await director.choice([
+      { id: 'take-responsibility', label: 'Беру ответственность на себя, разберёмся.' },
+      { id: 'blame-project-manager', label: 'Это недосмотр PM, я тут ни при чём.' },
+    ])
+    decision = mapCutsceneChoiceToSecurityDecision(pick) ?? 'take-responsibility'
+  }
+  // reprimand (only on blame) + the recurring training task, applied exactly once
+  useSecurityStoryStore.getState().resolveSecurityBreachDecision(decision)
 
-  if (pick === 'blame') {
-    useGameStore.getState().addReprimand()
+  if (decision === 'blame-project-manager') {
     await director.say([
       {
         ...GUARD1_ANGRY,
@@ -152,7 +190,6 @@ export const securityBreachScene: CutsceneScript = async (director) => {
     },
     { ...PLAYER_SAD, text: 'Ладно... Проведём. Хотя не самая приятная новость под конец дня.' },
   ])
-  director.addTask({ id: 'security-training', text: 'Проводить курсы по безопасности (регулярно)', done: false })
 
   director.talk(PLAYER_ID, false)
   director.talk('guard1', false)

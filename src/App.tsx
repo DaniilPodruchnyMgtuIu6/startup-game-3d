@@ -14,6 +14,7 @@ import { FinancePanel } from './ui/FinancePanel'
 import { TeamPanel } from './ui/TeamPanel'
 import { DailyReport } from './ui/DailyReport'
 import { PrototypeMock } from './ui/PrototypeMock'
+import { SecurityStoryTrigger } from './game/securityStoryTrigger'
 import { MinigameOverlay } from './game/minigames/MinigameOverlay'
 import { useCutsceneStore } from './cutscenes/cutsceneStore'
 import { useServerIncidentsStore, type ServerRole } from './game/serverIncidentsStore'
@@ -65,6 +66,7 @@ export function App() {
       <TeamPanel />
       <PrototypeMock />
       <DailyReport />
+      <SecurityStoryTrigger />
       <MinigameOverlay />
     </>
   )
