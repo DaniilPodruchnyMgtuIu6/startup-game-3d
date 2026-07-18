@@ -2,7 +2,9 @@ import { useSprintStore } from './sprintStore'
 import { useEconomyStore } from './economyStore'
 import { useTeamStore } from './teamStore'
 import { useProductStore } from './productStore'
+import { useSecurityStoryStore } from './securityStoryStore'
 import { getEmployeeSalaryExpenses, getHiredEmployeeIds } from './teamRules'
+import { isPostAuditConversationRequired } from './securityStoryRules'
 import type { WorkdayProgressRecord } from './productRules'
 
 // The single game operation that finalises a working day. It is the ONLY path
@@ -14,7 +16,7 @@ import type { WorkdayProgressRecord } from './productRules'
 
 export interface CompleteWorkdayResult {
   completed: boolean
-  reason?: 'invalid-sprint-state'
+  reason?: 'invalid-sprint-state' | 'required-story-conversation'
   economyApplied?: boolean
   chargedAmount?: number
   workday?: WorkdayProgressRecord
@@ -33,6 +35,11 @@ export function completeWorkday(): CompleteWorkdayResult {
   const sprint = useSprintStore.getState()
   if (!canCompleteCurrentWorkday()) {
     return { completed: false, reason: 'invalid-sprint-state' }
+  }
+  // A required post-audit conversation must be held before the day can end; it
+  // charges no money and applies no progress when blocked.
+  if (isPostAuditConversationRequired(useSecurityStoryStore.getState().postAuditConversation)) {
+    return { completed: false, reason: 'required-story-conversation' }
   }
 
   const { sprintNumber, day } = sprint

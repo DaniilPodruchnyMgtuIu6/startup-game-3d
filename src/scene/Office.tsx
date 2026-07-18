@@ -16,6 +16,7 @@ import { Character } from '../character/Character'
 import { Npcs } from '../character/Npcs'
 import { FloorClickCatcher } from '../character/FloorClickCatcher'
 import { MeetPmController } from '../game/MeetPmController'
+import { PostAuditConversationController } from '../game/PostAuditConversationController'
 import { CutsceneRunner } from '../cutscenes/CutsceneRunner'
 
 export interface OfficeProps {
@@ -51,6 +52,7 @@ export function Office({
         <CharacterComponent />
         <NpcsComponent />
         <StoryComponent />
+        <PostAuditConversationController />
         <CutsceneRunner />
       </MaterialsProvider>
     </Suspense>

@@ -1,26 +1,44 @@
 import { create } from 'zustand'
-import { useGameStore } from './gameStore'
-import { isIntroReset } from './gameStore'
+import { useGameStore, isIntroReset } from './gameStore'
+import type { BoardTask } from './tasks'
 import {
   INITIAL_SECURITY_BREACH,
+  getInitialPostAuditConversationState,
+  normalizePostAuditConversationState,
   normalizeSecurityStoryState,
+  type PostAuditConversationState,
   type SecurityBreachData,
   type SecurityBreachDecision,
+  type SecurityStaffingDecision,
   type StoryMoment,
 } from './securityStoryRules'
 
-// Story state for the security-breach beat. Its own store and localStorage key
-// so the sprint/economy/team/product saves are untouched. The scene script
-// drives this lifecycle, so both the auto-trigger and the manual dev start go
-// through exactly the same states.
+// Story state for the security beats. Its own store and localStorage key so the
+// sprint/economy/team/product saves are untouched. The scenes (the cutscene and
+// the post-audit conversation) drive these lifecycles, so auto and manual paths
+// go through exactly the same states.
 
 const SECURITY_STORAGE_KEY = 'startup-office-security'
 
-// The recurring security-training board task the scene adds. Stable id so it is
-// never duplicated (idempotent).
-export const SECURITY_TRAINING_TASK = {
+// Department tasks the story adds (stable ids -> never duplicated).
+export const SECURITY_TRAINING_TASK: BoardTask = {
   id: 'security-training',
   text: 'Проводить курсы по безопасности (регулярно)',
+  done: false,
+}
+export const DISCUSS_AUDIT_TASK: BoardTask = {
+  id: 'discuss-security-audit-with-sonya',
+  text: 'Обсудить результаты аудита с Соней',
+  done: false,
+}
+export const HIRE_SECURITY_TASK: BoardTask = {
+  id: 'hire-security-specialist',
+  text: 'Нанять специалиста по информационной безопасности',
+  done: false,
+}
+export const CLOSE_FINDINGS_TASK: BoardTask = {
+  id: 'close-security-findings-without-specialist',
+  text: 'Закрыть замечания аудита силами команды',
   done: false,
 }
 
@@ -34,26 +52,45 @@ function safeStorage(): StoryStorage | null {
   }
 }
 
-export function loadSecurityStory(storage: StoryStorage | null, search: string): SecurityBreachData {
+function addTaskOnce(task: BoardTask): void {
+  const game = useGameStore.getState()
+  if (!game.tasks.some((t) => t.id === task.id)) game.addTask({ ...task })
+}
+
+export interface SecurityStoryData {
+  securityBreach: SecurityBreachData
+  postAuditConversation: PostAuditConversationState
+}
+
+export function loadSecurityStory(storage: StoryStorage | null, search: string): SecurityStoryData {
+  const fresh = (): SecurityStoryData => ({
+    securityBreach: { ...INITIAL_SECURITY_BREACH },
+    postAuditConversation: getInitialPostAuditConversationState('not-started'),
+  })
   if (isIntroReset(search)) {
     storage?.removeItem(SECURITY_STORAGE_KEY)
-    return { ...INITIAL_SECURITY_BREACH }
+    return fresh()
   }
-  if (!storage) return { ...INITIAL_SECURITY_BREACH }
+  if (!storage) return fresh()
   const raw = storage.getItem(SECURITY_STORAGE_KEY)
-  if (!raw) return { ...INITIAL_SECURITY_BREACH }
+  if (!raw) return fresh()
   try {
-    return normalizeSecurityStoryState(JSON.parse(raw))
+    const parsed = JSON.parse(raw)
+    const securityBreach = normalizeSecurityStoryState(parsed)
+    // conversation is normalised against the (already normalised) breach status,
+    // and derived from it when absent (Feature 05 -> 06 migration).
+    const postAuditConversation = normalizePostAuditConversationState(parsed, securityBreach.status)
+    return { securityBreach, postAuditConversation }
   } catch {
-    return { ...INITIAL_SECURITY_BREACH }
+    return fresh()
   }
 }
 
-export function saveSecurityStory(storage: StoryStorage | null, securityBreach: SecurityBreachData): void {
+export function saveSecurityStory(storage: StoryStorage | null, data: SecurityStoryData): void {
   try {
-    storage?.setItem(SECURITY_STORAGE_KEY, JSON.stringify({ securityBreach }))
+    storage?.setItem(SECURITY_STORAGE_KEY, JSON.stringify(data))
   } catch {
-    // private mode - story simply restarts not-started next time
+    // private mode - story simply restarts fresh next time
   }
 }
 
@@ -61,25 +98,46 @@ export interface ResolveSecurityDecisionResult {
   applied: boolean
   decision: SecurityBreachDecision
 }
+export interface ResolveSecurityStaffingResult {
+  applied: boolean
+  decision: SecurityStaffingDecision
+}
 
-interface SecurityStoryStore {
-  securityBreach: SecurityBreachData
+interface SecurityStoryStore extends SecurityStoryData {
+  // --- security-breach scene (Feature 05) ---
   markSecurityBreachRunning: (moment: StoryMoment) => void
-  // Saves the decision once and applies its side-effects exactly once.
   resolveSecurityBreachDecision: (decision: SecurityBreachDecision) => ResolveSecurityDecisionResult
   markSecurityBreachCompleted: (moment: StoryMoment) => void
   markSecurityBreachFailed: () => void
+  // --- post-audit conversation (Feature 06) ---
+  unlockPostAuditConversation: () => void
+  markPostAuditConversationRunning: (moment: StoryMoment) => void
+  resolveSecurityStaffingDecision: (decision: SecurityStaffingDecision) => ResolveSecurityStaffingResult
+  markPostAuditConversationCompleted: (moment: StoryMoment) => void
+  markPostAuditConversationFailed: () => void
   resetSecurityStory: () => void
 }
 
 const initial = loadSecurityStory(safeStorage(), typeof window === 'undefined' ? '' : window.location.search)
 
 export const useSecurityStoryStore = create<SecurityStoryStore>()((set, get) => {
-  const persist = () => saveSecurityStory(safeStorage(), get().securityBreach)
+  const persist = () =>
+    saveSecurityStory(safeStorage(), { securityBreach: get().securityBreach, postAuditConversation: get().postAuditConversation })
+
+  // Move a locked conversation to pending and make sure the objective task
+  // exists. Idempotent - safe to call after a reload, migration, or a repeated
+  // scene completion.
+  const unlock = () => {
+    const pa = get().postAuditConversation
+    if (pa.status === 'locked') set({ postAuditConversation: { ...pa, status: 'pending' } })
+    if (get().postAuditConversation.status === 'pending') addTaskOnce(DISCUSS_AUDIT_TASK)
+    persist()
+  }
 
   return {
-    securityBreach: initial,
+    ...initial,
 
+    // --- security-breach scene ---
     markSecurityBreachRunning: (moment) => {
       const sb = get().securityBreach
       if (sb.status === 'completed') return
@@ -89,7 +147,7 @@ export const useSecurityStoryStore = create<SecurityStoryStore>()((set, get) => 
 
     resolveSecurityBreachDecision: (decision) => {
       const sb = get().securityBreach
-      const finalDecision = sb.decision ?? decision // decision is written once
+      const finalDecision = sb.decision ?? decision
       if (sb.effectsApplied) {
         if (!sb.decision) {
           set({ securityBreach: { ...sb, decision: finalDecision } })
@@ -97,10 +155,9 @@ export const useSecurityStoryStore = create<SecurityStoryStore>()((set, get) => 
         }
         return { applied: false, decision: finalDecision }
       }
-      // apply the idempotent side-effects exactly once
       const game = useGameStore.getState()
       if (finalDecision === 'blame-project-manager') game.addReprimand()
-      if (!game.tasks.some((t) => t.id === SECURITY_TRAINING_TASK.id)) game.addTask({ ...SECURITY_TRAINING_TASK })
+      addTaskOnce(SECURITY_TRAINING_TASK)
       set({ securityBreach: { ...sb, decision: finalDecision, effectsApplied: true } })
       persist()
       return { applied: true, decision: finalDecision }
@@ -108,9 +165,10 @@ export const useSecurityStoryStore = create<SecurityStoryStore>()((set, get) => 
 
     markSecurityBreachCompleted: (moment) => {
       const sb = get().securityBreach
-      if (sb.status === 'completed') return // completed is final
-      set({ securityBreach: { ...sb, status: 'completed', completedAt: sb.completedAt ?? moment } })
-      persist()
+      if (sb.status !== 'completed') {
+        set({ securityBreach: { ...sb, status: 'completed', completedAt: sb.completedAt ?? moment } })
+      }
+      unlock() // opening the post-audit conversation is part of finishing the scene
     },
 
     markSecurityBreachFailed: () => {
@@ -120,8 +178,52 @@ export const useSecurityStoryStore = create<SecurityStoryStore>()((set, get) => 
       persist()
     },
 
+    // --- post-audit conversation ---
+    unlockPostAuditConversation: () => unlock(),
+
+    markPostAuditConversationRunning: (moment) => {
+      const pa = get().postAuditConversation
+      if (pa.status !== 'pending') return
+      set({ postAuditConversation: { ...pa, status: 'running', startedAt: pa.startedAt ?? moment } })
+      persist()
+    },
+
+    resolveSecurityStaffingDecision: (decision) => {
+      const pa = get().postAuditConversation
+      const finalDecision = pa.staffingDecision ?? decision
+      if (pa.effectsApplied) {
+        if (!pa.staffingDecision) {
+          set({ postAuditConversation: { ...pa, staffingDecision: finalDecision } })
+          persist()
+        }
+        return { applied: false, decision: finalDecision }
+      }
+      addTaskOnce(finalDecision === 'approve-security-hire' ? HIRE_SECURITY_TASK : CLOSE_FINDINGS_TASK)
+      useGameStore.getState().completeTask(DISCUSS_AUDIT_TASK.id)
+      set({ postAuditConversation: { ...pa, staffingDecision: finalDecision, effectsApplied: true } })
+      persist()
+      return { applied: true, decision: finalDecision }
+    },
+
+    markPostAuditConversationCompleted: (moment) => {
+      const pa = get().postAuditConversation
+      if (pa.status === 'completed') return
+      set({ postAuditConversation: { ...pa, status: 'completed', completedAt: pa.completedAt ?? moment } })
+      persist()
+    },
+
+    markPostAuditConversationFailed: () => {
+      const pa = get().postAuditConversation
+      if (pa.status !== 'running') return
+      set({ postAuditConversation: { ...pa, status: 'pending' } })
+      persist()
+    },
+
     resetSecurityStory: () => {
-      set({ securityBreach: { ...INITIAL_SECURITY_BREACH } })
+      set({
+        securityBreach: { ...INITIAL_SECURITY_BREACH },
+        postAuditConversation: getInitialPostAuditConversationState('not-started'),
+      })
       persist()
     },
   }

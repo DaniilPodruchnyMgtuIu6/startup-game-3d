@@ -135,3 +135,133 @@ export function normalizeSecurityStoryState(persisted: unknown): SecurityBreachD
     effectsApplied,
   }
 }
+
+// ===========================================================================
+// Feature 06 - post-audit conversation with Sonya & security-staffing decision
+// ===========================================================================
+
+export type PostAuditConversationStatus = 'locked' | 'pending' | 'running' | 'completed'
+export type SecurityStaffingDecision = 'approve-security-hire' | 'decline-security-hire'
+
+export interface PostAuditConversationState {
+  status: PostAuditConversationStatus
+  startedAt?: StoryMoment
+  completedAt?: StoryMoment
+  staffingDecision?: SecurityStaffingDecision
+  effectsApplied: boolean
+}
+
+export const INITIAL_POST_AUDIT: PostAuditConversationState = { status: 'locked', effectsApplied: false }
+
+// A conversation is required (blocks ending the day) while it is pending or
+// running - the audit must be discussed before the next working day.
+export function isPostAuditConversationRequired(state: PostAuditConversationState): boolean {
+  return state.status === 'pending' || state.status === 'running'
+}
+
+// The conversation only exists once the security-breach scene is done.
+export function getInitialPostAuditConversationState(breachStatus: SecurityBreachStatus): PostAuditConversationState {
+  return breachStatus === 'completed' ? { status: 'pending', effectsApplied: false } : { ...INITIAL_POST_AUDIT }
+}
+
+export interface PostAuditConversationContext {
+  gamePhase: string
+  sprintPhase: string
+  conversationStatus: PostAuditConversationStatus
+  securityBreachStatus: SecurityBreachStatus
+  isCutsceneRunning: boolean
+  isServerMinigameOpen: boolean
+  isBlockingOverlayOpen: boolean
+  isBlockingDialogueOpen: boolean
+}
+
+export type PostAuditBlockingReason =
+  | 'game-phase'
+  | 'sprint-phase'
+  | 'breach-not-completed'
+  | 'not-pending'
+  | 'cutscene-running'
+  | 'server-minigame-open'
+  | 'overlay-open'
+  | 'dialogue-open'
+
+export interface PostAuditEligibility {
+  allowed: boolean
+  blockingReasons: PostAuditBlockingReason[]
+}
+
+// The conversation may start in an active or planning sprint (not review), in
+// free play, once the breach is completed and the conversation is pending, with
+// no other cutscene / minigame / blocking overlay / dialogue open.
+export function getPostAuditConversationEligibility(ctx: PostAuditConversationContext): PostAuditEligibility {
+  const reasons: PostAuditBlockingReason[] = []
+  if (ctx.gamePhase !== 'free') reasons.push('game-phase')
+  if (ctx.sprintPhase !== 'active' && ctx.sprintPhase !== 'planning') reasons.push('sprint-phase')
+  if (ctx.securityBreachStatus !== 'completed') reasons.push('breach-not-completed')
+  if (ctx.conversationStatus !== 'pending') reasons.push('not-pending')
+  if (ctx.isCutsceneRunning) reasons.push('cutscene-running')
+  if (ctx.isServerMinigameOpen) reasons.push('server-minigame-open')
+  if (ctx.isBlockingOverlayOpen) reasons.push('overlay-open')
+  if (ctx.isBlockingDialogueOpen) reasons.push('dialogue-open')
+  return { allowed: reasons.length === 0, blockingReasons: reasons }
+}
+
+export function canStartPostAuditConversation(ctx: PostAuditConversationContext): boolean {
+  return getPostAuditConversationEligibility(ctx).allowed
+}
+
+export function mapPostAuditChoiceToStaffingDecision(choiceId: string): SecurityStaffingDecision | undefined {
+  if (choiceId === 'approve-security-hire') return 'approve-security-hire'
+  if (choiceId === 'decline-security-hire') return 'decline-security-hire'
+  return undefined
+}
+
+export type PostAuditDialogueBranch = 'constructive' | 'conflict' | 'neutral'
+
+// The tone of Sonya's opening lines follows the earlier breach choice.
+export function getPostAuditDialogueBranch(breachDecision: SecurityBreachDecision | undefined): PostAuditDialogueBranch {
+  if (breachDecision === 'take-responsibility') return 'constructive'
+  if (breachDecision === 'blame-project-manager') return 'conflict'
+  return 'neutral'
+}
+
+const POST_AUDIT_STATUSES: PostAuditConversationStatus[] = ['locked', 'pending', 'running', 'completed']
+const STAFFING_DECISIONS: SecurityStaffingDecision[] = ['approve-security-hire', 'decline-security-hire']
+
+// Coerce a loaded/corrupt blob into safe PostAuditConversationState, consistent
+// with the current security-breach status. See Feature 06 §18.
+export function normalizePostAuditConversationState(
+  persisted: unknown,
+  breachStatus: SecurityBreachStatus,
+): PostAuditConversationState {
+  const source = (persisted && typeof persisted === 'object' ? (persisted as { postAuditConversation?: unknown }).postAuditConversation : persisted) as
+    | Record<string, unknown>
+    | undefined
+
+  // No stored conversation yet -> derive it from the breach status (migration).
+  if (!source || typeof source !== 'object') return getInitialPostAuditConversationState(breachStatus)
+
+  const rawStatus = POST_AUDIT_STATUSES.includes(source.status as PostAuditConversationStatus)
+    ? (source.status as PostAuditConversationStatus)
+    : 'locked'
+  const staffingDecision = STAFFING_DECISIONS.includes(source.staffingDecision as SecurityStaffingDecision)
+    ? (source.staffingDecision as SecurityStaffingDecision)
+    : undefined
+  const startedAt = validMoment(source.startedAt)
+  const completedAt = validMoment(source.completedAt)
+  const effectsApplied = source.effectsApplied === true && staffingDecision !== undefined
+
+  let status: PostAuditConversationStatus = rawStatus
+  if (status === 'running') status = 'pending' // interrupted by a reload
+  if (breachStatus !== 'completed') status = 'locked' // conversation cannot exist yet
+  else if (status === 'locked') status = 'pending' // breach done -> at least pending
+  if (status === 'completed' && !staffingDecision) status = 'pending' // completed needs a decision
+
+  return {
+    status,
+    ...(startedAt ? { startedAt } : {}),
+    ...(status === 'completed' && completedAt ? { completedAt } : {}),
+    ...(staffingDecision ? { staffingDecision } : {}),
+    effectsApplied,
+  }
+}

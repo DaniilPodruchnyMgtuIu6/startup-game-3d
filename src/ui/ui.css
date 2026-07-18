@@ -792,6 +792,28 @@ button.primary:hover {
   font: 500 13px system-ui, sans-serif;
   line-height: 1.4;
 }
+.sprint-hud-story-objective {
+  margin-top: 8px;
+  max-width: 340px;
+  padding: 8px 12px;
+  background: rgba(224, 168, 62, 0.16);
+  border: 1px solid rgba(224, 168, 62, 0.4);
+  border-radius: 10px;
+  color: #f2dcae;
+  font: 600 13px system-ui, sans-serif;
+  line-height: 1.4;
+}
+.sprint-hud-blocked {
+  margin-top: 6px;
+  max-width: 340px;
+  padding: 8px 12px;
+  background: rgba(221, 76, 76, 0.14);
+  border: 1px solid rgba(221, 76, 76, 0.32);
+  border-radius: 10px;
+  color: #f4c6c6;
+  font: 500 13px system-ui, sans-serif;
+  line-height: 1.4;
+}
 .sprint-panel--review {
   max-height: calc(100vh - 64px);
   overflow: auto;

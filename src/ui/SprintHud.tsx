@@ -4,8 +4,10 @@ import { useServerIncidentsStore } from '../game/serverIncidentsStore'
 import { useEconomyStore } from '../game/economyStore'
 import { useTeamStore } from '../game/teamStore'
 import { useProductStore } from '../game/productStore'
+import { useSecurityStoryStore } from '../game/securityStoryStore'
 import { useCharacterStore } from '../character/characterStore'
 import { SPRINT_DAYS } from '../game/sprintRules'
+import { isPostAuditConversationRequired } from '../game/securityStoryRules'
 import {
   BASE_DAILY_COST,
   budgetWarningLevel,
@@ -55,6 +57,8 @@ export function SprintHud() {
   const activeChoice = useGameStore((s) => s.activeChoice)
   const activeMinigame = useServerIncidentsStore((s) => s.activeMinigame)
 
+  const postAuditConversation = useSecurityStoryStore((s) => s.postAuditConversation)
+
   if (gamePhase !== 'free') return null
 
   const label =
@@ -78,7 +82,11 @@ export function SprintHud() {
     dailyReportOpen ||
     prototypeOpen ||
     !!activeMinigame
-  const canEndDay = sprintPhase === 'active' && !busy
+  // A required post-audit conversation locks the day until it is held (Feature
+  // 06). It only matters in an active sprint - planning has no end-day button.
+  const postAuditRequired = isPostAuditConversationRequired(postAuditConversation)
+  const postAuditPending = postAuditConversation.status === 'pending'
+  const canEndDay = sprintPhase === 'active' && !busy && !postAuditRequired
 
   // Daily cost includes developer salaries at the moment the day is confirmed.
   const dailyCost = BASE_DAILY_COST + getTeamDailySalary(hires)
@@ -106,6 +114,14 @@ export function SprintHud() {
 
       {sprintPhase === 'planning' && planningDismissed ? (
         <div className="sprint-hud-planning-hint">Подойдите к доске задач в переговорной и спланируйте спринт.</div>
+      ) : null}
+
+      {postAuditPending ? (
+        <div className="sprint-hud-story-objective">Поговорите с Соней о результатах аудита</div>
+      ) : null}
+
+      {sprintPhase === 'active' && postAuditPending ? (
+        <div className="sprint-hud-blocked">Сначала обсудите результаты аудита с Соней.</div>
       ) : null}
 
       {confirming ? (

@@ -18,12 +18,26 @@ import { SecurityStoryTrigger } from './game/securityStoryTrigger'
 import { MinigameOverlay } from './game/minigames/MinigameOverlay'
 import { useCutsceneStore } from './cutscenes/cutsceneStore'
 import { useServerIncidentsStore, type ServerRole } from './game/serverIncidentsStore'
+import { useSecurityStoryStore } from './game/securityStoryStore'
+import { useSprintStore } from './game/sprintStore'
 
 if (import.meta.env.DEV) {
   ;(window as unknown as { __startCutscene?: (id: string) => void }).__startCutscene = (id: string) =>
     useCutsceneStore.getState().startScene(id)
   ;(window as unknown as { __breakServer?: (role?: ServerRole) => void }).__breakServer = (role?: ServerRole) =>
     useServerIncidentsStore.getState().breakServer(role)
+  // Story testing: put the post-audit conversation into its pending state (the
+  // marker over Sonya + the objective) without replaying the whole breach. Uses
+  // the same unlock the scene does, so it never duplicates the task or decision.
+  ;(window as unknown as { __startPostAuditConversation?: () => void }).__startPostAuditConversation = () => {
+    const story = useSecurityStoryStore.getState()
+    if (story.securityBreach.status !== 'completed') {
+      const s = useSprintStore.getState()
+      story.markSecurityBreachCompleted({ sprintNumber: s.sprintNumber, day: s.day })
+    } else {
+      story.unlockPostAuditConversation()
+    }
+  }
 }
 
 function ExposureControl({ exposure }: { exposure: number }) {

@@ -2,7 +2,9 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { completeWorkday } from './completeWorkday'
 import { useSprintStore } from './sprintStore'
 import { useEconomyStore } from './economyStore'
+import { useSecurityStoryStore } from './securityStoryStore'
 import { INITIAL_SPRINT_STATE, SPRINT_DAYS } from './sprintRules'
+import { INITIAL_SECURITY_BREACH } from './securityStoryRules'
 import { BASE_DAILY_COST, BASE_SPRINT_COST, INITIAL_BUDGET, calculateBalance, initialTransactions, sprintExpenseTotal } from './economyRules'
 
 const balance = () => calculateBalance(useEconomyStore.getState().transactions)
@@ -15,6 +17,10 @@ describe('completeWorkday', () => {
   beforeEach(() => {
     useSprintStore.setState({ ...INITIAL_SPRINT_STATE, confirmingEndDay: false })
     useEconomyStore.setState({ transactions: initialTransactions(), panelOpen: false })
+    useSecurityStoryStore.setState({
+      securityBreach: { ...INITIAL_SECURITY_BREACH },
+      postAuditConversation: { status: 'locked', effectsApplied: false },
+    })
     window.localStorage.clear()
   })
 
@@ -72,6 +78,26 @@ describe('completeWorkday', () => {
     expect(useSprintStore.getState().phase).toBe('review')
     expect(sprintExpenseTotal(useEconomyStore.getState().transactions, 1)).toBe(BASE_SPRINT_COST)
     expect(balance()).toBe(INITIAL_BUDGET - BASE_SPRINT_COST)
+  })
+
+  it('a required post-audit conversation blocks the day (no charge, no advance)', () => {
+    setSprint(1, 'active', true)
+    useSecurityStoryStore.setState({ postAuditConversation: { status: 'pending', effectsApplied: false } })
+    const result = completeWorkday()
+    expect(result).toEqual({ completed: false, reason: 'required-story-conversation' })
+    expect(useSprintStore.getState().day).toBe(1)
+    expect(useSprintStore.getState().confirmingEndDay).toBe(true) // confirmation stays open
+    expect(balance()).toBe(INITIAL_BUDGET)
+  })
+
+  it('once the conversation is completed the day advances normally', () => {
+    setSprint(1, 'active', true)
+    useSecurityStoryStore.setState({
+      postAuditConversation: { status: 'completed', staffingDecision: 'approve-security-hire', effectsApplied: true },
+    })
+    expect(completeWorkday().completed).toBe(true)
+    expect(useSprintStore.getState().day).toBe(2)
+    expect(balance()).toBe(INITIAL_BUDGET - BASE_DAILY_COST)
   })
 
   it('moving from review to the next sprint does not charge', () => {

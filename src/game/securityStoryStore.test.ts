@@ -1,5 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useSecurityStoryStore, loadSecurityStory, saveSecurityStory, SECURITY_TRAINING_TASK } from './securityStoryStore'
+import {
+  useSecurityStoryStore,
+  loadSecurityStory,
+  saveSecurityStory,
+  SECURITY_TRAINING_TASK,
+  DISCUSS_AUDIT_TASK,
+  HIRE_SECURITY_TASK,
+  CLOSE_FINDINGS_TASK,
+} from './securityStoryStore'
 import { tryStartSecurityBreach } from './tryStartSecurityBreach'
 import { useGameStore } from './gameStore'
 import { useCutsceneStore } from '../cutscenes/cutsceneStore'
@@ -23,7 +31,7 @@ function fakeStorage(initial: Record<string, string> = {}) {
 }
 
 function resetStores() {
-  useSecurityStoryStore.setState({ securityBreach: { ...INITIAL_SECURITY_BREACH } })
+  useSecurityStoryStore.setState({ securityBreach: { ...INITIAL_SECURITY_BREACH }, postAuditConversation: { status: 'locked', effectsApplied: false } })
   useGameStore.setState({ reprimands: 0, tasks: BOARD_TASKS.map((t) => ({ ...t })) })
   useCutsceneStore.setState({ activeSceneId: null, actors: {} })
   window.localStorage.clear()
@@ -100,33 +108,41 @@ describe('decision side-effects (idempotent)', () => {
 })
 
 describe('persistence & hydration', () => {
-  it('old save without story state loads the initial state', () => {
-    expect(loadSecurityStory(fakeStorage(), '')).toEqual(INITIAL_SECURITY_BREACH)
+  it('old save without story state loads the initial breach + locked conversation', () => {
+    const loaded = loadSecurityStory(fakeStorage(), '')
+    expect(loaded.securityBreach).toEqual(INITIAL_SECURITY_BREACH)
+    expect(loaded.postAuditConversation.status).toBe('locked')
   })
 
-  it('a persisted running status hydrates to not-started, keeping decision/effects', () => {
+  it('a persisted running breach hydrates to not-started, keeping decision/effects', () => {
     const saved = { securityBreach: { status: 'running', firstStartedAt: { sprintNumber: 2, day: 2 }, decision: 'blame-project-manager', effectsApplied: true } }
-    const loaded = loadSecurityStory(fakeStorage({ [KEY]: JSON.stringify(saved) }), '')
+    const loaded = loadSecurityStory(fakeStorage({ [KEY]: JSON.stringify(saved) }), '').securityBreach
     expect(loaded.status).toBe('not-started')
     expect(loaded.effectsApplied).toBe(true)
     expect(loaded.decision).toBe('blame-project-manager')
   })
 
-  it('completed survives reload', () => {
+  it('completed breach survives reload and migrates the conversation to pending', () => {
     const saved = { securityBreach: { status: 'completed', completedAt: { sprintNumber: 2, day: 3 }, effectsApplied: true } }
-    expect(loadSecurityStory(fakeStorage({ [KEY]: JSON.stringify(saved) }), '').status).toBe('completed')
+    const loaded = loadSecurityStory(fakeStorage({ [KEY]: JSON.stringify(saved) }), '')
+    expect(loaded.securityBreach.status).toBe('completed')
+    expect(loaded.postAuditConversation.status).toBe('pending') // Feature 05 -> 06 migration
   })
 
   it('?intro wipes the story', () => {
     const storage = fakeStorage({ [KEY]: JSON.stringify({ securityBreach: { status: 'completed', completedAt: { sprintNumber: 2, day: 3 }, effectsApplied: true } }) })
-    expect(loadSecurityStory(storage, '?intro')).toEqual(INITIAL_SECURITY_BREACH)
+    const loaded = loadSecurityStory(storage, '?intro')
+    expect(loaded.securityBreach).toEqual(INITIAL_SECURITY_BREACH)
+    expect(loaded.postAuditConversation.status).toBe('locked')
     expect(storage.dump()).toEqual({})
   })
 
   it('corrupt JSON and no storage are safe', () => {
-    expect(loadSecurityStory(fakeStorage({ [KEY]: '{oops' }), '')).toEqual(INITIAL_SECURITY_BREACH)
-    expect(loadSecurityStory(null, '')).toEqual(INITIAL_SECURITY_BREACH)
-    expect(() => saveSecurityStory(null, INITIAL_SECURITY_BREACH)).not.toThrow()
+    expect(loadSecurityStory(fakeStorage({ [KEY]: '{oops' }), '').securityBreach).toEqual(INITIAL_SECURITY_BREACH)
+    expect(loadSecurityStory(null, '').securityBreach).toEqual(INITIAL_SECURITY_BREACH)
+    expect(() =>
+      saveSecurityStory(null, { securityBreach: INITIAL_SECURITY_BREACH, postAuditConversation: { status: 'locked', effectsApplied: false } }),
+    ).not.toThrow()
   })
 })
 
@@ -162,5 +178,117 @@ describe('tryStartSecurityBreach use-case', () => {
   it('reports already-running / already-completed', () => {
     expect(tryStartSecurityBreach(ctx({ securityBreachStatus: 'running' }))).toEqual({ started: false, reason: 'already-running' })
     expect(tryStartSecurityBreach(ctx({ securityBreachStatus: 'completed' }))).toEqual({ started: false, reason: 'already-completed' })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Feature 06 - post-audit conversation with Sonya & staffing decision
+// ---------------------------------------------------------------------------
+const pa = () => useSecurityStoryStore.getState().postAuditConversation
+const taskCount = (id: string) => useGameStore.getState().tasks.filter((t) => t.id === id).length
+const taskDone = (id: string) => useGameStore.getState().tasks.find((t) => t.id === id)?.done
+
+describe('post-audit conversation lifecycle', () => {
+  beforeEach(resetStores)
+
+  it('completing the breach unlocks the conversation and adds the discuss task', () => {
+    useSecurityStoryStore.getState().markSecurityBreachRunning(moment(2))
+    useSecurityStoryStore.getState().markSecurityBreachCompleted(moment(3))
+    expect(pa().status).toBe('pending')
+    expect(taskCount(DISCUSS_AUDIT_TASK.id)).toBe(1)
+  })
+
+  it('unlock is idempotent - no duplicate discuss task', () => {
+    useSecurityStoryStore.getState().markSecurityBreachCompleted(moment(3))
+    useSecurityStoryStore.getState().unlockPostAuditConversation()
+    useSecurityStoryStore.getState().unlockPostAuditConversation()
+    expect(taskCount(DISCUSS_AUDIT_TASK.id)).toBe(1)
+  })
+
+  it('markRunning moves pending -> running and records startedAt', () => {
+    useSecurityStoryStore.getState().markSecurityBreachCompleted(moment(3))
+    useSecurityStoryStore.getState().markPostAuditConversationRunning(moment(4))
+    expect(pa()).toMatchObject({ status: 'running', startedAt: { sprintNumber: 2, day: 4 } })
+  })
+
+  it('markRunning does nothing while still locked', () => {
+    useSecurityStoryStore.getState().markPostAuditConversationRunning(moment(4))
+    expect(pa().status).toBe('locked')
+  })
+
+  it('markFailed returns a running conversation to pending', () => {
+    useSecurityStoryStore.getState().markSecurityBreachCompleted(moment(3))
+    useSecurityStoryStore.getState().markPostAuditConversationRunning(moment(4))
+    useSecurityStoryStore.getState().markPostAuditConversationFailed()
+    expect(pa().status).toBe('pending')
+  })
+})
+
+describe('staffing decision side-effects (idempotent)', () => {
+  beforeEach(() => {
+    resetStores()
+    useSecurityStoryStore.getState().markSecurityBreachCompleted(moment(3))
+    useSecurityStoryStore.getState().markPostAuditConversationRunning(moment(4))
+  })
+
+  it('approve adds the hire task, completes the discuss task, once', () => {
+    const res = useSecurityStoryStore.getState().resolveSecurityStaffingDecision('approve-security-hire')
+    expect(res).toEqual({ applied: true, decision: 'approve-security-hire' })
+    expect(taskCount(HIRE_SECURITY_TASK.id)).toBe(1)
+    expect(taskCount(CLOSE_FINDINGS_TASK.id)).toBe(0)
+    expect(taskDone(DISCUSS_AUDIT_TASK.id)).toBe(true)
+    expect(pa().staffingDecision).toBe('approve-security-hire')
+  })
+
+  it('decline adds the close-findings task instead', () => {
+    useSecurityStoryStore.getState().resolveSecurityStaffingDecision('decline-security-hire')
+    expect(taskCount(CLOSE_FINDINGS_TASK.id)).toBe(1)
+    expect(taskCount(HIRE_SECURITY_TASK.id)).toBe(0)
+    expect(taskDone(DISCUSS_AUDIT_TASK.id)).toBe(true)
+  })
+
+  it('re-resolving keeps the first decision and does not duplicate tasks', () => {
+    useSecurityStoryStore.getState().resolveSecurityStaffingDecision('approve-security-hire')
+    const second = useSecurityStoryStore.getState().resolveSecurityStaffingDecision('decline-security-hire')
+    expect(second.applied).toBe(false)
+    expect(second.decision).toBe('approve-security-hire')
+    expect(taskCount(HIRE_SECURITY_TASK.id)).toBe(1)
+    expect(taskCount(CLOSE_FINDINGS_TASK.id)).toBe(0)
+  })
+
+  it('markCompleted saves completedAt and is final', () => {
+    useSecurityStoryStore.getState().resolveSecurityStaffingDecision('approve-security-hire')
+    useSecurityStoryStore.getState().markPostAuditConversationCompleted(moment(5))
+    expect(pa()).toMatchObject({ status: 'completed', completedAt: { sprintNumber: 2, day: 5 } })
+    useSecurityStoryStore.getState().markPostAuditConversationCompleted(moment(9)) // final - ignored
+    expect(pa().completedAt).toEqual({ sprintNumber: 2, day: 5 })
+  })
+})
+
+describe('post-audit reload & reset', () => {
+  beforeEach(resetStores)
+
+  it('a completed conversation with a decision survives a reload', () => {
+    useSecurityStoryStore.getState().markSecurityBreachCompleted(moment(3))
+    useSecurityStoryStore.getState().markPostAuditConversationRunning(moment(4))
+    useSecurityStoryStore.getState().resolveSecurityStaffingDecision('approve-security-hire')
+    useSecurityStoryStore.getState().markPostAuditConversationCompleted(moment(5))
+    saveSecurityStory(window.localStorage, useSecurityStoryStore.getState())
+    const loaded = loadSecurityStory(window.localStorage, '')
+    expect(loaded.postAuditConversation).toMatchObject({ status: 'completed', staffingDecision: 'approve-security-hire', effectsApplied: true })
+  })
+
+  it('a running conversation hydrates back to pending', () => {
+    useSecurityStoryStore.getState().markSecurityBreachCompleted(moment(3))
+    useSecurityStoryStore.getState().markPostAuditConversationRunning(moment(4))
+    saveSecurityStory(window.localStorage, useSecurityStoryStore.getState())
+    expect(loadSecurityStory(window.localStorage, '').postAuditConversation.status).toBe('pending')
+  })
+
+  it('reset clears the conversation back to locked', () => {
+    useSecurityStoryStore.getState().markSecurityBreachCompleted(moment(3))
+    useSecurityStoryStore.getState().resetSecurityStory()
+    expect(pa().status).toBe('locked')
+    expect(sb().status).toBe('not-started')
   })
 })
