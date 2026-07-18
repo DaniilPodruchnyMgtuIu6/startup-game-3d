@@ -123,4 +123,4 @@ Claude Code не должен:
 
 На текущем этапе Claude Code нужно передать только:
 
-`11-server-incidents-downtime-and-recovery.md`
+`13-mvp-release-and-campaign-success.md`
