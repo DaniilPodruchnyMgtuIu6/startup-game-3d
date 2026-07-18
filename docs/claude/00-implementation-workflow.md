@@ -123,4 +123,4 @@ Claude Code не должен:
 
 На текущем этапе Claude Code нужно передать только:
 
-`04-product-backlog-and-sprint-progress.md`
+`05-security-breach-auto-trigger.md`
