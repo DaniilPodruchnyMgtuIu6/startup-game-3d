@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useServerIncidentsStore } from '../serverIncidentsStore'
 import { useCharacterStore, PLAYER_ID } from '../../character/characterStore'
+import { recordServerFailureRisk, recordServerStabilizedRisk } from '../serverRiskAdapter'
 import { MINIGAME_MODULES } from './registry'
 import '../../ui/ui.css'
 
@@ -40,10 +41,12 @@ export function MinigameOverlay() {
   const onWin = () => setPhase({ kind: 'result', won: true })
   const onLose = () => {
     failAttempt(active.role)
+    recordServerFailureRisk(active.role) // Feature 09: first two failures add risk
     setPhase({ kind: 'result', won: false })
   }
   const finishWin = () => {
     completeRepair(active.role)
+    recordServerStabilizedRisk(active.role) // Feature 09: first stabilisation mitigates
     returnPlayerToIdle()
   }
   const retry = () => {

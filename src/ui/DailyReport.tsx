@@ -1,12 +1,18 @@
 import { useProductStore } from '../game/productStore'
 import { useEconomyStore } from '../game/economyStore'
+import { useTeamStore } from '../game/teamStore'
 import { useSecurityAuditStore, isFollowUpAuditBlocking } from '../game/securityAuditStore'
+import { useRiskStore } from '../game/riskStore'
 import { getProductTask } from '../game/productTaskCatalog'
 import { getEmployee, PROJECT_MANAGER } from '../game/teamCatalog'
+import { hasSecuritySpecialist } from '../game/teamRules'
 import { getFirstPrototypeCompletion, hasFirstPrototype, type WorkdayEmployeeProgress } from '../game/productRules'
 import { getSecurityFinding } from '../game/securityFindingCatalog'
 import { securityWorkdayId, type SecurityWorkdayRecord } from '../game/securityAuditRules'
 import { getDaysUntilAudit, toWorkdayIndex } from '../game/workdayIndex'
+import { RISK_DOMAINS, RISK_DOMAIN_TITLE, RISK_LEVEL_LABEL } from '../game/riskCatalog'
+import { getDetectedRiskLevel, getRiskSignalFactorLabel } from '../game/riskRules'
+import { getRiskDomainSummary } from '../game/riskCatalog'
 import { calculateBalance, dailyExpenseId, formatRubles } from '../game/economyRules'
 import './ui.css'
 
@@ -41,6 +47,52 @@ function EmployeeLine({ result }: { result: WorkdayEmployeeProgress }) {
         {def?.title}: {result.beforeProgressDays}/{def?.effortDays} → {result.afterProgressDays}/{def?.effortDays}
       </div>
       {result.completedTask ? <div className="dr-emp-done">Задача завершена</div> : null}
+    </div>
+  )
+}
+
+// Risk signals newly detected on the just-completed day, grouped by domain. A
+// domain whose new signals are all mitigation reads as an improvement; otherwise
+// it shows the (detected) level and summary. Factors appear only with Ilya.
+function RiskReportSection({ completedWorkdayIndex }: { completedWorkdayIndex: number }) {
+  const signals = useRiskStore((s) => s.signals)
+  const revealFactors = useTeamStore((s) => hasSecuritySpecialist(s.hires))
+
+  const newlyDetected = signals.filter((s) => s.detectedAtWorkdayIndex === completedWorkdayIndex)
+  if (newlyDetected.length === 0) return null
+
+  const groups = RISK_DOMAINS.map((domain) => {
+    const detectedToday = newlyDetected.filter((s) => s.domain === domain)
+    if (detectedToday.length === 0) return null
+    const improvementOnly = detectedToday.every((s) => s.impact < 0)
+    const level = getDetectedRiskLevel(signals, domain)
+    const factors = revealFactors ? [...new Set(detectedToday.map(getRiskSignalFactorLabel))] : []
+    return { domain, improvementOnly, level, factors }
+  }).filter((g): g is { domain: (typeof RISK_DOMAINS)[number]; improvementOnly: boolean; level: ReturnType<typeof getDetectedRiskLevel>; factors: string[] } => g !== null)
+
+  return (
+    <div className="dr-risk">
+      <div className="dr-risk-title">Новые сигналы риска</div>
+      {groups.map((g) => (
+        <div className={g.improvementOnly ? 'dr-risk-card dr-risk-card--improved' : 'dr-risk-card'} key={g.domain}>
+          <div className="dr-risk-domain">{RISK_DOMAIN_TITLE[g.domain]}</div>
+          {g.improvementOnly ? (
+            <div className="dr-risk-level">Риск снижен после недавних исправлений.</div>
+          ) : (
+            <>
+              <div className="dr-risk-level">{RISK_LEVEL_LABEL[g.level]}</div>
+              <div className="dr-risk-summary">{getRiskDomainSummary(g.domain, g.level)}</div>
+            </>
+          )}
+          {g.factors.length > 0 ? (
+            <ul className="dr-risk-factors">
+              {g.factors.map((f) => (
+                <li key={f}>{f}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ))}
     </div>
   )
 }
@@ -116,6 +168,8 @@ export function DailyReport() {
         </div>
 
         {auditInitialized ? <SecuritySection record={securityRecord} sprintNumber={report.sprintNumber} day={report.day} /> : null}
+
+        <RiskReportSection completedWorkdayIndex={toWorkdayIndex(report.sprintNumber, report.day)} />
 
         {milestoneToday ? (
           <div className="dr-milestone">

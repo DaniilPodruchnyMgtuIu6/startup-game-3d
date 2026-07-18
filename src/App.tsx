@@ -25,6 +25,10 @@ import { useSprintStore } from './game/sprintStore'
 import { hireSecuritySpecialist, reconcileSecurityHire } from './game/hireSecuritySpecialist'
 import { useSecurityAuditStore } from './game/securityAuditStore'
 import { initializeSecurityAuditIfReady } from './game/initializeSecurityAudit'
+import { reconcileRiskSignals } from './game/reconcileRiskSignals'
+import { useRiskStore } from './game/riskStore'
+import { RISK_DOMAINS } from './game/riskCatalog'
+import { getActualRiskScore, getActualRiskLevel, getDetectedRiskScore, getDetectedRiskLevel } from './game/riskRules'
 
 // Feature 07: repair any cross-store inconsistency between the staffing decision,
 // the security hire record and its task after a load/migration (spec §17), once
@@ -33,6 +37,9 @@ reconcileSecurityHire()
 // Feature 08: create the corrective-action plan from an old save whose post-audit
 // conversation is already completed (idempotent migration).
 initializeSecurityAuditIfReady()
+// Feature 09: rebuild hidden-risk signals from facts in an old Feature 08 save
+// (idempotent; a continuing Feature 09 save is a no-op).
+reconcileRiskSignals()
 
 if (import.meta.env.DEV) {
   ;(window as unknown as { __startCutscene?: (id: string) => void }).__startCutscene = (id: string) =>
@@ -71,6 +78,24 @@ if (import.meta.env.DEV) {
     useSecurityAuditStore.setState({
       followUpAudit: { ...audit.followUpAudit, status: 'pending', pendingAuditNumber: audit.followUpAudit.records.length + 1 },
     })
+  }
+  // Read-only risk inspector: signals + actual/detected score & level per domain.
+  ;(window as unknown as { __getRiskState?: () => unknown }).__getRiskState = () => {
+    const signals = useRiskStore.getState().signals
+    return {
+      signals,
+      domains: Object.fromEntries(
+        RISK_DOMAINS.map((d) => [
+          d,
+          {
+            actualScore: getActualRiskScore(signals, d),
+            actualLevel: getActualRiskLevel(signals, d),
+            detectedScore: getDetectedRiskScore(signals, d),
+            detectedLevel: getDetectedRiskLevel(signals, d),
+          },
+        ]),
+      ),
+    }
   }
 }
 

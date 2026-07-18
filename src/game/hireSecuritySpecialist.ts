@@ -9,6 +9,9 @@ import { useCutsceneStore } from '../cutscenes/cutsceneStore'
 import { SECURITY_SPECIALIST_ID, getEmployee } from './teamCatalog'
 import { hasSecuritySpecialist } from './teamRules'
 import { canHireSecuritySpecialist, type SecurityHireContext } from './securityHiring'
+import { useRiskStore } from './riskStore'
+import { securityHireSignals } from './riskSignals'
+import { riskMomentNow } from './riskContext'
 
 // The single game operation for hiring the fixed security specialist (Feature
 // 07). Reads the staffing decision, checks eligibility, records the hire via the
@@ -62,6 +65,8 @@ export function hireSecuritySpecialist(): HireSecuritySpecialistResult {
 
   // The hire fulfils the Feature 06 department task; money/time are untouched.
   useGameStore.getState().completeTask(HIRE_SECURITY_TASK.id)
+  // Feature 09: a REAL hire (not just approval) mitigates governance risk by 1.
+  useRiskStore.getState().addSignalsOnce(securityHireSignals(riskMomentNow()))
   return { hired: true, employeeId: SECURITY_SPECIALIST_ID }
 }
 

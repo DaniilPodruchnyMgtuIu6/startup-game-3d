@@ -1,5 +1,8 @@
 import { create } from 'zustand'
 import { useGameStore, isIntroReset } from './gameStore'
+import { useRiskStore } from './riskStore'
+import { declineStaffingSignals } from './riskSignals'
+import { riskMomentNow } from './riskContext'
 import type { BoardTask } from './tasks'
 import {
   INITIAL_SECURITY_BREACH,
@@ -212,6 +215,12 @@ export const useSecurityStoryStore = create<SecurityStoryStore>()((set, get) => 
       addTaskOnce(finalDecision === 'approve-security-hire' ? HIRE_SECURITY_TASK : CLOSE_FINDINGS_TASK)
       useGameStore.getState().completeTask(DISCUSS_AUDIT_TASK.id)
       set({ postAuditConversation: { ...pa, staffingDecision: finalDecision, effectsApplied: true } })
+      // Feature 09: declining a dedicated security owner raises governance +2 and
+      // office-access +1 (hidden until detected). The approve mitigation is only
+      // created on a real hire (see hireSecuritySpecialist).
+      if (finalDecision === 'decline-security-hire') {
+        useRiskStore.getState().addSignalsOnce(declineStaffingSignals(riskMomentNow()))
+      }
       persist()
       return { applied: true, decision: finalDecision }
     },

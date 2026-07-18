@@ -6,6 +6,9 @@ import { useSecurityStoryStore, CLOSE_FINDINGS_TASK } from './securityStoryStore
 import { isEmployeeHired } from './teamRules'
 import { SECURITY_SPECIALIST_ID } from './teamCatalog'
 import { toWorkdayIndex } from './workdayIndex'
+import { useRiskStore } from './riskStore'
+import { auditSignals, findingClosedSignals } from './riskSignals'
+import { riskMomentAt } from './riskContext'
 import type { BoardTask } from './tasks'
 import {
   applySecurityWorkdayRules,
@@ -305,6 +308,11 @@ export const useSecurityAuditStore = create<SecurityAuditStore>()((set, get) => 
       const record: SecurityWorkdayRecord = { id, ...calc.record }
       set({ findings: calc.states, workdayHistory: [...get().workdayHistory, record] })
       persist()
+      // Feature 09: each finding first closed today produces a mitigation signal.
+      const moment = riskMomentAt(sprintNumber, day)
+      for (const r of calc.record.results) {
+        if (r.closedFinding) useRiskStore.getState().addSignalsOnce(findingClosedSignals(r.findingId, moment))
+      }
       return { applied: true, record, divertedEmployeeIds: calc.divertedEmployeeIds }
     },
 
@@ -380,6 +388,9 @@ export const useSecurityAuditStore = create<SecurityAuditStore>()((set, get) => 
         const taskId = decision === 'decline-security-hire' ? CLOSE_FINDINGS_TASK.id : CLOSE_AUDIT_FINDINGS_TASK.id
         useGameStore.getState().completeTask(taskId)
       }
+      // Feature 09: the audit outcome moves governance risk (a third failure is
+      // an immediate critical escalation). Idempotent by signal id.
+      useRiskStore.getState().addSignalsOnce(auditSignals(auditNumber, evaluation.passed, riskMomentAt(moment.sprintNumber, moment.day)))
       persist()
       return { resolved: true, evaluation, record }
     },

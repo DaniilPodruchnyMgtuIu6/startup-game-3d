@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useProductStore, type BoardTab } from '../game/productStore'
 import { useSprintStore } from '../game/sprintStore'
 import { useTeamStore } from '../game/teamStore'
@@ -17,6 +17,9 @@ import {
   type SecurityStaffContext,
 } from '../game/securityAuditRules'
 import { toWorkdayIndex, fromWorkdayIndex, getDaysUntilAudit } from '../game/workdayIndex'
+import { useRiskStore } from '../game/riskStore'
+import { buildRiskObservations, getUnacknowledgedDetectedCount } from '../game/riskRules'
+import { RISK_LEVEL_LABEL } from '../game/riskCatalog'
 import {
   completedInSprint,
   firstPrototypeDoneCount,
@@ -423,12 +426,54 @@ function FindingCard({ state, ctx, blocked }: { state: SecurityFindingState; ctx
   )
 }
 
+// Detected risk observations (Feature 09). Factors are shown only with Ilya.
+function RiskObservations() {
+  const signals = useRiskStore((s) => s.signals)
+  const revealDetailedFactors = useTeamStore((s) => hasSecuritySpecialist(s.hires))
+  const observations = buildRiskObservations(signals, { revealDetailedFactors })
+  if (observations.length === 0) return null
+
+  return (
+    <div className="sb-observations">
+      <h3 className="team-section-title">Наблюдения и риски</h3>
+      {observations.map((o) => (
+        <div className={`sb-obs sb-obs--${o.level}`} key={o.domain}>
+          <div className="sb-obs-title">{o.title}</div>
+          <div className="sb-obs-level">{RISK_LEVEL_LABEL[o.level]}</div>
+          <p className="sb-obs-summary">{o.summary}</p>
+          {o.factorLabels.length > 0 ? (
+            <>
+              <div className="sb-obs-factors-label">Факторы:</div>
+              <ul className="sb-obs-factors">
+                {o.factorLabels.map((f) => (
+                  <li key={f}>{f}</li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function SecurityBoard() {
   const findings = useSecurityAuditStore((s) => s.findings)
   const followUpAudit = useSecurityAuditStore((s) => s.followUpAudit)
   const hires = useTeamStore((s) => s.hires)
+  const acknowledge = useRiskStore((s) => s.acknowledgeDetectedSignals)
+  const sprintNumber = useSprintStore((s) => s.sprintNumber)
+  const day = useSprintStore((s) => s.day)
   const ctx: SecurityStaffContext = { hasKirill: isEmployeeHired(hires, 'kirill-morozov'), hasIlya: hasSecuritySpecialist(hires) }
   const blocked = isFollowUpAuditBlocking(followUpAudit)
+
+  // Opening the security tab acknowledges the detected signals (clears the
+  // badge) without changing the risk. No new detection can happen while the
+  // board overlay is open, so acknowledging once on open is enough.
+  useEffect(() => {
+    acknowledge(toWorkdayIndex(sprintNumber, day))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="sb">
@@ -441,6 +486,7 @@ function SecurityBoard() {
           <FindingCard key={f.findingId} state={f} ctx={ctx} blocked={blocked} />
         ))}
       </div>
+      <RiskObservations />
     </div>
   )
 }
@@ -454,6 +500,7 @@ export function WhiteboardPanel() {
   const setTab = useProductStore((s) => s.setTab)
   // The security tab only exists once the corrective-action plan is initialised.
   const securityInitialized = useSecurityAuditStore((s) => s.initialized)
+  const unacknowledgedRisks = useRiskStore((s) => getUnacknowledgedDetectedCount(s.signals))
 
   if (!open) return null
 
@@ -476,7 +523,7 @@ export function WhiteboardPanel() {
           </button>
           {securityInitialized ? (
             <button className={activeTab === 'security' ? 'wb-tab wb-tab--active' : 'wb-tab'} onClick={select('security')}>
-              Безопасность
+              Безопасность{unacknowledgedRisks > 0 ? ` (${unacknowledgedRisks})` : ''}
             </button>
           ) : null}
         </div>

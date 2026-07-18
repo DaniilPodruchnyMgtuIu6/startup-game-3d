@@ -25,4 +25,10 @@ export const SECURITY_SPECIALIST_REPEAT_LINES: DialogueLine[] = [
   asIlya('Пока собираю картину по инфраструктуре. После следующей проверки смогу дать конкретные рекомендации.'),
 ]
 
+// Shown instead of the repeat line while there is an unacknowledged high/critical
+// risk observation (Feature 09).
+export const SECURITY_SPECIALIST_RISK_ALERT_LINES: DialogueLine[] = [
+  asIlya('Я обнаружил риск, который стоит посмотреть на доске безопасности. Проблема пока не стала инцидентом, но откладывать её опасно.'),
+]
+
 export const SECURITY_SPECIALIST_CLOSING_LABEL = 'Понятно.'

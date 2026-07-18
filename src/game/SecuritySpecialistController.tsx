@@ -15,8 +15,11 @@ import { approachPoint, isWithinMeetDistance, facingBetween } from './meetingGeo
 import {
   SECURITY_SPECIALIST_INTRO_LINES,
   SECURITY_SPECIALIST_REPEAT_LINES,
+  SECURITY_SPECIALIST_RISK_ALERT_LINES,
   SECURITY_SPECIALIST_CLOSING_LABEL,
 } from './securitySpecialistDialogue'
+import { useRiskStore } from './riskStore'
+import { buildRiskObservations } from './riskRules'
 import '../ui/ui.css'
 
 const ILYA = ilyaVlasov.id
@@ -97,7 +100,16 @@ function runTalk() {
   }
 
   const introduced = useSecurityStoryStore.getState().hasIntroducedSecuritySpecialist
-  const lines = introduced ? SECURITY_SPECIALIST_REPEAT_LINES : SECURITY_SPECIALIST_INTRO_LINES
+  // While an unacknowledged high/critical risk is on the board, Ilya's repeat
+  // line becomes a warning (Feature 09 §19). The intro still plays first-time.
+  const hasUrgentRisk = buildRiskObservations(useRiskStore.getState().signals, { revealDetailedFactors: true }).some(
+    (o) => (o.level === 'high' || o.level === 'critical') && o.unacknowledgedSignalIds.length > 0,
+  )
+  const lines = !introduced
+    ? SECURITY_SPECIALIST_INTRO_LINES
+    : hasUrgentRisk
+      ? SECURITY_SPECIALIST_RISK_ALERT_LINES
+      : SECURITY_SPECIALIST_REPEAT_LINES
   useGameStore.getState().startDialogue(lines, { closingLabel: SECURITY_SPECIALIST_CLOSING_LABEL })
 
   const unsubscribe = useGameStore.subscribe(() => {

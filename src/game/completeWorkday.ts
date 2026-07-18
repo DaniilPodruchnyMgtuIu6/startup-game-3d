@@ -4,8 +4,10 @@ import { useTeamStore } from './teamStore'
 import { useProductStore } from './productStore'
 import { useSecurityStoryStore } from './securityStoryStore'
 import { useSecurityAuditStore, isFollowUpAuditBlocking, type ApplySecurityWorkdayResult, type ScheduleAuditResult } from './securityAuditStore'
-import { getEmployeeSalaryExpenses, getHiredEmployeeIds, getHiredDeveloperIds } from './teamRules'
+import { getEmployeeSalaryExpenses, getHiredEmployeeIds, getHiredDeveloperIds, hasSecuritySpecialist } from './teamRules'
 import { isPostAuditConversationRequired } from './securityStoryRules'
+import { useRiskStore } from './riskStore'
+import { toWorkdayIndex } from './workdayIndex'
 import type { WorkdayProgressRecord } from './productRules'
 
 // The single game operation that finalises a working day. It is the ONLY path
@@ -68,7 +70,12 @@ export function completeWorkday(): CompleteWorkdayResult {
   // 5. advance the sprint clock (day -> day+1, or day 10 -> review)
   useSprintStore.getState().confirmEndDay()
 
-  // 6. surface the day's report to the player (does not re-run any calc)
+  // 6. detect any risk signals whose delay elapsed by the completed day. Only a
+  //    completed working day reveals signals; opening UI never does (Feature 09).
+  const completedWorkdayIndex = toWorkdayIndex(sprintNumber, day)
+  useRiskStore.getState().detectDueSignals(completedWorkdayIndex, hasSecuritySpecialist(useTeamStore.getState().hires))
+
+  // 7. surface the day's report to the player (does not re-run any calc)
   useProductStore.getState().showReport(productResult.record)
 
   return {
