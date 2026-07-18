@@ -11,19 +11,23 @@ import { useGameOutcomeStore } from '../game/gameOutcomeStore'
 import { hasSecuritySpecialist } from '../game/teamRules'
 import { finalizeMvpReleaseSuccess } from '../game/releaseOfficeFlowMvp'
 import type { DialogueLine } from '../game/gameStore'
+import { WHITEBOARD_POSITION } from '../scene/whiteboardSpot'
 import type { CutsceneDirector, CutsceneScript, Point } from './types'
 
-// Feature 13 final scene: the team presents OfficeFlow at the meeting-room
-// whiteboard, the mock prototype is shown, everyone speaks their static line,
-// the CEO's approval arrives off-screen, and the run's success is committed. On
-// any error the release rewinds so the player can retry (server-scene pattern).
+// Feature 13 final scene: the team presents OfficeFlow at the whiteboard (now in
+// the open space, see scene/whiteboardSpot.ts), the mock prototype is shown,
+// everyone speaks their static line, the CEO's approval arrives off-screen, and
+// the run's success is committed. On any error the release rewinds so the
+// player can retry (server-scene pattern).
 
-const CAMERA_TARGET: Point = [-9, 1.2, -2.9]
-const CAMERA_POSITION: Point = [-5.5, 2.6, -7.3]
-const SONYA_MARK: Point = [-9, 0, -3.5]
-const ALINA_MARK: Point = [-9.8, 0, -4.4]
-const KIRILL_MARK: Point = [-9, 0, -4.4]
-const ILYA_MARK: Point = [-8.2, 0, -4.4]
+const CAMERA_TARGET: Point = [WHITEBOARD_POSITION[0], 1.2, WHITEBOARD_POSITION[2]]
+const CAMERA_POSITION: Point = [-1.2, 2.6, 6.2]
+// Sonya presents at the board; the others stand in the walkable strip south of
+// the desk cluster, facing her (director.walk snaps each mark to the nav grid).
+const SONYA_MARK: Point = [-4.9, 0, 3.7]
+const ALINA_MARK: Point = [-4.6, 0, 2.4]
+const KIRILL_MARK: Point = [-3.8, 0, 2.5]
+const ILYA_MARK: Point = [-3.0, 0, 2.7]
 
 const asSonya = (text: string): DialogueLine => ({ speaker: femalePm.persona!.name, speakerRole: femalePm.persona!.role, portrait: femalePm.portrait, text })
 const asKirill = (text: string): DialogueLine => ({ speaker: kirillMorozov.persona!.name, speakerRole: kirillMorozov.persona!.role, text })

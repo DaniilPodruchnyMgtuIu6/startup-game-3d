@@ -58,7 +58,7 @@ export function SprintPhaseOverlay() {
           <h2 className="sprint-panel-title">Планирование спринта {sprintNumber}</h2>
           <p className="sprint-panel-text">
             Спринт длится {SPRINT_DAYS} условных рабочих дней. Время идёт только когда вы завершаете рабочий день.
-            Подойдите к доске задач в переговорной, распределите работу между разработчиками и запустите спринт с доски.
+            Подойдите к доске задач у входа в серверную, распределите работу между разработчиками и запустите спринт с доски.
           </p>
           {sprintNumber < CAMPAIGN_DEADLINE_SPRINT ? (
             <p className="sprint-panel-deadline">

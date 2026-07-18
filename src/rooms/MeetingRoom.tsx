@@ -3,25 +3,21 @@ import { GlassPartitionWithDoor } from '../furniture/GlassPartitionWithDoor'
 import { MeetingTable } from '../furniture/MeetingTable'
 import { Chair } from '../furniture/Chair'
 import { TVPanel } from '../furniture/TVPanel'
-import { Whiteboard } from '../furniture/Whiteboard'
-import { PlanningMarker } from '../furniture/PlanningMarker'
 import { TrackLight } from '../furniture/TrackLight'
 import { useCharacterStore } from '../character/characterStore'
-import { useGameStore } from '../game/gameStore'
-import { useSprintStore } from '../game/sprintStore'
-import { useProductStore } from '../game/productStore'
 import type { TriggerTarget } from '../interaction/triggerPayload'
 import { ROOMS, roomCenter, roomSize } from '../scene/layout'
 
 const CHAIR_X = [-1.1, -0.4, 0.4, 1.1]
 
+// The whiteboard used to hang on the north wall here; it moved to the open
+// space (see scene/whiteboardSpot.ts) where the player actually walks. The wall
+// stays the same plain `paint` wall — the board left no mounts or hitboxes.
 export function MeetingRoom() {
   const bounds = ROOMS.meetingRoom
   const center = roomCenter(bounds)
   const { width, depth } = roomSize(bounds)
   const onSeat = (target: TriggerTarget) => useCharacterStore.getState().clickSeat(target)
-  // Highlight the whiteboard while the player must plan the sprint.
-  const showPlanningMarker = useGameStore((s) => s.phase) === 'free' && useSprintStore((s) => s.phase) === 'planning'
 
   return (
     <group position={center}>
@@ -37,16 +33,6 @@ export function MeetingRoom() {
         <Chair key={`s-${x}`} position={[x, 0, 1.1]} rotation={[0, Math.PI, 0]} color="#2c3e50" onSelect={onSeat} />
       ))}
       <TVPanel position={[-width / 2 + 0.42, 1.6, 0]} rotation={[0, Math.PI / 2, 0]} />
-      <Whiteboard
-        position={[0, 1.4, depth / 2 - 0.15]}
-        rotation={[0, Math.PI, 0]}
-        onSelect={() => useProductStore.getState().openBoard('product')}
-      />
-      {showPlanningMarker ? (
-        <group position={[0, 0, depth / 2 - 0.15]}>
-          <PlanningMarker y={2.25} />
-        </group>
-      ) : null}
       <TrackLight position={[0, 2.7, -1]} withSpot />
     </group>
   )

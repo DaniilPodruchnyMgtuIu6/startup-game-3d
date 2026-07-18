@@ -4,12 +4,12 @@ import { StubMaterialsProvider } from '../materials/StubMaterialsProvider'
 import { MeetingRoom } from './MeetingRoom'
 
 describe('MeetingRoom', () => {
-  it('renders the glazed entrance, a solid south wall, a table, 8 chairs, a TV and a whiteboard', async () => {
+  it('renders the glazed entrance, a solid south wall, a table, 8 chairs and a TV (the whiteboard moved to the open space)', async () => {
     const renderer = await ReactThreeTestRenderer.create(
       <StubMaterialsProvider>
         <MeetingRoom />
       </StubMaterialsProvider>,
     )
-    expect(renderer.scene.findAllByType('Mesh').length).toBeGreaterThan(50)
+    expect(renderer.scene.findAllByType('Mesh').length).toBeGreaterThan(45)
   })
 })

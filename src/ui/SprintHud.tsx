@@ -25,7 +25,7 @@ import './ui.css'
 const WARNING_TEXT: Record<Exclude<BudgetWarning, 'ok'>, string> = {
   low: 'Внимание: базового бюджета осталось менее чем на два спринта.',
   critical: 'Критический остаток: базового бюджета не хватит на полный следующий спринт.',
-  depleted: 'Бюджет проекта исчерпан.',
+  depleted: 'После этого дня бюджет будет исчерпан. Проект будет закрыт из-за невозможности оплачивать работу команды.',
 }
 
 // Top-left HUD: sprint/day readout, budget (opens finance), team counter (opens
@@ -115,7 +115,7 @@ export function SprintHud() {
       </div>
 
       {sprintPhase === 'planning' && planningDismissed ? (
-        <div className="sprint-hud-planning-hint">Подойдите к доске задач в переговорной и спланируйте спринт.</div>
+        <div className="sprint-hud-planning-hint">Подойдите к доске задач у входа в серверную и спланируйте спринт.</div>
       ) : null}
 
       {postAuditPending ? (
