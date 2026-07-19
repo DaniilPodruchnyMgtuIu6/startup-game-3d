@@ -213,7 +213,9 @@ export function App() {
         <SceneBackground />
         <Office />
         <EffectComposer>
-          <N8AO aoRadius={1.2} intensity={aoIntensity} />
+          {/* halfRes + performance quality: AO at half resolution is much
+              cheaper on integrated GPUs and barely perceptible in this scene. */}
+          <N8AO halfRes quality="performance" aoRadius={1.2} intensity={aoIntensity} />
           <Bloom intensity={bloomIntensity} luminanceThreshold={0.9} mipmapBlur />
           <Vignette eskil={false} offset={0.1} darkness={0.6} />
         </EffectComposer>

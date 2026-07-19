@@ -23,7 +23,10 @@ export function TrackLight({ position = [0, 0, 0], rotation = [0, 0, 0], withSpo
           <meshStandardMaterial {...materials.metalChrome} />
         </mesh>
       ))}
-      {withSpot && <spotLight position={[0, -0.1, 0]} angle={0.5} penumbra={0.6} intensity={8} distance={6} castShadow />}
+      {/* No castShadow on the accent spotlight: the scene's directional light
+          already casts the primary shadows, and a per-light shadow pass every
+          frame is a big cost on integrated GPUs for little visual gain. */}
+      {withSpot && <spotLight position={[0, -0.1, 0]} angle={0.5} penumbra={0.6} intensity={8} distance={6} />}
     </group>
   )
 }

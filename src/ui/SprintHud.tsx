@@ -51,6 +51,7 @@ export function SprintHud() {
   const boardOpen = useProductStore((s) => s.boardOpen)
   const dailyReportOpen = useProductStore((s) => s.activeReport !== null)
   const prototypeOpen = useProductStore((s) => s.prototypeOpen)
+  const taskStates = useProductStore((s) => s.taskStates)
 
   // Existing "the interface is busy" signals - no new global lock is added.
   const inputLocked = useCharacterStore((s) => s.inputLocked)
@@ -115,7 +116,18 @@ export function SprintHud() {
       </div>
 
       {sprintPhase === 'planning' && planningDismissed ? (
-        <div className="sprint-hud-planning-hint">Подойдите к доске задач у входа в серверную и спланируйте спринт.</div>
+        <div className="sprint-hud-planning-hint">
+          {taskStates.some((s) => s.status === 'planned')
+            ? 'Задачи распределены. Откройте доску задач (у входа в серверную) и нажмите «Начать спринт».'
+            : 'Откройте доску задач у входа в серверную и распределите задачи между разработчиками.'}
+        </div>
+      ) : null}
+
+      {sprintPhase === 'active' && canEndDay ? (
+        <div className="sprint-hud-planning-hint">
+          Нажмите «Завершить рабочий день» вверху — только тогда команда продвигает задачи. До конца спринта:{' '}
+          {SPRINT_DAYS - day + 1} дн.
+        </div>
       ) : null}
 
       {postAuditPending ? (

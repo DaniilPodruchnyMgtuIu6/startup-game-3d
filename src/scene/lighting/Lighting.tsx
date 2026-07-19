@@ -8,7 +8,7 @@ export function SceneLights() {
         position={[-14, 16, -10]}
         intensity={1.6}
         castShadow
-        shadow-mapSize={[2048, 2048]}
+        shadow-mapSize={[1024, 1024]}
         shadow-camera-left={-16}
         shadow-camera-right={16}
         shadow-camera-top={16}
