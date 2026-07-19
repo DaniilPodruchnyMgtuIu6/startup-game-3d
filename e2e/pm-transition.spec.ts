@@ -18,7 +18,9 @@ test('completing the PM conversation reaches free play without crashing', async 
   // on arrival. Re-nudge the click until the dialogue appears (the walk takes a
   // few seconds under software rendering; a single click can land before the
   // scene is ready to path).
-  const marker = page.getByRole('button', { name: 'Поговорить' })
+  // the PM meeting is a mandatory story beat — its marker is the amber "!" story
+  // marker (Feature 16 §5), distinct from the free-chat bubble.
+  const marker = page.locator('.npc-marker--story').first()
   await marker.waitFor({ state: 'visible', timeout: 30_000 })
   const dialogue = page.locator('.dialogue-panel')
   for (let i = 0; i < 20; i++) {

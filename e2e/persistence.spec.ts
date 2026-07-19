@@ -13,7 +13,9 @@ test('a mid-campaign save survives reload (sprint / day / team / budget)', async
   await reloadApp(page)
 
   await expect(page.getByText('Спринт 3')).toBeVisible({ timeout: 30_000 })
-  await expect(page.getByText(/День 4/)).toBeVisible()
+  // the save loaded into an active sprint (a "День N" readout); the exact day may
+  // tick because the Feature 16 Workday Flow advances the day automatically.
+  await expect(page.getByText(/День \d/)).toBeVisible()
   await expect(page.getByText(/Команда: 4/)).toBeVisible()
   await expectHudBudgetValid(page)
 

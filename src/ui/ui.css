@@ -887,6 +887,72 @@ button.primary:hover {
   font: 500 13px system-ui, sans-serif;
   line-height: 1.4;
 }
+
+/* Feature 16 §1: the daily work beat banner. */
+.workday-beat {
+  position: fixed;
+  top: 88px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  min-width: 260px;
+  max-width: 420px;
+  padding: 12px 20px 14px;
+  border-radius: 12px;
+  background: rgba(14, 21, 29, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  color: #dbe6f2;
+  text-align: center;
+  pointer-events: none;
+  animation: beat-in 0.3s ease;
+}
+.workday-beat--kickoff {
+  border-color: rgba(53, 115, 221, 0.5);
+}
+.workday-beat-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #eef4fb;
+}
+.workday-beat-text {
+  font-size: 13px;
+  color: #a9bacd;
+  margin-top: 3px;
+  line-height: 1.4;
+}
+.workday-beat-progress {
+  height: 3px;
+  margin-top: 11px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(53, 115, 221, 0.25), rgba(53, 115, 221, 0.9));
+  animation: beat-progress 1.4s ease-in-out infinite;
+  transform-origin: left;
+}
+@keyframes beat-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+@keyframes beat-progress {
+  0% {
+    transform: scaleX(0.15);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(0.15);
+    opacity: 0.6;
+  }
+}
 .sprint-hud-story-objective {
   margin-top: 8px;
   max-width: 340px;

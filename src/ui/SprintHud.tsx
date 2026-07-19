@@ -109,9 +109,11 @@ export function SprintHud() {
         <button className="sprint-hud-budget" onClick={openTeam} title="Открыть команду">
           Команда: {teamLabel}
         </button>
-        {sprintPhase === 'active' ? (
-          <button className="sprint-hud-end" onClick={requestEndDay} disabled={!canEndDay}>
-            Завершить рабочий день
+        {/* Feature 16 §1: no manual end-day button in production — the Workday
+            Flow advances the day automatically. Kept as a dev-only shortcut. */}
+        {import.meta.env.DEV && sprintPhase === 'active' ? (
+          <button className="sprint-hud-end" onClick={requestEndDay} disabled={!canEndDay} title="dev: завершить день">
+            Завершить рабочий день (dev)
           </button>
         ) : null}
       </div>
@@ -126,9 +128,9 @@ export function SprintHud() {
         </div>
       ) : null}
 
-      {sprintPhase === 'active' && canEndDay ? (
+      {sprintPhase === 'active' && !busy ? (
         <div className="sprint-hud-planning-hint">
-          Нажмите «Завершить рабочий день» вверху — только тогда команда продвигает задачи. До конца спринта:{' '}
+          Рабочий день идёт сам. Выполняйте обязательные задачи, когда они появляются. До конца спринта:{' '}
           {SPRINT_DAYS - day + 1} дн.
         </div>
       ) : null}

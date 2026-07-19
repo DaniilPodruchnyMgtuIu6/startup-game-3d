@@ -23,6 +23,7 @@ import { IntrusionResultOverlay } from './ui/IntrusionResultOverlay'
 import { ServerIncidentResultOverlay } from './ui/ServerIncidentResultOverlay'
 import { MinigameOverlay } from './game/minigames/MinigameOverlay'
 import { GameOutcomeCoordinator } from './game/GameOutcomeCoordinator'
+import { WorkdayFlowController } from './game/WorkdayFlowController'
 import { GameOverOverlay } from './ui/GameOverOverlay'
 import { MvpReleaseOverlay } from './ui/MvpReleaseOverlay'
 import { CampaignSuccessOverlay } from './ui/CampaignSuccessOverlay'
@@ -228,6 +229,7 @@ export function App() {
       <DialoguePanel />
       <WhiteboardPanel />
       <SprintHud />
+      <WorkdayFlowController />
       <SprintPhaseOverlay />
       <FinancePanel />
       <TeamPanel />
