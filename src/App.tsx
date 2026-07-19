@@ -198,8 +198,16 @@ export function App() {
       <Leva hidden={!import.meta.env.DEV} />
       <Canvas
         shadows
-        dpr={[1, 2]}
-        gl={{ antialias: true, toneMapping: ACESFilmicToneMapping, preserveDrawingBuffer: true }}
+        // Cap the pixel ratio (was [1, 2]) so high-DPI screens don't render at
+        // 4× the pixels — a big GPU-load reduction on integrated GPUs. No
+        // preserveDrawingBuffer (nothing reads the buffer back) — it only added
+        // memory pressure. A prevented contextlost lets the browser restore the
+        // context instead of leaving the office permanently blank.
+        dpr={[1, 1.5]}
+        gl={{ antialias: true, toneMapping: ACESFilmicToneMapping }}
+        onCreated={({ gl }) => {
+          gl.domElement.addEventListener('webglcontextlost', (e) => e.preventDefault(), false)
+        }}
       >
         <ExposureControl exposure={exposure} />
         <SceneBackground />

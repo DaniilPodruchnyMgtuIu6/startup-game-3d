@@ -1,9 +1,15 @@
 import convert from 'fbx2gltf'
 import { NodeIO } from '@gltf-transform/core'
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions'
-import { prune } from '@gltf-transform/functions'
+import { prune, dedup, textureCompress } from '@gltf-transform/functions'
+import sharp from 'sharp'
 import path from 'node:path'
 import fs from 'node:fs/promises'
+
+// Character textures come out of the FBX at 4096² uncompressed — far more than a
+// small on-screen character needs, and heavy enough to exhaust GPU memory (WebGL
+// context loss). Cap every texture at 1024².
+const MAX_TEXTURE = 1024
 
 // One folder per character in character-source/ and public/character/.
 // file = FBX path in character-source/, out = output GLB path in
@@ -111,6 +117,9 @@ for (const { file, name: clip, out, keepMesh } of CLIPS) {
     console.log(`[${out}] stripping mesh/material/texture data (animation-only file)...`)
     for (const mesh of root.listMeshes()) mesh.dispose()
     await document.transform(prune())
+  } else {
+    console.log(`[${out}] downscaling textures to ${MAX_TEXTURE}²...`)
+    await document.transform(dedup(), prune(), textureCompress({ encoder: sharp, resize: [MAX_TEXTURE, MAX_TEXTURE] }))
   }
 
   await io.write(outGlb, document)
