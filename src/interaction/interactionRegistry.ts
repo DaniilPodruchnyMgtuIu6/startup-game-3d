@@ -6,7 +6,10 @@ import type { TriggerTarget } from './triggerPayload'
 // NPC-visible automatically. Claims prevent two characters from targeting
 // the same seat/machine at once.
 
-export type InteractionKind = 'workstation' | 'coffee' | 'seat' | 'sofa' | 'server'
+// 'exec-seat' is the manager's chair — the player can click it, but NPC brains
+// never sample it (Feature 16 §7: the CEO chair is player-only). NPCs pool only
+// 'workstation' | 'coffee' | 'seat' | 'sofa' (see Npcs.tsx).
+export type InteractionKind = 'workstation' | 'coffee' | 'seat' | 'sofa' | 'server' | 'exec-seat'
 
 export interface RegisteredInteraction {
   kind: InteractionKind

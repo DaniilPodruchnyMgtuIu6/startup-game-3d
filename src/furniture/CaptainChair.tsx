@@ -91,7 +91,9 @@ export function CaptainChair({ position = [0, 0, 0], rotation = [0, 0, 0], onSel
           </mesh>
         </group>
       ))}
-      <InteractionTrigger position={[0, 0.65, 0]} size={[0.6, 1.3, 0.6]} onTrigger={onSelect} kind={onSelect ? 'seat' : undefined} />
+      {/* 'exec-seat', not 'seat': the player can sit here, but NPC brains never
+          sample it, so no NPC claims the manager's chair (Feature 16 §7). */}
+      <InteractionTrigger position={[0, 0.65, 0]} size={[0.6, 1.3, 0.6]} onTrigger={onSelect} kind={onSelect ? 'exec-seat' : undefined} />
     </group>
   )
 }

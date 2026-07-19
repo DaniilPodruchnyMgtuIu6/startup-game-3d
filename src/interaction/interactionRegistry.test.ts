@@ -36,4 +36,18 @@ describe('interactionRegistry', () => {
     expect(isTargetFree(deskB, 'npc-2')).toBe(false)
     releaseClaims('npc-1')
   })
+
+  // Feature 16 §7: the manager's chair registers as 'exec-seat', so it is NOT in
+  // the 'seat' pool NPC brains sample (Npcs.tsx samples seat/workstation/coffee/
+  // sofa). The player still targets it directly via the trigger's onTrigger.
+  it('an exec-seat is excluded from the NPC seat pool', () => {
+    const seatBefore = getInteractions('seat').length
+    const unregExec = registerInteraction('exec-seat', deskA)
+    const unregSeat = registerInteraction('seat', deskB)
+    expect(getInteractions('seat').length).toBe(seatBefore + 1) // only the normal seat
+    expect(getInteractions('seat').some((e) => e.target.point[0] === deskA.point[0])).toBe(false)
+    expect(getInteractions('exec-seat').length).toBe(1)
+    unregExec()
+    unregSeat()
+  })
 })
