@@ -19,18 +19,22 @@
 | RUN-09 | Запуск под давлением | штрафы/инциденты, blockers сняты | выпуск | win, низкий tier | fragile/stable | PROTOCOL | Автопроверка tier — F13 unit |
 | RUN-10 | DeepSeek disabled | нет ключа/сети | пройти кампанию, открыть чат | статический fallback, кампания проходима | AUTO fallback | PARTIAL (AUTO F14) | Полный проход — PROTOCOL |
 
-## Браузерные E2E
+## Браузерные E2E (`npm run test:e2e` — Playwright, production build + preview)
 
 | ID | Проверка | Статус | Комментарий |
 |---|---|---|---|
-| E2E-01 | Старт новой игры, нет console errors | PROTOCOL | Playwright не в devDeps; headless smoke использовался при F11–14 |
-| E2E-02 | Save/reload восстанавливает sprint/budget/team/product; `?intro` → чистая игра | PARTIAL | Логика — AUTO (persistMigration); браузер — PROTOCOL |
-| E2E-03 | Успешный путь через публичный UI (release checklist → confirm → scene → outcome → reload) | PROTOCOL | Ядро — AUTO (mvpReleaseIntegration); F13 headless smoke пройден |
-| E2E-04 | Поражение: последняя операция → экран → reload → reset | PROTOCOL | Ядро — AUTO; F12 headless smoke пройден |
-| E2E-05 | Event priority: audit+intrusion+incident+review, порядок | PARTIAL | Инварианты — AUTO (eventPriority); браузер — PROTOCOL |
-| E2E-06 | NPC подход: клик издалека → подход → диалог → закрыть → planner/claims восстановлены | PROTOCOL | Подход/priority — AUTO (freeNpcConversation/F14) |
-| E2E-07 | DeepSeek timeout/500 → fallback, state не меняется, нет секрета в console | PARTIAL | Ошибки/fallback — AUTO (F14); браузер — PROTOCOL |
-| E2E-08 | Responsive 1366×768 / 1920×1080 / 2560×1440 | PROTOCOL | Не исполнялось в этом прогоне |
+| E2E-01 | Boot интро без app-console-errors; leva-панель отсутствует в production | **AUTO** | `e2e/smoke.spec.ts` |
+| E2E-01b | Boot 3D-офиса из mid-campaign save, корректный HUD (спринт/команда/бюджет) | **AUTO** | `e2e/smoke.spec.ts` |
+| E2E-02 | Save переживает reload (sprint/day/team/budget) через реальную персистентность | **AUTO** | `e2e/persistence.spec.ts` |
+| E2E-02b | `?intro` → чистая игра, durable после повторного reload | **AUTO** | `e2e/persistence.spec.ts` |
+| E2E-03 | Success snapshot: экран виден, score, переживает reload | **AUTO** | `e2e/outcome.spec.ts` |
+| E2E-04 | Failure snapshot: экран виден, переживает reload, рестарт → интро | **AUTO** | `e2e/outcome.spec.ts` |
+| E2E-05 | Event priority: audit+intrusion+incident+review, порядок | AUTO (unit/integration) | `eventPriority.test.ts`; браузерный порядок — PROTOCOL |
+| E2E-06 | NPC подход: клик издалека → подход → диалог → закрыть → planner/claims | AUTO (integration) | `FreeNpcChatController.test.tsx`; браузер — PROTOCOL |
+| E2E-07 | DeepSeek timeout/500 → fallback, state не меняется, нет секрета | AUTO | `npcChatServer.test.ts`; браузер — PROTOCOL |
+| E2E-08 | Responsive 1366×768 / 1920×1080 / 2560×1440 | PROTOCOL | Не исполнялось (реальный GPU) |
+
+Среда E2E: headless Chromium (SwiftShader). Ассерты — через DOM-локаторы; сид — `addInitScript` (race-free). Два последовательных прогона: **6/6 зелёных, без flaky**. Клик-проход интро исключён (декод моделей насыщает main-thread без GPU) — покрыт `IntroOverlay.test.tsx`.
 
 ## Опасные reload-точки (§14) — PROTOCOL/AUTO
 

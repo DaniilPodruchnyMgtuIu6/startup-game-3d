@@ -65,6 +65,22 @@
 
 **Стабильность:** два последовательных полных `verify` — идентичный результат **779/779 (116 файлов) + build**, flaky нет.
 
+## Глубокий цикл 3 (браузерный E2E + производительность + полировка)
+
+### E2E-набор добавлен (KI-04 закрыт)
+- Установлен `@playwright/test`; `playwright.config.ts` собирает production-бандл и поднимает preview (тот же `/api/npc-chat` proxy). Скрипт `npm run test:e2e`. Vitest исключает `e2e/`; артефакты (`test-results/`, `playwright-report/`) в `.gitignore`.
+- 6 спецификаций (`e2e/`): boot интро без ошибок; boot 3D-офиса из mid-campaign save с корректным HUD; сохранение переживает reload; `?intro` — durable reset; game-over snapshot виден/переживает reload/рестарт возвращает в интро; success snapshot виден/переживает reload. **Два последовательных прогона — 6/6 зелёных, без flaky.**
+- Проверки только через DOM-локаторы (устойчиво к загруженному main-thread в software-рендере). Сид — через `addInitScript` с sentinel (одноразовый, race-free; reload проверяет реальную персистентность; `?intro` не пере-сидируется).
+
+### PERF-01 — R3F не гасил рендер под полноэкранными не-геймплейными экранами (P2, исправлен)
+- **Симптом:** интро / «уволены» / game-over / success держат офис в непрерывной симуляции + постобработке за непрозрачным/блюр-фоном; экраны могут висеть неограниченно → впустую жгут CPU/GPU. В software-рендере это заодно насыщало main-thread так, что DOM-экраны не наблюдались (блокировало E2E).
+- **Фикс:** `src/game/sceneActivity.ts::isSceneIdle(phase, outcomeStatus)` → `<Canvas frameloop={sceneIdle ? 'demand' : 'always'}>`. Геймплей (free/cutscene/minigame/pending) рендерит непрерывно. Визуально без изменений (скриншот интро подтверждён). Unit-тест `sceneActivity.test.ts`; E2E терминальных экранов доказывает наблюдаемость.
+
+### BUG-03 — Leva dev-панель попадала в production (P2, исправлен)
+- **Симптом:** игроки видели панель разработчика «Render» (слайдеры exposure/aoIntensity/bloomIntensity) в правом верхнем углу; её DOM был источником ложного «undefined» при первичной E2E-проверке.
+- **Причина:** `useControls('Render', …)` из `leva` рендерит панель и в production-сборке.
+- **Фикс:** `<Leva hidden={!import.meta.env.DEV} />` — панель скрыта в production, значения остаются на дефолтах (внешний вид не меняется). E2E-ассерт `getByText('aoIntensity')` → count 0 в production. Скриншот до/после подтверждает.
+
 ## Исправленные дефекты
 - **P0/P1 в игре — не найдено.**
 - Исправлен 1 дефект тестовой оснастки (не игры): campaign simulator оставлял `cutsceneStore.activeSceneId` между прогонами (нет `CutsceneRunner` вне React) → ложный блокер `cutscene-running`. Исправлено сбросом cutscene-store в harness.

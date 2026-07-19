@@ -12,6 +12,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: false,
     // server/*.test.ts exercise the proxy logic with a mock provider (no key).
-    exclude: ['**/node_modules/**', '**/dist/**'],
+    // e2e/ holds Playwright specs, run by `npm run test:e2e`, not vitest.
+    exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**'],
   },
 })

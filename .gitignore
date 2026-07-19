@@ -12,3 +12,7 @@ character-source
 server/.env
 server/.env.local
 server/.env.*.local
+
+# Playwright
+test-results/
+playwright-report/

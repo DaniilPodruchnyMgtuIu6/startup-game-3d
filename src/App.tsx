@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { EffectComposer, N8AO, Bloom, Vignette } from '@react-three/postprocessing'
 import { ACESFilmicToneMapping } from 'three'
-import { useControls } from 'leva'
+import { useControls, Leva } from 'leva'
 import { Office } from './scene/Office'
 import { SceneBackground } from './scene/SceneBackground'
 import { IntroOverlay } from './ui/IntroOverlay'
@@ -28,7 +28,8 @@ import { MvpReleaseOverlay } from './ui/MvpReleaseOverlay'
 import { CampaignSuccessOverlay } from './ui/CampaignSuccessOverlay'
 import { NpcConversationPanel } from './ui/NpcConversationPanel'
 import { useCutsceneStore } from './cutscenes/cutsceneStore'
-import { isIntroReset } from './game/gameStore'
+import { isIntroReset, useGameStore } from './game/gameStore'
+import { isSceneIdle } from './game/sceneActivity'
 import { useGameOutcomeStore } from './game/gameOutcomeStore'
 import { reconcileGameOutcomeAtStartup } from './game/reconcileGameOutcome'
 import { forceRegisterFailureForDev } from './game/registerGameFailure'
@@ -190,11 +191,27 @@ export function App() {
     bloomIntensity: { value: 0.4, min: 0, max: 2, step: 0.05 },
   })
 
+  // Feature 15 polish: while a full-screen non-gameplay screen covers the office
+  // (intro / fired / game-over / campaign-success), nothing in the scene needs
+  // to animate — those screens sit behind an opaque or heavily-blurred backdrop
+  // and can stay open indefinitely. Switching R3F to on-demand rendering there
+  // stops the per-frame simulation + post-processing (real CPU/GPU savings on
+  // idle menus) and keeps the main thread free for the UI. Gameplay (free play,
+  // cutscenes, minigames) always renders continuously.
+  const gamePhase = useGameStore((s) => s.phase)
+  const outcomeStatus = useGameOutcomeStore((s) => s.status)
+  const sceneIdle = isSceneIdle(gamePhase, outcomeStatus)
+
   return (
     <>
+      {/* The leva render-tuning panel is a development affordance — hide it in
+          production so players never see the exposure/AO/bloom sliders. The
+          control values keep their defaults, so the shipped look is unchanged. */}
+      <Leva hidden={!import.meta.env.DEV} />
       <Canvas
         shadows
         dpr={[1, 2]}
+        frameloop={sceneIdle ? 'demand' : 'always'}
         gl={{ antialias: true, toneMapping: ACESFilmicToneMapping, preserveDrawingBuffer: true }}
       >
         <ExposureControl exposure={exposure} />
