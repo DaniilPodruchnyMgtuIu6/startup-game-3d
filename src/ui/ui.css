@@ -1318,6 +1318,33 @@ button.primary:hover {
   font-size: 13px;
   color: #8ea0b3;
 }
+.pb-team-required {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(53, 115, 221, 0.4);
+  border-radius: 10px;
+  background: rgba(53, 115, 221, 0.1);
+}
+.pb-team-required-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #eef4fb;
+  margin-bottom: 6px;
+}
+.pb-team-required p {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #c3d0de;
+}
+.pb-team-required ul {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  font-size: 13px;
+  color: #c3d0de;
+}
+.pb-team-required li {
+  margin: 2px 0;
+}
 .pb-done {
   list-style: none;
   margin: 0;

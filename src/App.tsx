@@ -31,6 +31,7 @@ import { useCutsceneStore } from './cutscenes/cutsceneStore'
 import { isIntroReset } from './game/gameStore'
 import { useGameOutcomeStore } from './game/gameOutcomeStore'
 import { reconcileGameOutcomeAtStartup } from './game/reconcileGameOutcome'
+import { reconcilePlanningWithoutTeam } from './game/productStore'
 import { forceRegisterFailureForDev } from './game/registerGameFailure'
 import { forceRegisterSuccessForDev } from './game/releaseOfficeFlowMvp'
 import type { GameFailureReason } from './game/gameOutcomeRules'
@@ -68,6 +69,9 @@ reconcileServerIncidentThreatsAtStartup()
 // Feature 12: migrate an old save into the outcome model (old negative budget
 // fails now; shutdown recommendation / past deadline get a safe continuation).
 reconcileGameOutcomeAtStartup()
+// Feature 16 §6: drop invalid product-plan assignments from a corrupted save
+// that has no development team (keeps backlog + completed progress).
+reconcilePlanningWithoutTeam()
 
 // The shared reset flag has now been consumed by every store's module-load
 // hydration; strip ?intro so a later manual reload keeps the new game's progress.

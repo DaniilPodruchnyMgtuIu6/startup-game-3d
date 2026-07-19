@@ -44,6 +44,8 @@ import {
   type ProductTaskState,
 } from '../game/productRules'
 import { startSprintWithPlan, canStartSprintWithPlan, getStartSprintWarnings } from '../game/startSprintWithPlan'
+import { canPlanProductTasks } from '../game/planningGate'
+import { sonyaHireTeamDialogue } from '../game/dialogues'
 import { completeSprintAndPrepareNextPlanning } from '../game/completeSprintReview'
 import { formatRubles, calculateBalance, sprintExpenseTotal, type MoneyTransaction } from '../game/economyRules'
 import './ui.css'
@@ -117,7 +119,7 @@ function DeveloperQueue({ employeeId, states, phase }: { employeeId: string; sta
   )
 }
 
-function BacklogCard({ def, state }: { def: ProductTaskDefinition; state: ProductTaskState }) {
+function BacklogCard({ def, state, canPlan }: { def: ProductTaskDefinition; state: ProductTaskState; canPlan: boolean }) {
   const add = useProductStore((s) => s.addTaskToPlan)
   const employee = getEmployee(def.assigneeEmployeeId)
   return (
@@ -133,11 +135,25 @@ function BacklogCard({ def, state }: { def: ProductTaskDefinition; state: Produc
           {remainingEffort(state)}/{def.effortDays} дн
         </span>
       </div>
-      <button className="pb-add" onClick={() => add(def.id)}>
+      <button
+        className="pb-add"
+        disabled={!canPlan}
+        title={canPlan ? undefined : 'Сначала наймите обоих разработчиков'}
+        onClick={() => add(def.id)}
+      >
         Добавить в спринт
       </button>
     </div>
   )
+}
+
+// Feature 16 §6: fired at most once per session — the first time the player
+// opens the planning board with no development team.
+let hireTeamPromptShown = false
+
+function goToHiring() {
+  useProductStore.getState().closeBoard()
+  useTeamStore.getState().openPanel()
 }
 
 // Confirmation before starting a sprint (overload / idle-developer warnings).
@@ -184,10 +200,21 @@ function ProductBoard() {
   const transactions = useEconomyStore((s) => s.transactions)
   const [confirming, setConfirming] = useState(false)
 
+  const hires = useTeamStore((s) => s.hires)
+  const canPlan = canPlanProductTasks(hires)
   const readiness = productReadiness(states)
   const prototypeReady = hasFirstPrototype(states)
   const overloaded = DEVELOPER_CATALOG.some((e) => plannedLoadForEmployee(states, e.id) > 10)
   const startCheck = canStartSprintWithPlan()
+
+  // Feature 16 §6: the first time the board is opened for planning with no
+  // development team, Sonya explains that the team must be hired first (once).
+  useEffect(() => {
+    if (phase !== 'planning' || canPlan || hireTeamPromptShown) return
+    hireTeamPromptShown = true
+    useProductStore.getState().closeBoard()
+    useGameStore.getState().startDialogue(sonyaHireTeamDialogue())
+  }, [phase, canPlan])
 
   const phaseLine =
     phase === 'planning'
@@ -226,23 +253,38 @@ function ProductBoard() {
 
       {phase === 'planning' ? (
         <div className="pb-section">
+          {!canPlan ? (
+            <div className="pb-team-required">
+              <div className="pb-team-required-title">Сначала соберите команду разработки</div>
+              <p>Чтобы планировать задачи OfficeFlow, наймите:</p>
+              <ul>
+                <li>backend-разработчика Кирилла Морозова;</li>
+                <li>frontend-разработчика Алину Белову.</li>
+              </ul>
+              <button className="primary" onClick={goToHiring}>
+                Перейти к найму
+              </button>
+            </div>
+          ) : null}
           <h3 className="pb-subtitle">Backlog</h3>
           {backlog.length === 0 ? (
             <p className="pb-empty">Все задачи распределены.</p>
           ) : (
             <div className="pb-backlog">
               {backlog.map(({ def, state }) => (
-                <BacklogCard key={def.id} def={def} state={state} />
+                <BacklogCard key={def.id} def={def} state={state} canPlan={canPlan} />
               ))}
             </div>
           )}
-          {startCheck.started ? (
-            <button className="primary pb-start" onClick={() => setConfirming(true)}>
-              Начать спринт
-            </button>
-          ) : (
-            <p className="pb-hint">{START_REASON_TEXT[startCheck.reason] ?? ''}</p>
-          )}
+          {canPlan ? (
+            startCheck.started ? (
+              <button className="primary pb-start" onClick={() => setConfirming(true)}>
+                Начать спринт
+              </button>
+            ) : (
+              <p className="pb-hint">{START_REASON_TEXT[startCheck.reason] ?? ''}</p>
+            )
+          ) : null}
         </div>
       ) : null}
 

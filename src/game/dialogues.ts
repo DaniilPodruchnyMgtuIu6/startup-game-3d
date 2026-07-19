@@ -6,6 +6,17 @@ import type { DialogueLine } from './gameStore'
 export const BOSS_PICTURE = '/dialogue_pictures/boss/angry_boss.jpeg'
 export const VERY_ANGRY_BOSS_PICTURE = '/dialogue_pictures/boss/very_angry_boss.jpeg'
 
+// Feature 16 §6: fired once when the player first tries to plan the sprint with
+// no development team hired.
+export function sonyaHireTeamDialogue(): DialogueLine[] {
+  const persona = femalePm.persona!
+  const asPm = { speaker: persona.name, speakerRole: persona.role, portrait: femalePm.portrait }
+  return [
+    { ...asPm, text: 'Пока нам некому выполнять задачи OfficeFlow.' },
+    { ...asPm, text: 'Сначала наймите backend- и frontend-разработчика. После этого мы сможем распределить задачи по спринту.' },
+  ]
+}
+
 // The PM's scripted introduction - the first conversation of the game.
 export function pmIntroDialogue(playerName: string): DialogueLine[] {
   const persona = femalePm.persona!

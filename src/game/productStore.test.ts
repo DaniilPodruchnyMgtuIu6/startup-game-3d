@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useProductStore, loadProduct, saveProduct } from './productStore'
 import { useSprintStore } from './sprintStore'
+import { useTeamStore } from './teamStore'
 import { initialTaskStates, productReadiness } from './productRules'
 import { INITIAL_SPRINT_STATE } from './sprintRules'
 
@@ -19,6 +20,14 @@ const status = (taskId: string) => useProductStore.getState().taskStates.find((t
 function resetStores(phase: 'planning' | 'active' | 'review' = 'planning') {
   useSprintStore.setState({ ...INITIAL_SPRINT_STATE, phase, confirmingEndDay: false })
   useProductStore.setState({ taskStates: initialTaskStates(), workdayHistory: [], activeReport: null, boardOpen: false, boardTab: 'product' })
+  // Feature 16 §6: planning requires the development team hired.
+  useTeamStore.setState({
+    hires: [
+      { employeeId: 'kirill-morozov', hiredAtSprint: 1, hiredAtDay: 1 },
+      { employeeId: 'alina-belova', hiredAtSprint: 1, hiredAtDay: 1 },
+    ],
+    panelOpen: false,
+  })
   window.localStorage.clear()
 }
 

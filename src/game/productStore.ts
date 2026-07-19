@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { useSprintStore } from './sprintStore'
+import { useTeamStore } from './teamStore'
 import { isIntroReset } from './gameStore'
+import { canPlanProductTasks, clearPlanningWithoutTeam } from './planningGate'
 import {
   addToPlan,
   applyWorkdayProgress,
@@ -132,6 +134,9 @@ export const useProductStore = create<ProductStore>()((set, get) => {
 
     addTaskToPlan: (taskId) => {
       if (!inPlanning()) return
+      // Feature 16 §6: no planning before both developers are hired. Guarded
+      // here too so a direct store call can't bypass the UI's disabled state.
+      if (!canPlanProductTasks(useTeamStore.getState().hires)) return
       set({ taskStates: addToPlan(get().taskStates, taskId, useSprintStore.getState().sprintNumber) })
       persist()
     },
@@ -174,3 +179,15 @@ export const useProductStore = create<ProductStore>()((set, get) => {
     },
   }
 })
+
+// Feature 16 §6 migration: a corrupted save may hold planned assignments with no
+// development team. Revert only those to the backlog (keeping progress), never
+// touching other stores. Idempotent; run once at startup.
+export function reconcilePlanningWithoutTeam(): void {
+  const states = useProductStore.getState().taskStates
+  const repaired = clearPlanningWithoutTeam(states, useTeamStore.getState().hires)
+  if (repaired !== states) {
+    useProductStore.setState({ taskStates: repaired })
+    saveProduct(safeStorage(), { taskStates: repaired, workdayHistory: useProductStore.getState().workdayHistory })
+  }
+}
