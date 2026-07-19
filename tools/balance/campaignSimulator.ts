@@ -10,6 +10,8 @@ import { useEconomyStore } from '../../src/game/economyStore'
 import { useProductStore } from '../../src/game/productStore'
 import { useTeamStore } from '../../src/game/teamStore'
 import { useRiskStore } from '../../src/game/riskStore'
+import { correctivePlanOfficeAccessSignals } from '../../src/game/riskSignals'
+import { riskMomentAt } from '../../src/game/riskContext'
 import { useSecurityStoryStore } from '../../src/game/securityStoryStore'
 import { useSecurityAuditStore, INITIAL_SECURITY_AUDIT } from '../../src/game/securityAuditStore'
 import { useAccessControlStore, INITIAL_ACCESS_CONTROL_DATA } from '../../src/game/accessControlStore'
@@ -121,6 +123,10 @@ export function resetCampaign(opts: ResetOptions = {}): void {
       currentWorkdayIndex: 1,
       staffingDecision: opts.withIlya ? 'approve-security-hire' : 'decline-security-hire',
     })
+    // Feature 16 §9: the plan discovers the office-access risk, exactly like the
+    // real initializeSecurityAuditIfReady. A disciplined run closes the finding,
+    // so office-access drops and no intrusion arms.
+    useRiskStore.getState().addSignalsOnce(correctivePlanOfficeAccessSignals(riskMomentAt(1, 1)))
   }
 }
 

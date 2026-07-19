@@ -159,6 +159,21 @@ export function accessControlPostponedSignals(moment: RiskCreationMoment): RiskS
   ]
 }
 
+// Feature 16 §9: the security breach exposed a physical-access / workstation-
+// discipline problem. Recording it lifts office-access to `elevated`, so the СКУД
+// proposal can unlock. Closing the workstation-locking-training finding mitigates
+// it (-2), dropping the risk back below elevated.
+export function correctivePlanOfficeAccessSignals(moment: RiskCreationMoment): RiskSignal[] {
+  return [make('corrective-plan:workstation-discipline:office-access', 'office-access', 3, 'security-finding', 'workstation-locking-training:discovered', moment)]
+}
+
+// Feature 16 §9: the one-time escalation created when the СКУД proposal is left
+// available/postponed and the office-access risk stays elevated. It lifts actual
+// office-access to `high`, which arms the office-intrusion threat.
+export function accessControlNotImplementedSignals(moment: RiskCreationMoment): RiskSignal[] {
+  return [make('access-control:not-implemented-in-time:office-access', 'office-access', 2, 'access-control-decision', 'access-control-not-implemented-in-time', moment, 0)]
+}
+
 export function accessControlActiveSignals(moment: RiskCreationMoment): RiskSignal[] {
   return [
     make('access-control:active:office-access', 'office-access', -4, 'access-control-implementation', 'access-control-active', moment),

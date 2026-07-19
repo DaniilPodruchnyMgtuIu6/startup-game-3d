@@ -16,7 +16,9 @@ import {
 import { ensureMvpReleaseTask } from './releaseOfficeFlowMvp'
 import { getEmployeeSalaryExpenses, getHiredEmployeeIds, getHiredDeveloperIds, hasSecuritySpecialist } from './teamRules'
 import { isPostAuditConversationRequired } from './securityStoryRules'
-import { isOfficeIntrusionBlocking, canUnlockAccessControlProposal } from './accessControlRules'
+import { isOfficeIntrusionBlocking, canUnlockAccessControlProposal, shouldEscalateAccessControl } from './accessControlRules'
+import { accessControlNotImplementedSignals } from './riskSignals'
+import { riskMomentAt } from './riskContext'
 import { anyServerIncidentBlocking } from './serverIncidentRules'
 import { useRiskStore } from './riskStore'
 import { getActualRiskLevel, getDetectedRiskLevel } from './riskRules'
@@ -110,16 +112,35 @@ export function completeWorkday(): CompleteWorkdayResult {
   syncAccessLogsTask()
 
   // 9. unlock the СКУД proposal once office-access risk is observably elevated
+  //    (stamping when it became available, for the §9 escalation deadline)
   const signals = useRiskStore.getState().signals
   if (canUnlockAccessControlProposal(getDetectedRiskLevel(signals, 'office-access'))) {
-    useAccessControlStore.getState().unlockProposal()
+    useAccessControlStore.getState().unlockProposal(completedWorkdayIndex)
+  }
+
+  // 9b. Feature 16 §9: if the СКУД proposal was left available/postponed and the
+  //     office-access risk is still elevated two workdays on, create the one-time
+  //     escalation — this lifts actual risk to `high` and arms the intrusion.
+  const acAfterUnlock = useAccessControlStore.getState().accessControl
+  if (
+    shouldEscalateAccessControl({
+      proposalStatus: acAfterUnlock.proposalStatus,
+      currentWorkdayIndex: completedWorkdayIndex,
+      availableAtWorkdayIndex: acAfterUnlock.availableAtWorkdayIndex,
+      detectedOfficeAccessLevel: getDetectedRiskLevel(signals, 'office-access'),
+      actualOfficeAccessLevel: getActualRiskLevel(signals, 'office-access'),
+    })
+  ) {
+    useRiskStore.getState().addSignalsOnce(accessControlNotImplementedSignals(riskMomentAt(sprintNumber, day)))
   }
 
   // 10. reconcile the office-intrusion threat against ACTUAL office-access risk
+  //     (recomputed after a possible escalation this day)
+  const signalsAfter = useRiskStore.getState().signals
   const ac = useAccessControlStore.getState()
   ac.reconcileIntrusionThreat({
     currentWorkdayIndex: completedWorkdayIndex,
-    actualOfficeAccessLevel: getActualRiskLevel(signals, 'office-access'),
+    actualOfficeAccessLevel: getActualRiskLevel(signalsAfter, 'office-access'),
     accessControlActive: ac.accessControl.proposalStatus === 'active',
     intrusionStatus: ac.intrusion.status,
     armedAtWorkdayIndex: ac.intrusion.armedAtWorkdayIndex,

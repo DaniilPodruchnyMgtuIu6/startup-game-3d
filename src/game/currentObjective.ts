@@ -8,6 +8,8 @@ export interface ObjectiveContext {
   outcomeBlocking: boolean
   postAuditPending: boolean
   serverIncidentNeedingAssignee?: string // incident title awaiting a recovery assignee
+  // Feature 16 §9: the office-intrusion threat is armed — working days left before it fires.
+  intrusionArmedDaysLeft?: number
   unassignedFindings: boolean
   accessControlActionable: boolean // СКУД proposal available/postponed, not yet implemented
   unacknowledgedRisks: boolean
@@ -26,6 +28,11 @@ export function getCurrentObjective(ctx: ObjectiveContext): Objective | null {
   if (ctx.outcomeBlocking || ctx.gamePhase !== 'free') return null
 
   if (ctx.postAuditPending) return { text: 'Поговорите с Соней о результатах аудита.', target: 'sonya' }
+  if (ctx.intrusionArmedDaysLeft !== undefined)
+    return {
+      text: `Риск проникновения: контроль доступа не внедрён. Внедрите СКУД до истечения срока — осталось рабочих дней: ${ctx.intrusionArmedDaysLeft}.`,
+      target: 'security-board',
+    }
   if (ctx.serverIncidentNeedingAssignee)
     return { text: `Назначьте исполнителя на восстановление: ${ctx.serverIncidentNeedingAssignee}.`, target: 'security-board' }
   if (ctx.unassignedFindings) return { text: 'Назначьте исполнителей на замечания безопасности.', target: 'security-board' }

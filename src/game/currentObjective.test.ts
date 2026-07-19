@@ -20,6 +20,13 @@ describe('getCurrentObjective', () => {
     expect(getCurrentObjective({ ...base, gamePhase: 'intro' })).toBeNull()
   })
 
+  it('warns about an armed intrusion with the days left, above the СКУД decision', () => {
+    const o = getCurrentObjective({ ...base, intrusionArmedDaysLeft: 3, accessControlActionable: true })!
+    expect(o.text).toContain('проникновения')
+    expect(o.text).toContain('3')
+    expect(o.target).toBe('security-board')
+  })
+
   it('mandatory story/management actions take priority over the sprint loop', () => {
     expect(getCurrentObjective({ ...base, postAuditPending: true, devsHired: false })!.target).toBe('sonya')
     expect(getCurrentObjective({ ...base, serverIncidentNeedingAssignee: 'Отказ внешнего шлюза' })!.text).toContain('Отказ внешнего шлюза')

@@ -1,6 +1,9 @@
 import { useSprintStore } from './sprintStore'
 import { useSecurityStoryStore } from './securityStoryStore'
 import { useSecurityAuditStore } from './securityAuditStore'
+import { useRiskStore } from './riskStore'
+import { correctivePlanOfficeAccessSignals } from './riskSignals'
+import { riskMomentAt } from './riskContext'
 import { toWorkdayIndex } from './workdayIndex'
 
 // Creates the corrective-action plan once the post-audit conversation (Feature
@@ -30,7 +33,12 @@ export function initializeSecurityAuditIfReady(): void {
       // store adds +9 to the passed index, so pass the anchor index
       audit.initializeCorrectiveActionPlan({ currentWorkdayIndex: anchorIndex, staffingDecision })
     }
-    return
+  } else {
+    audit.initializeCorrectiveActionPlan({ currentWorkdayIndex, staffingDecision })
   }
-  audit.initializeCorrectiveActionPlan({ currentWorkdayIndex, staffingDecision })
+
+  // Feature 16 §9: the breach exposed a physical-access / workstation-discipline
+  // problem — record the office-access risk (idempotent) so the СКУД proposal can
+  // unlock and, if left unaddressed, escalate to an intrusion.
+  useRiskStore.getState().addSignalsOnce(correctivePlanOfficeAccessSignals(riskMomentAt(sprint.sprintNumber, sprint.day)))
 }

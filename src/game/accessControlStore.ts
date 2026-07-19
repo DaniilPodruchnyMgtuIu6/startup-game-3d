@@ -129,7 +129,7 @@ export interface ResolveOfficeIntrusionResult {
 interface AccessControlStore extends AccessControlData {
   intrusionResultToAcknowledge: OfficeIntrusionState | null
 
-  unlockProposal: () => void
+  unlockProposal: (atWorkdayIndex?: number) => void
   postponeAccessControl: (moment: StoryMoment) => AccessControlDecisionResult
   approveAccessControl: (moment: StoryMoment) => AccessControlDecisionResult
   assignAccessControlImplementation: (employeeId: AccessControlAssigneeId) => AccessControlAssignmentResult
@@ -158,9 +158,18 @@ export const useAccessControlStore = create<AccessControlStore>()((set, get) => 
     ...initial,
     intrusionResultToAcknowledge: null,
 
-    unlockProposal: () => {
+    unlockProposal: (atWorkdayIndex) => {
       if (get().accessControl.proposalStatus !== 'locked') return
-      set({ accessControl: { ...get().accessControl, proposalStatus: 'available' } })
+      // Feature 16 §9: stamp when the proposal became available (only if given
+      // and not already stamped) so the escalation deadline can be measured.
+      const ac = get().accessControl
+      set({
+        accessControl: {
+          ...ac,
+          proposalStatus: 'available',
+          ...(atWorkdayIndex !== undefined && ac.availableAtWorkdayIndex === undefined ? { availableAtWorkdayIndex: atWorkdayIndex } : {}),
+        },
+      })
       addTaskOnce(REVIEW_ACCESS_CONTROL_TASK)
       persist()
     },

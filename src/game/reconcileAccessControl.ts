@@ -13,12 +13,21 @@ import { toWorkdayIndex } from './workdayIndex'
 export function reconcileAccessControlThreatAndProposal(): void {
   const signals = useRiskStore.getState().signals
   const ac = useAccessControlStore.getState()
+  const sprint = useSprintStore.getState()
+  const currentWorkdayIndex = toWorkdayIndex(sprint.sprintNumber, sprint.day)
 
   if (ac.accessControl.proposalStatus === 'locked' && canUnlockAccessControlProposal(getDetectedRiskLevel(signals, 'office-access'))) {
-    ac.unlockProposal()
+    ac.unlockProposal(currentWorkdayIndex)
+  } else if (
+    // Feature 16 §9: a save whose proposal is already available/postponed but has
+    // no availableAt stamp (older save) gets one now — the escalation deadline is
+    // measured from the reload, never retroactively.
+    (ac.accessControl.proposalStatus === 'available' || ac.accessControl.proposalStatus === 'postponed') &&
+    ac.accessControl.availableAtWorkdayIndex === undefined
+  ) {
+    useAccessControlStore.setState({ accessControl: { ...ac.accessControl, availableAtWorkdayIndex: currentWorkdayIndex } })
   }
 
-  const sprint = useSprintStore.getState()
   ac.reconcileIntrusionThreat({
     currentWorkdayIndex: toWorkdayIndex(sprint.sprintNumber, sprint.day),
     actualOfficeAccessLevel: getActualRiskLevel(signals, 'office-access'),

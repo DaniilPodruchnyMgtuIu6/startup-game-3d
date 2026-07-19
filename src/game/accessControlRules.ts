@@ -19,6 +19,9 @@ export interface AccessControlState {
   progressDays: number
   purchaseTransactionId?: string
   effectsApplied: boolean
+  // Feature 16 §9: the workday index when the proposal first became available —
+  // used to fire the "not implemented in time" escalation two workdays later.
+  availableAtWorkdayIndex?: number
 }
 
 export type OfficeIntrusionStatus = 'dormant' | 'armed' | 'pending' | 'running' | 'resolved' | 'prevented'
@@ -250,6 +253,9 @@ export function normalizeAccessControlState(raw: unknown, detectedOfficeAccessLe
   // active requires a completion moment; otherwise fall back to in-progress.
   if (proposalStatus === 'active' && !completedAt) proposalStatus = 'in-progress'
 
+  const availableAtWorkdayIndex =
+    typeof r.availableAtWorkdayIndex === 'number' && Number.isFinite(r.availableAtWorkdayIndex) ? r.availableAtWorkdayIndex : undefined
+
   const state: AccessControlState = {
     proposalStatus,
     progressDays: proposalStatus === 'active' ? Math.max(progressDays, 0) : progressDays,
@@ -258,8 +264,29 @@ export function normalizeAccessControlState(raw: unknown, detectedOfficeAccessLe
     ...(proposalStatus === 'active' && completedAt ? { completedAt } : {}),
     ...(proposalStatus !== 'active' && assignedEmployeeId ? { assignedEmployeeId } : {}),
     ...(purchaseTransactionId ? { purchaseTransactionId } : {}),
+    ...(availableAtWorkdayIndex !== undefined ? { availableAtWorkdayIndex } : {}),
   }
   return state
+}
+
+// Feature 16 §9: whether to create the one-time office-access escalation. Fires
+// only while the СКУД proposal is still merely available/postponed (never
+// approved/in-progress/active), the office-access risk is still elevated (both
+// detected and actual — so closing the finding or reducing the risk stops it),
+// and at least two workdays have passed since the proposal became available.
+export function shouldEscalateAccessControl(ctx: {
+  proposalStatus: AccessControlProposalStatus
+  currentWorkdayIndex: number
+  availableAtWorkdayIndex?: number
+  detectedOfficeAccessLevel: RiskLevel
+  actualOfficeAccessLevel: RiskLevel
+}): boolean {
+  if (ctx.proposalStatus !== 'available' && ctx.proposalStatus !== 'postponed') return false
+  if (ctx.availableAtWorkdayIndex === undefined) return false
+  if (ctx.currentWorkdayIndex - ctx.availableAtWorkdayIndex < 2) return false
+  if (levelRank(ctx.detectedOfficeAccessLevel) < levelRank('elevated')) return false
+  if (levelRank(ctx.actualOfficeAccessLevel) < levelRank('elevated')) return false
+  return true
 }
 
 export function normalizeIntrusionState(raw: unknown): OfficeIntrusionState {

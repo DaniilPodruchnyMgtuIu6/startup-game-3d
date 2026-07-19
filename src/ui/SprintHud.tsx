@@ -28,6 +28,7 @@ import { useAccessControlStore } from '../game/accessControlStore'
 import { useRiskStore } from '../game/riskStore'
 import { getServerIncident } from '../game/serverIncidentCatalog'
 import { getUnacknowledgedDetectedCount } from '../game/riskRules'
+import { toWorkdayIndex } from '../game/workdayIndex'
 import { hasCompletedCoreMvp } from '../game/productRules'
 import { getCurrentObjective } from '../game/currentObjective'
 import './ui.css'
@@ -78,16 +79,22 @@ export function SprintHud() {
   const accessControlActionable = useAccessControlStore(
     (s) => s.accessControl.proposalStatus === 'available' || s.accessControl.proposalStatus === 'postponed',
   )
+  const intrusion = useAccessControlStore((s) => s.intrusion)
   const unacknowledgedRisks = useRiskStore((s) => getUnacknowledgedDetectedCount(s.signals) > 0)
 
   if (gamePhase !== 'free') return null
 
   const incidentNeedingAssignee = Object.values(serverIncidents).find((s) => s.status === 'recovery-required' && !s.assignedEmployeeId)
+  const intrusionArmedDaysLeft =
+    intrusion.status === 'armed' && intrusion.dueWorkdayIndex !== undefined
+      ? Math.max(0, intrusion.dueWorkdayIndex - toWorkdayIndex(sprintNumber, day))
+      : undefined
   const objective = getCurrentObjective({
     gamePhase,
     sprintPhase,
     outcomeBlocking,
     postAuditPending: isPostAuditConversationRequired(postAuditConversation),
+    intrusionArmedDaysLeft,
     serverIncidentNeedingAssignee: incidentNeedingAssignee ? getServerIncident(incidentNeedingAssignee.incidentId)?.title : undefined,
     unassignedFindings,
     accessControlActionable,
