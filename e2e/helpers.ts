@@ -101,8 +101,13 @@ export async function clickWhenReady(page: Page, name: string | RegExp, tries = 
     try {
       await page.getByRole('button', { name }).click({ timeout: 3000 })
       return
-    } catch {
-      await page.waitForTimeout(1000)
+    } catch (e) {
+      // A click that triggers a navigation (e.g. the restart button sets
+      // location.search='?intro') can tear the context down — that means it
+      // landed. Treat context/navigation teardown as success.
+      const msg = String((e as Error)?.message ?? e)
+      if (/closed|destroyed|navigat/i.test(msg)) return
+      await page.waitForTimeout(1000).catch(() => {})
     }
   }
   throw new Error(`clickWhenReady: never became clickable: ${name}`)

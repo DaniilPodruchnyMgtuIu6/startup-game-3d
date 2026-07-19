@@ -72,9 +72,11 @@
 - 6 спецификаций (`e2e/`): boot интро без ошибок; boot 3D-офиса из mid-campaign save с корректным HUD; сохранение переживает reload; `?intro` — durable reset; game-over snapshot виден/переживает reload/рестарт возвращает в интро; success snapshot виден/переживает reload. **Два последовательных прогона — 6/6 зелёных, без flaky.**
 - Проверки только через DOM-локаторы (устойчиво к загруженному main-thread в software-рендере). Сид — через `addInitScript` с sentinel (одноразовый, race-free; reload проверяет реальную персистентность; `?intro` не пере-сидируется).
 
-### PERF-01 — R3F не гасил рендер под полноэкранными не-геймплейными экранами (P2, исправлен)
-- **Симптом:** интро / «уволены» / game-over / success держат офис в непрерывной симуляции + постобработке за непрозрачным/блюр-фоном; экраны могут висеть неограниченно → впустую жгут CPU/GPU. В software-рендере это заодно насыщало main-thread так, что DOM-экраны не наблюдались (блокировало E2E).
-- **Фикс:** `src/game/sceneActivity.ts::isSceneIdle(phase, outcomeStatus)` → `<Canvas frameloop={sceneIdle ? 'demand' : 'always'}>`. Геймплей (free/cutscene/minigame/pending) рендерит непрерывно. Визуально без изменений (скриншот интро подтверждён). Unit-тест `sceneActivity.test.ts`; E2E терминальных экранов доказывает наблюдаемость.
+### PERF-01 — попытка гасить R3F под полноэкранными экранами → ОТКАТ (регрессия рендера)
+- Была добавлена оптимизация `frameloop={sceneIdle ? 'demand' : 'always'}` (пауза рендера на интро/терминальных экранах).
+- **Регрессия (сообщил игрок):** после принятия работы офис не рендерился. Причина: переход `intro('demand') → meetPm('always')` в связке с `@react-three/postprocessing EffectComposer` оставлял пустой canvas (известная особенность demand-режима с постобработкой). Автотесты это не поймали: они сидируют free-play напрямую и не проходят живой переход intro→gameplay; headless SwiftShader не снимает пиксели canvas (KI-06).
+- **Действие:** оптимизация **полностью откачена** — `frameloop` вернулся к дефолту `always` (точный baseline, работавший во всех Feature 01–14). Файлы `sceneActivity.*` удалены.
+- **Регресс-тест добавлен:** `e2e/smoke.spec.ts` «accepting the job transitions from the intro into the office scene» — прогоняет живой intro→office переход (клик-проход интро) и проверяет, что интро снято, canvas жив, без ошибок. Именно этот сценарий отсутствовал.
 
 ### BUG-03 — Leva dev-панель попадала в production (P2, исправлен)
 - **Симптом:** игроки видели панель разработчика «Render» (слайдеры exposure/aoIntensity/bloomIntensity) в правом верхнем углу; её DOM был источником ложного «undefined» при первичной E2E-проверке.

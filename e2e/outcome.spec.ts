@@ -3,8 +3,8 @@ import { openApp, reloadApp, seedCampaign, collectAppErrors, clickWhenReady } fr
 
 // E2E-03/04: terminal outcome screens are snapshot-driven — they render, they
 // survive reload (no recompute to "playing"), and the reset returns to the
-// intro. In these states R3F is frameloop-paused, so the restart button is
-// reliably clickable even under software rendering.
+// intro. The restart click uses clickWhenReady to tolerate the brief main-thread
+// saturation from model decode under software rendering.
 
 test('a failure snapshot shows the game-over screen, survives reload, and restarts', async ({ page }) => {
   const errors = collectAppErrors(page)
