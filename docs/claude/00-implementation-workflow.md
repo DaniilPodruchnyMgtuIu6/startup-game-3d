@@ -108,6 +108,7 @@ Claude Code не должен:
 | 13 | Выпуск MVP и итог первого этапа кампании | 04–12 |
 | 14 | ИИ-поведение NPC через DeepSeek | Стабильное игровое ядро |
 | 15 | Полное тестирование, баланс, полировка и release readiness | 01–14 |
+| 16 | Живой рабочий день, сюжетный ритм, подсказки и оптимизация | 01–15 |
 
 ---
 
@@ -125,4 +126,4 @@ Claude Code не должен:
 
 На текущем этапе Claude Code нужно передать только:
 
-`15-full-system-testing-balance-and-polish.md`
+`16-living-workday-story-guidance-and-performance.md`
