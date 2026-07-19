@@ -5,20 +5,21 @@
 // GLBs; also wired into convert-character.mjs for future re-exports.
 import { NodeIO } from '@gltf-transform/core'
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions'
-import { dedup, prune, textureCompress } from '@gltf-transform/functions'
+import { textureCompress } from '@gltf-transform/functions'
 import sharp from 'sharp'
 
+// IMPORTANT: only textureCompress (downscale). dedup()/prune() must NOT run here
+// — dedup merged an identically-looking skin the mesh still referenced, which
+// broke the skinned-mesh binding and crashed the character animation with
+// "Cannot read properties of undefined (reading 'length')". textureCompress
+// only rewrites image data, leaving skins/geometry/animations byte-for-byte.
 const MAX = 1024
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS)
 
 for (const f of process.argv.slice(2)) {
   const doc = await io.read(f)
-  await doc.transform(
-    dedup(),
-    prune(),
-    // keep each texture's original format (png/jpeg) — just downscale
-    textureCompress({ encoder: sharp, resize: [MAX, MAX] }),
-  )
+  // keep each texture's original format (png/jpeg) — just downscale to <= MAX²
+  await doc.transform(textureCompress({ encoder: sharp, resize: [MAX, MAX] }))
   await io.write(f, doc)
 }
 console.log('done')

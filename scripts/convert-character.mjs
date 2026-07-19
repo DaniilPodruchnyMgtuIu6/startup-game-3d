@@ -1,7 +1,7 @@
 import convert from 'fbx2gltf'
 import { NodeIO } from '@gltf-transform/core'
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions'
-import { prune, dedup, textureCompress } from '@gltf-transform/functions'
+import { prune, textureCompress } from '@gltf-transform/functions'
 import sharp from 'sharp'
 import path from 'node:path'
 import fs from 'node:fs/promises'
@@ -118,8 +118,10 @@ for (const { file, name: clip, out, keepMesh } of CLIPS) {
     for (const mesh of root.listMeshes()) mesh.dispose()
     await document.transform(prune())
   } else {
+    // Only downscale textures — NOT dedup/prune, which can drop a skin the mesh
+    // still references and break the character rig at runtime.
     console.log(`[${out}] downscaling textures to ${MAX_TEXTURE}²...`)
-    await document.transform(dedup(), prune(), textureCompress({ encoder: sharp, resize: [MAX_TEXTURE, MAX_TEXTURE] }))
+    await document.transform(textureCompress({ encoder: sharp, resize: [MAX_TEXTURE, MAX_TEXTURE] }))
   }
 
   await io.write(outGlb, document)

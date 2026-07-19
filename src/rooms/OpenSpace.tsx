@@ -50,7 +50,14 @@ function WorkstationCluster({ center }: { center: [number, number] }) {
 // panel opens on arrival — never a teleport-open from across the office.
 function OpenSpaceWhiteboard() {
   const pendingOpen = useRef(false)
-  const showPlanningMarker = useGameStore((s) => s.phase) === 'free' && useSprintStore((s) => s.phase) === 'planning'
+  // Both store hooks MUST be called unconditionally. A `a && useSprintStore()`
+  // short-circuit skips the second hook while phase !== 'free', which changes
+  // the hook order across the meetPm→free transition and corrupts the useFrame
+  // subscription below (React "change in order of Hooks" → R3F crash / white
+  // screen). Read both, then combine.
+  const gamePhase = useGameStore((s) => s.phase)
+  const sprintPhase = useSprintStore((s) => s.phase)
+  const showPlanningMarker = gamePhase === 'free' && sprintPhase === 'planning'
 
   useFrame(() => {
     if (!pendingOpen.current) return
