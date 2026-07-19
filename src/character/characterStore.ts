@@ -14,6 +14,8 @@ export interface CharacterEntity {
   state: CharacterState
   position: Point
   rotationY: number
+  // Optional walk-speed multiplier (cutscene actors move faster). Runtime-only.
+  speedMultiplier?: number
 }
 
 interface CharactersStore {
@@ -38,6 +40,7 @@ interface CharactersStore {
   removeCharacter: (id: string) => void
   dispatchTo: (id: string, event: CharacterEvent) => void
   setTransform: (id: string, position: Point, rotationY: number) => void
+  setSpeedMultiplier: (id: string, multiplier: number) => void
   // Convenience actions for the player character, wired to scene clicks.
   clickFloor: (point: Point) => void
   clickWorkstation: (target: Target) => void
@@ -93,6 +96,12 @@ export const useCharacterStore = create<CharactersStore>()((set, get) => {
         const entity = s.characters[id]
         if (!entity) return s
         return { characters: { ...s.characters, [id]: { ...entity, position, rotationY } } }
+      }),
+    setSpeedMultiplier: (id, multiplier) =>
+      set((s) => {
+        const entity = s.characters[id]
+        if (!entity) return s
+        return { characters: { ...s.characters, [id]: { ...entity, speedMultiplier: multiplier } } }
       }),
     // Floor clicks may land on walls or furniture (the click ray projects onto
     // the floor beneath them) - clamp to the nearest walkable spot so the

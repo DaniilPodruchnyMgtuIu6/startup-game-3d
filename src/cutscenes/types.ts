@@ -5,7 +5,8 @@ import type { CharacterDefinition } from '../character/characters/definition'
 export type Point = [number, number, number]
 
 export interface CutsceneDirector {
-  walk(characterId: string, point: Point): Promise<void>
+  walk(characterId: string, point: Point, maxMs?: number): Promise<void>
+  setSpeed(characterId: string, multiplier: number): void
   face(characterId: string, towardId: string): void
   camera(target: Point, opts?: { position?: Point; durationMs?: number }): Promise<void>
   say(lines: DialogueLine[]): Promise<void>

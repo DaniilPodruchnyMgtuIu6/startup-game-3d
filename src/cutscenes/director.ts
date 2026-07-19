@@ -57,13 +57,37 @@ function facingTowards(from: Point, to: Point): number {
   return Math.atan2(to[0] - from[0], to[2] - from[2])
 }
 
+// Feature 16 §8: if a cutscene actor never stops walking (bad path, obstacle
+// churn), don't hang the whole scene — after maxMs snap it to its destination
+// mark so the scene proceeds. The mark is where it was already headed, so this
+// is not a jarring teleport in front of the camera, and it never duplicates the
+// actor.
+const WALK_TIMEOUT_MS = 9000
+
 export function createDirector(): CutsceneDirector {
   return {
-    walk(characterId, point) {
+    walk(characterId, point, maxMs = WALK_TIMEOUT_MS) {
       const entity = useCharacterStore.getState().characters[characterId]
       if (!entity) return Promise.resolve()
-      useCharacterStore.getState().dispatchTo(characterId, { type: 'CLICK_FLOOR', point: nearestWalkable(point) })
-      return waitForIdle(characterId)
+      const dest = nearestWalkable(point)
+      useCharacterStore.getState().dispatchTo(characterId, { type: 'CLICK_FLOOR', point: dest })
+      return Promise.race([
+        waitForIdle(characterId),
+        new Promise<void>((resolve) =>
+          setTimeout(() => {
+            const stuck = useCharacterStore.getState().characters[characterId]
+            if (stuck && stuck.state.kind === 'walking') {
+              // land it on the mark; stepTowards then reports the target reached
+              // next frame and the state machine settles it to idle
+              useCharacterStore.getState().setTransform(characterId, dest, stuck.rotationY)
+            }
+            resolve()
+          }, maxMs),
+        ),
+      ])
+    },
+    setSpeed(characterId, multiplier) {
+      useCharacterStore.getState().setSpeedMultiplier(characterId, multiplier)
     },
     face(characterId, towardId) {
       const store = useCharacterStore.getState()

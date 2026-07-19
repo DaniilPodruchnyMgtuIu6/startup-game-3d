@@ -25,7 +25,8 @@ export function useCharacterTransform(characterId: string, group: RefObject<Grou
     if (!entity) return
     if (entity.state.kind === 'walking') {
       const target = entity.state.path[entity.state.nextIndex]
-      const result = stepTowards(entity.position, target, WALK_SPEED, delta, entity.rotationY)
+      const speed = WALK_SPEED * (entity.speedMultiplier ?? 1)
+      const result = stepTowards(entity.position, target, speed, delta, entity.rotationY)
       store.setTransform(characterId, result.position, result.rotationY)
       if (result.reachedTarget) store.dispatchTo(characterId, { type: 'WAYPOINT_REACHED' })
     }

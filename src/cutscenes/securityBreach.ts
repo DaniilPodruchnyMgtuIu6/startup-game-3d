@@ -112,16 +112,21 @@ interface PlayerLines {
 }
 
 async function runScene(director: Parameters<CutsceneScript>[0], { PLAYER_SHOCKED, PLAYER_SAD }: PlayerLines) {
-  await director.camera(PM_DESK_CAMERA_TARGET, { position: PM_DESK_CAMERA_POSITION, durationMs: 1200 })
+  // Feature 16 §8: keep the opening tight — a short camera move, no dead pause.
+  await director.camera(PM_DESK_CAMERA_TARGET, { position: PM_DESK_CAMERA_POSITION, durationMs: 700 })
   await director.sit(femalePm.id, { point: PM_SEAT, facing: 0 }, 'workstation')
-  await director.wait(800)
+  await director.wait(250)
   // She's leaving without locking - the monitor must stay lit even though
   // she's no longer sitting there, which is the entire point of the scene.
   useCharacterStore.getState().markScreenUnlocked(PM_SEAT)
   await director.walk(femalePm.id, PM_AWAY_POINT)
 
+  // Feature 16 §8: the guards are on urgent business — spawn them and give them
+  // a faster-than-normal pace so they reach the office in ~4-6s, not ~15s.
   director.spawnModeledActor('guard1', GUARD1_SPAWN, security1)
   director.spawnModeledActor('guard2', GUARD2_SPAWN, security2)
+  director.setSpeed('guard1', 2.4)
+  director.setSpeed('guard2', 2.4)
   await Promise.all([director.walk('guard1', GUARD1_DESK_MARK), director.walk('guard2', GUARD2_DESK_MARK)])
 
   director.look('guard1', true)
@@ -137,7 +142,7 @@ async function runScene(director: Parameters<CutsceneScript>[0], { PLAYER_SHOCKE
 
   await director.sit(PLAYER_ID, { point: PLAYER_SEAT, facing: 0 }, 'seat')
 
-  await director.camera(OFFICE_CAMERA_TARGET, { position: OFFICE_CAMERA_POSITION, durationMs: 1200 })
+  await director.camera(OFFICE_CAMERA_TARGET, { position: OFFICE_CAMERA_POSITION, durationMs: 700 })
   await Promise.all([director.walk('guard1', GUARD1_OFFICE_MARK), director.walk('guard2', GUARD2_OFFICE_MARK)])
   director.face('guard1', PLAYER_ID)
   director.face('guard2', PLAYER_ID)
