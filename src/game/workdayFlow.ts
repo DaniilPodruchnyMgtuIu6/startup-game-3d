@@ -45,10 +45,19 @@ export interface DailyBeat {
   text: string
 }
 
-// The observable beat for a given day. Day 1 is the team kickoff at the board;
-// day 5 a mid-sprint status; the pre-review day a wrap-up; every other day a
-// short quiet work segment. Deterministic and static-fallback (no DeepSeek).
-export function getDailyBeat(sprintNumber: number, day: number): DailyBeat {
+// Live plan facts that make the status beats concrete (Feature 16 §2). Optional
+// so the pure kind selection stays testable without wiring the stores.
+export interface DailyBeatContext {
+  readiness?: number
+  completedThisSprint?: number
+  plannedRemaining?: number
+}
+
+// The observable beat for a given day. Day 1 is the team kickoff at the board
+// (its full dialogue is built in sprintKickoff); day 5 a mid-sprint status; the
+// pre-review day a wrap-up; every other day a short quiet work segment.
+// Deterministic and static-fallback (no DeepSeek).
+export function getDailyBeat(sprintNumber: number, day: number, ctx: DailyBeatContext = {}): DailyBeat {
   if (day <= 1) {
     return {
       kind: 'kickoff',
@@ -57,10 +66,20 @@ export function getDailyBeat(sprintNumber: number, day: number): DailyBeat {
     }
   }
   if (day === 5) {
-    return { kind: 'mid-sprint', title: 'Середина спринта', text: 'Соня сверяет прогресс с планом — половина спринта позади.' }
+    const text =
+      ctx.readiness !== undefined
+        ? `Половина спринта позади. Готовность OfficeFlow — ${ctx.readiness}%.`
+        : 'Соня сверяет прогресс с планом — половина спринта позади.'
+    return { kind: 'mid-sprint', title: 'Середина спринта', text }
   }
   if (day === SPRINT_DAYS - 1) {
-    return { kind: 'pre-review', title: 'Перед ревью', text: 'Команда доводит задачи — завтра подводим итоги спринта.' }
+    const text =
+      ctx.completedThisSprint !== undefined
+        ? `Завтра ревью. Завершено задач в спринте — ${ctx.completedThisSprint}${
+            ctx.plannedRemaining ? `, в работе — ${ctx.plannedRemaining}` : ''
+          }.`
+        : 'Команда доводит задачи — завтра подводим итоги спринта.'
+    return { kind: 'pre-review', title: 'Перед ревью', text }
   }
   return { kind: 'quiet', title: `Рабочий день ${day}`, text: 'Команда работает над задачами OfficeFlow.' }
 }

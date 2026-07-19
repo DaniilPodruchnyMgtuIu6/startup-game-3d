@@ -19,3 +19,10 @@ test('the workday advances automatically, with no manual end-day button', async 
 
   expect(errors, `unexpected app errors:\n${errors.join('\n')}`).toEqual([])
 })
+
+// Feature 16 §2: the first day of a sprint opens with a plan-aware kickoff.
+test('a sprint starts with a kickoff dialogue at the board', async ({ page }) => {
+  await seedCampaign(page, { sprintNumber: 2, day: 1 })
+  await openApp(page)
+  await expect(page.getByText(/Планёрка спринта 2/)).toBeVisible({ timeout: 30_000 })
+})

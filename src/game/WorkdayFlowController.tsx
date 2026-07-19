@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useGameStore } from './gameStore'
 import { useSprintStore } from './sprintStore'
 import { useProductStore } from './productStore'
@@ -16,8 +16,61 @@ import { useCutsceneStore } from '../cutscenes/cutsceneStore'
 import { useCharacterStore } from '../character/characterStore'
 import { isPostAuditConversationRequired } from './securityStoryRules'
 import { completeWorkday, canCompleteCurrentWorkday } from './completeWorkday'
-import { canAutoAdvanceWorkday, getDailyBeat, type WorkdayFlowContext, type DailyBeat } from './workdayFlow'
+import { canAutoAdvanceWorkday, getDailyBeat, type WorkdayFlowContext, type DailyBeat, type DailyBeatContext } from './workdayFlow'
+import { buildSprintKickoffDialogue, type SprintKickoffContext } from './sprintKickoff'
+import { getEmployee, DEVELOPER_CATALOG, PROJECT_MANAGER, SECURITY_SPECIALIST_ID } from './teamCatalog'
+import { getProductTask } from './productTaskCatalog'
+import { plannedLoadForEmployee, completedInSprint, incompletePlanned, productReadiness } from './productRules'
+import { hasSecuritySpecialist } from './teamRules'
+import { getCharacterById } from '../character/characters'
+import { femalePm } from '../character/characters/femalePm'
+import { ilyaVlasov } from '../character/characters/ilyaVlasov'
 import '../ui/ui.css'
+
+// Feature 16 §2: the kickoff/beat content is built from the LIVE sprint plan.
+function buildKickoffContext(): SprintKickoffContext {
+  const states = useProductStore.getState().taskStates
+  const developers = DEVELOPER_CATALOG.map((e) => {
+    const first = states
+      .filter((s) => getProductTask(s.taskId)?.assigneeEmployeeId === e.id && (s.status === 'planned' || s.status === 'in-progress'))
+      .sort((a, b) => (a.planOrder ?? 0) - (b.planOrder ?? 0))[0]
+    return {
+      name: e.name,
+      role: e.roleLabel,
+      portrait: getCharacterById(e.characterId)?.portrait,
+      firstTask: first ? getProductTask(first.taskId)?.title : undefined,
+      load: plannedLoadForEmployee(states, e.id),
+    }
+  })
+  const overloaded = DEVELOPER_CATALOG.some((e) => plannedLoadForEmployee(states, e.id) > 10)
+  const ilya = getEmployee(SECURITY_SPECIALIST_ID)
+  const ilyaHired = hasSecuritySpecialist(useTeamStore.getState().hires)
+  return {
+    sprintNumber: useSprintStore.getState().sprintNumber,
+    pm: { name: PROJECT_MANAGER.name, role: PROJECT_MANAGER.roleLabel, portrait: femalePm.portrait },
+    developers,
+    overloaded,
+    specialist:
+      ilyaHired && ilya
+        ? {
+            name: ilya.name,
+            role: ilya.roleLabel,
+            portrait: ilyaVlasov.portrait,
+            openFindings: useSecurityAuditStore.getState().findings.filter((f) => f.status !== 'closed').length,
+          }
+        : undefined,
+  }
+}
+
+function buildDailyBeatContext(): DailyBeatContext {
+  const states = useProductStore.getState().taskStates
+  const sprintNumber = useSprintStore.getState().sprintNumber
+  return {
+    readiness: productReadiness(states),
+    completedThisSprint: completedInSprint(states, sprintNumber).length,
+    plannedRemaining: incompletePlanned(states, sprintNumber).length,
+  }
+}
 
 // Feature 16 §1: the living Workday Flow. While the sprint is active and nothing
 // mandatory is open, each day plays a short observable beat and then the day
@@ -95,6 +148,7 @@ export function WorkdayFlowController() {
   useServerIncidentStore((s) => s.incidents)
 
   const [beat, setBeat] = useState<DailyBeat | null>(null)
+  const kickoffShownRef = useRef<number | null>(null)
   const canAdvance = canAutoAdvanceWorkday(currentFlowContext())
 
   useEffect(() => {
@@ -102,7 +156,15 @@ export function WorkdayFlowController() {
       setBeat(null)
       return
     }
-    const dayBeat = getDailyBeat(sprintNumber, day)
+    // Feature 16 §2: on the first day of a sprint the team holds a kickoff at the
+    // board — a short plan-aware dialogue, once per sprint. It blocks (busy), so
+    // this effect re-runs once the player closes it and the day then proceeds.
+    if (day <= 1 && kickoffShownRef.current !== sprintNumber) {
+      kickoffShownRef.current = sprintNumber
+      useGameStore.getState().startDialogue(buildSprintKickoffDialogue(buildKickoffContext()))
+      return
+    }
+    const dayBeat = getDailyBeat(sprintNumber, day, buildDailyBeatContext())
     setBeat(dayBeat)
     const timer = setTimeout(() => {
       // re-check at fire time — guards may have changed since the beat started
