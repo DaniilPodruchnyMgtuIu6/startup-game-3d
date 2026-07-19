@@ -953,6 +953,29 @@ button.primary:hover {
     opacity: 0.6;
   }
 }
+.sprint-hud-objective {
+  margin-top: 8px;
+  max-width: 360px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(224, 145, 43, 0.14);
+  border: 1px solid rgba(224, 145, 43, 0.4);
+  border-radius: 10px;
+}
+.sprint-hud-objective-label {
+  flex: none;
+  font: 700 11px system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #e0912b;
+}
+.sprint-hud-objective-text {
+  font: 500 13px system-ui, sans-serif;
+  line-height: 1.4;
+  color: #f0e5d3;
+}
 .sprint-hud-story-objective {
   margin-top: 8px;
   max-width: 340px;

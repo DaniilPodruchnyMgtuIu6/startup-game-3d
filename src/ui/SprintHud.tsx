@@ -17,10 +17,19 @@ import {
   projectedBalanceAfterDay,
   type BudgetWarning,
 } from '../game/economyRules'
-import { getTeamDailySalary, isEmployeeHired } from '../game/teamRules'
+import { getTeamDailySalary, isEmployeeHired, hasInitialDevelopmentTeam } from '../game/teamRules'
 import { DEVELOPER_CATALOG } from '../game/teamCatalog'
 import { getCurrentTeamCapacityLabel } from '../game/securityHiring'
 import { completeWorkday } from '../game/completeWorkday'
+import { useGameOutcomeStore } from '../game/gameOutcomeStore'
+import { useServerIncidentStore } from '../game/serverIncidentStore'
+import { useSecurityAuditStore } from '../game/securityAuditStore'
+import { useAccessControlStore } from '../game/accessControlStore'
+import { useRiskStore } from '../game/riskStore'
+import { getServerIncident } from '../game/serverIncidentCatalog'
+import { getUnacknowledgedDetectedCount } from '../game/riskRules'
+import { hasCompletedCoreMvp } from '../game/productRules'
+import { getCurrentObjective } from '../game/currentObjective'
 import './ui.css'
 
 const WARNING_TEXT: Record<Exclude<BudgetWarning, 'ok'>, string> = {
@@ -62,7 +71,31 @@ export function SprintHud() {
 
   const postAuditConversation = useSecurityStoryStore((s) => s.postAuditConversation)
 
+  // Feature 16 §3: inputs for the single "current objective" shown in the HUD.
+  const outcomeBlocking = useGameOutcomeStore((s) => s.status !== 'playing')
+  const serverIncidents = useServerIncidentStore((s) => s.incidents)
+  const unassignedFindings = useSecurityAuditStore((s) => s.findings.some((f) => f.status !== 'closed' && !f.assignedEmployeeId))
+  const accessControlActionable = useAccessControlStore(
+    (s) => s.accessControl.proposalStatus === 'available' || s.accessControl.proposalStatus === 'postponed',
+  )
+  const unacknowledgedRisks = useRiskStore((s) => getUnacknowledgedDetectedCount(s.signals) > 0)
+
   if (gamePhase !== 'free') return null
+
+  const incidentNeedingAssignee = Object.values(serverIncidents).find((s) => s.status === 'recovery-required' && !s.assignedEmployeeId)
+  const objective = getCurrentObjective({
+    gamePhase,
+    sprintPhase,
+    outcomeBlocking,
+    postAuditPending: isPostAuditConversationRequired(postAuditConversation),
+    serverIncidentNeedingAssignee: incidentNeedingAssignee ? getServerIncident(incidentNeedingAssignee.incidentId)?.title : undefined,
+    unassignedFindings,
+    accessControlActionable,
+    unacknowledgedRisks,
+    devsHired: hasInitialDevelopmentTeam(hires),
+    anyTaskPlanned: taskStates.some((s) => s.status === 'planned'),
+    mvpReleaseReady: hasCompletedCoreMvp(taskStates),
+  })
 
   const label =
     sprintPhase === 'active'
@@ -118,25 +151,12 @@ export function SprintHud() {
         ) : null}
       </div>
 
-      {sprintPhase === 'planning' && planningDismissed ? (
-        <div className="sprint-hud-planning-hint">
-          {!DEVELOPER_CATALOG.every((e) => isEmployeeHired(hires, e.id))
-            ? 'Сначала наймите команду: откройте «Команда» вверху и наймите обоих разработчиков.'
-            : taskStates.some((s) => s.status === 'planned')
-              ? 'Задачи распределены. Откройте доску задач (у входа в серверную) и нажмите «Начать спринт».'
-              : 'Откройте доску задач у входа в серверную и распределите задачи между разработчиками.'}
+      {/* Feature 16 §3: one clear current objective, derived by priority. */}
+      {objective && !busy ? (
+        <div className="sprint-hud-objective">
+          <span className="sprint-hud-objective-label">Цель</span>
+          <span className="sprint-hud-objective-text">{objective.text}</span>
         </div>
-      ) : null}
-
-      {sprintPhase === 'active' && !busy ? (
-        <div className="sprint-hud-planning-hint">
-          Рабочий день идёт сам. Выполняйте обязательные задачи, когда они появляются. До конца спринта:{' '}
-          {SPRINT_DAYS - day + 1} дн.
-        </div>
-      ) : null}
-
-      {postAuditPending ? (
-        <div className="sprint-hud-story-objective">Поговорите с Соней о результатах аудита</div>
       ) : null}
 
       {sprintPhase === 'active' && postAuditPending ? (
