@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useGameStore } from './gameStore'
 import { useSprintStore } from './sprintStore'
 import { useProductStore } from './productStore'
@@ -16,7 +16,14 @@ import { useCutsceneStore } from '../cutscenes/cutsceneStore'
 import { useCharacterStore } from '../character/characterStore'
 import { isPostAuditConversationRequired } from './securityStoryRules'
 import { completeWorkday, canCompleteCurrentWorkday } from './completeWorkday'
-import { canAutoAdvanceWorkday, getDailyBeat, type WorkdayFlowContext, type DailyBeat, type DailyBeatContext } from './workdayFlow'
+import {
+  canAutoAdvanceWorkday,
+  shouldOpenSprintKickoff,
+  getDailyBeat,
+  type WorkdayFlowContext,
+  type DailyBeat,
+  type DailyBeatContext,
+} from './workdayFlow'
 import { buildSprintKickoffDialogue, type SprintKickoffContext } from './sprintKickoff'
 import { getEmployee, DEVELOPER_CATALOG, PROJECT_MANAGER, SECURITY_SPECIALIST_ID } from './teamCatalog'
 import { getProductTask } from './productTaskCatalog'
@@ -85,7 +92,7 @@ const BEAT_MS: Record<DailyBeat['kind'], number> = {
   quiet: 3200,
 }
 
-function currentFlowContext(): WorkdayFlowContext {
+export function currentFlowContext(): WorkdayFlowContext {
   const product = useProductStore.getState()
   const busy =
     useCharacterStore.getState().inputLocked ||
@@ -98,7 +105,13 @@ function currentFlowContext(): WorkdayFlowContext {
     product.prototypeOpen ||
     product.releaseCheckOpen ||
     useEconomyStore.getState().panelOpen ||
-    useTeamStore.getState().panelOpen
+    useTeamStore.getState().panelOpen ||
+    // A resolved scene leaves a result overlay the player must acknowledge; the
+    // event itself is no longer "blocking", so without these the day would
+    // auto-advance behind the overlay the player is still reading (§10).
+    useSecurityAuditStore.getState().auditResultToAcknowledge !== null ||
+    useAccessControlStore.getState().intrusionResultToAcknowledge !== null ||
+    useServerIncidentStore.getState().incidentResultToAcknowledge !== null
   return {
     gamePhase: useGameStore.getState().phase,
     sprintPhase: useSprintStore.getState().phase,
@@ -146,9 +159,14 @@ export function WorkdayFlowController() {
   useSecurityAuditStore((s) => s.followUpAudit)
   useAccessControlStore((s) => s.intrusion)
   useServerIncidentStore((s) => s.incidents)
+  // Result-acknowledge overlays also pause the flow (Bug A): re-run when one
+  // opens or is acknowledged, and when the kickoff marker changes (Bug B).
+  useSecurityAuditStore((s) => s.auditResultToAcknowledge)
+  useAccessControlStore((s) => s.intrusionResultToAcknowledge)
+  useServerIncidentStore((s) => s.incidentResultToAcknowledge)
+  useSprintStore((s) => s.kickoffShownForSprint)
 
   const [beat, setBeat] = useState<DailyBeat | null>(null)
-  const kickoffShownRef = useRef<number | null>(null)
   const canAdvance = canAutoAdvanceWorkday(currentFlowContext())
 
   useEffect(() => {
@@ -157,10 +175,11 @@ export function WorkdayFlowController() {
       return
     }
     // Feature 16 §2: on the first day of a sprint the team holds a kickoff at the
-    // board — a short plan-aware dialogue, once per sprint. It blocks (busy), so
-    // this effect re-runs once the player closes it and the day then proceeds.
-    if (day <= 1 && kickoffShownRef.current !== sprintNumber) {
-      kickoffShownRef.current = sprintNumber
+    // board — a short plan-aware dialogue, once per sprint. The "shown" marker is
+    // persisted (survives reload), so it never replays. It blocks (busy), so this
+    // effect re-runs once the player closes it and the day then proceeds.
+    if (shouldOpenSprintKickoff(day, sprintNumber, useSprintStore.getState().kickoffShownForSprint)) {
+      useSprintStore.getState().markSprintKickoffShown(sprintNumber)
       useGameStore.getState().startDialogue(buildSprintKickoffDialogue(buildKickoffContext()))
       return
     }

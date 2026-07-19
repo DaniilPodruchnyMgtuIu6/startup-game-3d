@@ -14,6 +14,10 @@ import { isIntroReset } from './gameStore'
 // only moves on an explicit player confirmation - never on a timer.
 
 const SPRINT_STORAGE_KEY = 'startup-office-sprint'
+// Feature 16 §2: which sprint's kickoff has already been shown. Persisted in its
+// own key so it survives a reload (a React ref did not) and stays independent of
+// the pure sprint clock in SPRINT_STORAGE_KEY. Absent key => never shown (null).
+const SPRINT_KICKOFF_KEY = 'startup-office-sprint-kickoff'
 
 type SprintStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 
@@ -52,15 +56,42 @@ export function saveSprint(storage: SprintStorage | null, state: SprintState): v
   }
 }
 
+// The persisted "kickoff already shown" marker. `?intro` wipes it; a missing key
+// or malformed value reads as null (never shown). Exported for tests.
+export function loadKickoffShown(storage: SprintStorage | null, search: string): number | null {
+  if (isIntroReset(search)) {
+    storage?.removeItem(SPRINT_KICKOFF_KEY)
+    return null
+  }
+  if (!storage) return null
+  const raw = storage.getItem(SPRINT_KICKOFF_KEY)
+  if (!raw) return null
+  const n = Number(raw)
+  return Number.isInteger(n) && n >= 1 ? n : null
+}
+
+function saveKickoffShown(storage: SprintStorage | null, value: number | null): void {
+  try {
+    if (value === null) storage?.removeItem(SPRINT_KICKOFF_KEY)
+    else storage?.setItem(SPRINT_KICKOFF_KEY, String(value))
+  } catch {
+    // private mode - the kickoff may replay once next session; harmless
+  }
+}
+
 interface SprintStore extends SprintState {
   // True while the end-of-day confirmation is open. The day only moves on an
   // explicit confirm, so the first click just opens this.
   confirmingEndDay: boolean
+  // Feature 16 §2: the sprint number whose kickoff has already been shown (null
+  // if none yet). Persisted, so a reload on day 1 does not replay the kickoff.
+  kickoffShownForSprint: number | null
   startSprint: () => void
   requestEndDay: () => void
   confirmEndDay: () => void
   cancelEndDay: () => void
   completeSprintReview: () => void
+  markSprintKickoffShown: (sprintNumber: number) => void
   resetSprint: () => void
 }
 
@@ -68,7 +99,9 @@ function sprintOf(s: SprintState): SprintState {
   return { sprintNumber: s.sprintNumber, day: s.day, phase: s.phase }
 }
 
-const initial = loadSprint(safeStorage(), typeof window === 'undefined' ? '' : window.location.search)
+const search = typeof window === 'undefined' ? '' : window.location.search
+const initial = loadSprint(safeStorage(), search)
+const initialKickoffShown = loadKickoffShown(safeStorage(), search)
 
 function persist(state: SprintState) {
   saveSprint(safeStorage(), state)
@@ -77,6 +110,7 @@ function persist(state: SprintState) {
 export const useSprintStore = create<SprintStore>()((set, get) => ({
   ...initial,
   confirmingEndDay: false,
+  kickoffShownForSprint: initialKickoffShown,
 
   startSprint: () => {
     const next = startSprintRule(sprintOf(get()))
@@ -107,8 +141,17 @@ export const useSprintStore = create<SprintStore>()((set, get) => ({
     persist(next)
   },
 
+  // Records (and persists) that the current sprint's kickoff has been shown, so
+  // the Workday Flow does not replay it after a reload. Idempotent.
+  markSprintKickoffShown: (sprintNumber: number) => {
+    if (get().kickoffShownForSprint === sprintNumber) return
+    set({ kickoffShownForSprint: sprintNumber })
+    saveKickoffShown(safeStorage(), sprintNumber)
+  },
+
   resetSprint: () => {
-    set({ ...INITIAL_SPRINT_STATE, confirmingEndDay: false })
+    set({ ...INITIAL_SPRINT_STATE, confirmingEndDay: false, kickoffShownForSprint: null })
     persist(INITIAL_SPRINT_STATE)
+    saveKickoffShown(safeStorage(), null)
   },
 }))

@@ -37,6 +37,18 @@ export function canAutoAdvanceWorkday(ctx: WorkdayFlowContext): boolean {
   )
 }
 
+// Feature 16 §2: the sprint kickoff plays once per sprint, on its first day. The
+// "already shown" marker is persisted (sprintStore.kickoffShownForSprint) rather
+// than kept in a React ref, so reloading the tab on day 1 does NOT replay it.
+// Fires only on day 1 of a sprint whose kickoff has not yet been marked.
+export function shouldOpenSprintKickoff(
+  day: number,
+  sprintNumber: number,
+  kickoffShownForSprint: number | null,
+): boolean {
+  return day <= 1 && kickoffShownForSprint !== sprintNumber
+}
+
 export type DailyBeatKind = 'kickoff' | 'mid-sprint' | 'pre-review' | 'quiet'
 
 export interface DailyBeat {
