@@ -5,7 +5,12 @@ import type { Group } from 'three'
 import { useGameStore } from './gameStore'
 import { useGameOutcomeStore } from './gameOutcomeStore'
 import { useTeamStore } from './teamStore'
+import { useEconomyStore } from './economyStore'
+import { useProductStore } from './productStore'
 import { useSecurityStoryStore } from './securityStoryStore'
+import { useSecurityAuditStore } from './securityAuditStore'
+import { useAccessControlStore } from './accessControlStore'
+import { useServerIncidentStore } from './serverIncidentStore'
 import { useCutsceneStore } from '../cutscenes/cutsceneStore'
 import { useServerIncidentsStore } from './serverIncidentsStore'
 import { useNpcConversationStore } from './npcConversationStore'
@@ -37,7 +42,10 @@ export function FreeNpcChatController() {
 }
 
 function NpcChatTarget({ npcId }: { npcId: NpcId }) {
-  // Subscribe to the slices that change eligibility so the marker appears/hides.
+  // Subscribe to EVERY slice gatherFreeNpcEligibility reads, so the marker
+  // appears/hides reactively. Missing any of these (e.g. the team panel's
+  // panelOpen while hiring) means eligibility only recomputes on some other
+  // re-render — the "marker only shows after a page refresh" bug.
   useGameStore((s) => s.phase)
   useGameStore((s) => s.activeDialogue)
   useGameStore((s) => s.activeChoice)
@@ -47,6 +55,18 @@ function NpcChatTarget({ npcId }: { npcId: NpcId }) {
   useSecurityStoryStore((s) => s.postAuditConversation.status)
   useSecurityStoryStore((s) => s.hasIntroducedSecuritySpecialist)
   useTeamStore((s) => s.hires)
+  useTeamStore((s) => s.panelOpen)
+  useEconomyStore((s) => s.panelOpen)
+  useProductStore((s) => s.boardOpen)
+  useProductStore((s) => s.activeReport)
+  useProductStore((s) => s.prototypeOpen)
+  useProductStore((s) => s.releaseCheckOpen)
+  useSecurityAuditStore((s) => s.auditResultToAcknowledge)
+  useSecurityAuditStore((s) => s.followUpAudit)
+  useAccessControlStore((s) => s.intrusionResultToAcknowledge)
+  useAccessControlStore((s) => s.intrusion)
+  useServerIncidentStore((s) => s.incidentResultToAcknowledge)
+  useServerIncidentStore((s) => s.incidents)
   useGameOutcomeStore((s) => s.status)
 
   const charId = NPC_CHARACTER_ID[npcId]

@@ -72,4 +72,5 @@ export const PROJECT_MANAGER = {
   id: 'sonya-sokolova',
   name: 'Соня Соколова',
   roleLabel: 'Проджект-менеджер',
+  characterId: 'npc-female-pm',
 } as const

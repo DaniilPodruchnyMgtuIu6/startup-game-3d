@@ -4,7 +4,7 @@ import { CharacterModel } from './CharacterModel'
 import { NPC_CHARACTERS, DEVELOPER_CHARACTERS, SPECIALIST_CHARACTERS, getCharacterById, type CharacterDefinition } from './characters'
 import { useTeamStore } from '../game/teamStore'
 import { getHiredEmployeeIds } from '../game/teamRules'
-import { getEmployee } from '../game/teamCatalog'
+import { getEmployee, TEAM_CATALOG, PROJECT_MANAGER } from '../game/teamCatalog'
 import { developerPlanActivity } from '../game/developerPlanner'
 import { securitySpecialistPlanActivity } from '../game/securitySpecialistPlanner'
 import { useCharacterStore } from './characterStore'
@@ -95,6 +95,13 @@ function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivit
   }, [stateKind, id, planActivity, gamePhase, sceneOwned, outcomeActive])
 }
 
+// Name + role for the tag over an NPC's head (the PM plus any hired employee).
+function labelForCharacter(characterId: string): { name: string; role: string } | undefined {
+  if (characterId === PROJECT_MANAGER.characterId) return { name: PROJECT_MANAGER.name, role: PROJECT_MANAGER.roleLabel }
+  const employee = TEAM_CATALOG.find((e) => e.characterId === characterId)
+  return employee ? { name: employee.name, role: employee.roleLabel } : undefined
+}
+
 function Npc({ definition, planActivity }: { definition: CharacterDefinition; planActivity?: ActivityPlanner }) {
   const npc = definition.npc!
   useEffect(() => {
@@ -107,7 +114,7 @@ function Npc({ definition, planActivity }: { definition: CharacterDefinition; pl
   }, [definition, npc])
 
   useNpcBrain(definition.id, planActivity ?? npc.planActivity)
-  return <CharacterModel characterId={definition.id} config={definition.model} />
+  return <CharacterModel characterId={definition.id} config={definition.model} label={labelForCharacter(definition.id)} />
 }
 
 // All autonomous office dwellers: the always-on roster (the PM) plus any

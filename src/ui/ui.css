@@ -347,6 +347,34 @@ button.primary:hover {
   animation: indicator-pulse 1.6s ease-in-out infinite;
 }
 
+/* Name + role tag over an NPC's head. */
+.npc-tag {
+  transform: translateY(-100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 3px 9px;
+  border-radius: 8px;
+  background: rgba(10, 16, 24, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+  user-select: none;
+  font-family: inherit;
+}
+.npc-tag-name {
+  color: #eef4fb;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.npc-tag-role {
+  color: #8fa3b8;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
 @keyframes indicator-pulse {
   0%,
   100% {
@@ -2016,6 +2044,7 @@ button.primary:hover {
 }
 .npc-chat-input textarea {
   width: 100%;
+  box-sizing: border-box;
   resize: none;
   background: #0b1119;
   border: 1px solid rgba(255, 255, 255, 0.16);

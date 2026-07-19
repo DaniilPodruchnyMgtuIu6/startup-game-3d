@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { useGLTF, useAnimations } from '@react-three/drei'
+import { useGLTF, useAnimations, Html } from '@react-three/drei'
 import { Vector3, type Group, type Object3D } from 'three'
 import { useCharacterStore, PLAYER_ID } from './characterStore'
 import { useCharacterTransform, WALK_SPEED } from './useCharacterTransform'
@@ -49,13 +49,15 @@ export function resolveClip(stateKind: string, available: ReadonlySet<string>): 
 export interface CharacterModelProps {
   characterId: string
   config: CharacterModelConfig
+  // Optional name + role shown on a small tag above the head (NPCs only).
+  label?: { name: string; role: string }
 }
 
 // Renders one character (player or NPC): its skinned model, animation
 // crossfades driven by the shared state machine, and per-frame movement along
 // the pathfinding waypoints. All characters go through the same store, grid
 // and obstacle avoidance.
-export function CharacterModel({ characterId, config }: CharacterModelProps) {
+export function CharacterModel({ characterId, config, label }: CharacterModelProps) {
   const clipEntries = useMemo(() => Object.entries(config.clips) as [ClipName, string][], [config])
   const gltfs = useGLTF(clipEntries.map(([, url]) => url))
   const base = gltfs[clipEntries.findIndex(([name]) => name === 'idle')]
@@ -137,6 +139,14 @@ export function CharacterModel({ characterId, config }: CharacterModelProps) {
   return (
     <group ref={group}>
       <primitive object={base.scene} />
+      {label ? (
+        <Html position={[0, 2.05, 0]} center zIndexRange={[6, 0]} pointerEvents="none">
+          <div className="npc-tag">
+            <span className="npc-tag-name">{label.name}</span>
+            <span className="npc-tag-role">{label.role}</span>
+          </div>
+        </Html>
+      ) : null}
     </group>
   )
 }

@@ -17,7 +17,8 @@ import {
   projectedBalanceAfterDay,
   type BudgetWarning,
 } from '../game/economyRules'
-import { getTeamDailySalary } from '../game/teamRules'
+import { getTeamDailySalary, isEmployeeHired } from '../game/teamRules'
+import { DEVELOPER_CATALOG } from '../game/teamCatalog'
 import { getCurrentTeamCapacityLabel } from '../game/securityHiring'
 import { completeWorkday } from '../game/completeWorkday'
 import './ui.css'
@@ -117,9 +118,11 @@ export function SprintHud() {
 
       {sprintPhase === 'planning' && planningDismissed ? (
         <div className="sprint-hud-planning-hint">
-          {taskStates.some((s) => s.status === 'planned')
-            ? 'Задачи распределены. Откройте доску задач (у входа в серверную) и нажмите «Начать спринт».'
-            : 'Откройте доску задач у входа в серверную и распределите задачи между разработчиками.'}
+          {!DEVELOPER_CATALOG.every((e) => isEmployeeHired(hires, e.id))
+            ? 'Сначала наймите команду: откройте «Команда» вверху и наймите обоих разработчиков.'
+            : taskStates.some((s) => s.status === 'planned')
+              ? 'Задачи распределены. Откройте доску задач (у входа в серверную) и нажмите «Начать спринт».'
+              : 'Откройте доску задач у входа в серверную и распределите задачи между разработчиками.'}
         </div>
       ) : null}
 
