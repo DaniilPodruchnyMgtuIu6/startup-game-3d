@@ -347,6 +347,55 @@ button.primary:hover {
   animation: indicator-pulse 1.6s ease-in-out infinite;
 }
 
+/* Feature 16 §5: mandatory story markers vs optional free-chat markers must look
+   different. Story = amber "!" with a "Сюжет" caption (pulses for attention);
+   free chat = a blue speech bubble with a sparkle. */
+.npc-marker {
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  font-family: inherit;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.npc-marker--story {
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: #e0912b;
+  animation: indicator-pulse 1.4s ease-in-out infinite;
+}
+.npc-marker--story .npc-marker-icon {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+}
+.npc-marker-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.npc-marker--chat {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #3573dd;
+}
+.npc-marker--chat .npc-marker-icon {
+  font-size: 18px;
+  line-height: 40px;
+}
+.npc-marker-spark {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  font-size: 12px;
+}
+
 /* Name + role tag over an NPC's head. */
 .npc-tag {
   transform: translateY(-100%);

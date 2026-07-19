@@ -59,8 +59,9 @@ function PmMeeting() {
   return (
     <group position={[spawn[0], 0, spawn[2]]}>
       <Html position={[0, 2.2, 0]} center zIndexRange={[10, 0]}>
-        <button className="npc-indicator" aria-label="Поговорить" onClick={walkToPm}>
-          💬
+        <button className="npc-marker npc-marker--story" title="Сюжетный разговор — познакомиться с Соней" onClick={walkToPm}>
+          <span className="npc-marker-icon">!</span>
+          <span className="npc-marker-label">Сюжет</span>
         </button>
       </Html>
       <mesh position={[0, 0.9, 0]} onClick={walkToPm}>

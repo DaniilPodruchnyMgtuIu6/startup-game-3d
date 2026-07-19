@@ -137,8 +137,9 @@ function NpcChatTarget({ npcId }: { npcId: NpcId }) {
     <group ref={boxRef} position={[spawn[0], 0, spawn[2]]}>
       {showTarget ? (
         <Html position={[0, 2.2, 0]} center zIndexRange={[10, 0]}>
-          <button className="npc-indicator" aria-label="Свободный разговор" onClick={beginApproach}>
-            💬
+          <button className="npc-marker npc-marker--chat" title="Поговорить — свободный разговор" aria-label="Свободный разговор" onClick={beginApproach}>
+            <span className="npc-marker-icon">💬</span>
+            <span className="npc-marker-spark">✨</span>
           </button>
         </Html>
       ) : null}
