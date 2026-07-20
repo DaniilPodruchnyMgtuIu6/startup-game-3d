@@ -19,6 +19,7 @@ import { MeetPmController } from '../game/MeetPmController'
 import { PostAuditConversationController } from '../game/PostAuditConversationController'
 import { SecuritySpecialistController } from '../game/SecuritySpecialistController'
 import { FreeNpcChatController } from '../game/FreeNpcChatController'
+import { NpcAmbientConversationController } from '../game/NpcAmbientConversationController'
 import { AccessControlReader } from '../furniture/AccessControlReader'
 import { CutsceneRunner } from '../cutscenes/CutsceneRunner'
 
@@ -58,6 +59,7 @@ export function Office({
         <PostAuditConversationController />
         <SecuritySpecialistController />
         <FreeNpcChatController />
+        <NpcAmbientConversationController />
         <AccessControlReader />
         <CutsceneRunner />
       </MaterialsProvider>

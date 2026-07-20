@@ -25,6 +25,11 @@ import {
   type DailyBeatContext,
 } from './workdayFlow'
 import { buildSprintKickoffDialogue, type SprintKickoffContext } from './sprintKickoff'
+import { pickNpcAmbientConversation, type NpcAmbientContext } from './npcAmbientConversation'
+import { useNpcAmbientStore } from './npcAmbientStore'
+import { useRiskStore } from './riskStore'
+import { RISK_DOMAINS } from './riskCatalog'
+import { getDetectedRiskLevel } from './riskRules'
 import { getEmployee, DEVELOPER_CATALOG, PROJECT_MANAGER, SECURITY_SPECIALIST_ID } from './teamCatalog'
 import { getProductTask } from './productTaskCatalog'
 import { plannedLoadForEmployee, completedInSprint, incompletePlanned, productReadiness } from './productRules'
@@ -79,6 +84,29 @@ function buildDailyBeatContext(): DailyBeatContext {
   }
 }
 
+// Feature 16 §8: the player-visible facts that pick the day's colleague
+// conversation. All derivable from what the player can already see — no hidden
+// (actual) risk leaks in, only DETECTED risk (§14 rule).
+function buildAmbientContext(): NpcAmbientContext {
+  const states = useProductStore.getState().taskStates
+  const signals = useRiskStore.getState().signals
+  const incidents = Object.values(useServerIncidentStore.getState().incidents)
+  const sprint = useSprintStore.getState()
+  return {
+    ilyaHired: hasSecuritySpecialist(useTeamStore.getState().hires),
+    overloadedDev: DEVELOPER_CATALOG.some((e) => plannedLoadForEmployee(states, e.id) > 10),
+    detectedHighRisk: RISK_DOMAINS.some((d) => {
+      const level = getDetectedRiskLevel(signals, d)
+      return level === 'high' || level === 'critical'
+    }),
+    serverRecoveryActive: incidents.some((i) => i.status === 'recovery-required' || i.status === 'recovering'),
+    readiness: productReadiness(states),
+    day: sprint.day,
+    sprintNumber: sprint.sprintNumber,
+    playedIds: useNpcAmbientStore.getState().playedIds,
+  }
+}
+
 // Feature 16 §1: the living Workday Flow. While the sprint is active and nothing
 // mandatory is open, each day plays a short observable beat and then the day
 // advances AUTOMATICALLY through the single completeWorkday use-case — no manual
@@ -91,6 +119,9 @@ const BEAT_MS: Record<DailyBeat['kind'], number> = {
   'pre-review': 3500,
   quiet: 3200,
 }
+
+// Short pause after a colleague conversation ends before the day is completed.
+const POST_CONVERSATION_MS = 900
 
 export function currentFlowContext(): WorkdayFlowContext {
   const product = useProductStore.getState()
@@ -111,7 +142,9 @@ export function currentFlowContext(): WorkdayFlowContext {
     // auto-advance behind the overlay the player is still reading (§10).
     useSecurityAuditStore.getState().auditResultToAcknowledge !== null ||
     useAccessControlStore.getState().intrusionResultToAcknowledge !== null ||
-    useServerIncidentStore.getState().incidentResultToAcknowledge !== null
+    useServerIncidentStore.getState().incidentResultToAcknowledge !== null ||
+    // §8: an NPC↔NPC conversation is this day's beat — the day waits for it
+    useNpcAmbientStore.getState().active !== null
   return {
     gamePhase: useGameStore.getState().phase,
     sprintPhase: useSprintStore.getState().phase,
@@ -165,6 +198,8 @@ export function WorkdayFlowController() {
   useAccessControlStore((s) => s.intrusionResultToAcknowledge)
   useServerIncidentStore((s) => s.incidentResultToAcknowledge)
   useSprintStore((s) => s.kickoffShownForSprint)
+  useRiskStore((s) => s.signals)
+  const ambientActive = useNpcAmbientStore((s) => s.active)
 
   const [beat, setBeat] = useState<DailyBeat | null>(null)
   const canAdvance = canAutoAdvanceWorkday(currentFlowContext())
@@ -183,6 +218,28 @@ export function WorkdayFlowController() {
       useGameStore.getState().startDialogue(buildSprintKickoffDialogue(buildKickoffContext()))
       return
     }
+    const dayKey = `${sprintNumber}:${day}`
+    const ambient = useNpcAmbientStore.getState()
+    if (ambient.playedDayKey === dayKey) {
+      // This day's colleague conversation already ran (while it played the day was
+      // `busy`, so we only reach here once it ended) — complete the day now, with
+      // no extra banner.
+      const t = setTimeout(() => {
+        if (canAutoAdvanceWorkday(currentFlowContext())) autoCompleteWorkday()
+      }, POST_CONVERSATION_MS)
+      return () => clearTimeout(t)
+    }
+    // Feature 16 §8: the day's beat is a short colleague conversation chosen from
+    // real sprint state. Beginning it makes the flow `busy`; the day advances (via
+    // the branch above) once the conversation ends. NpcAmbientConversationController
+    // stages the walk-up + speech bubbles.
+    const conversation = pickNpcAmbientConversation(buildAmbientContext())
+    if (conversation) {
+      ambient.begin(conversation, dayKey)
+      return
+    }
+    // No conversation available (edge — e.g. before the team exists) → the short
+    // status banner, then advance.
     const dayBeat = getDailyBeat(sprintNumber, day, buildDailyBeatContext())
     setBeat(dayBeat)
     const timer = setTimeout(() => {
@@ -196,7 +253,19 @@ export function WorkdayFlowController() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canAdvance, sprintNumber, day])
 
-  if (gamePhase !== 'free' || sprintPhase !== 'active' || !beat) return null
+  if (gamePhase !== 'free' || sprintPhase !== 'active') return null
+  // Feature 16 §8: while a colleague conversation plays, a short HUD note so a
+  // player across the office still knows it is happening (the lines themselves
+  // are speech bubbles over the two NPCs).
+  if (ambientActive) {
+    return (
+      <div className="workday-ambient">
+        <span className="workday-ambient-icon">💬</span>
+        <span>{ambientActive.conversation.hudSummary}</span>
+      </div>
+    )
+  }
+  if (!beat) return null
   return (
     <div className={`workday-beat workday-beat--${beat.kind}`}>
       <div className="workday-beat-title">{beat.title}</div>

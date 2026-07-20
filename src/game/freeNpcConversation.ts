@@ -12,6 +12,7 @@ import { isOfficeIntrusionBlocking } from './accessControlRules'
 import { useServerIncidentStore } from './serverIncidentStore'
 import { anyServerIncidentBlocking } from './serverIncidentRules'
 import { useCharacterStore } from '../character/characterStore'
+import { useNpcAmbientStore } from './npcAmbientStore'
 import { hasSecuritySpecialist } from './teamRules'
 import type { NpcId } from './npcChatTypes'
 
@@ -102,7 +103,9 @@ export function gatherFreeNpcEligibility(npcId: NpcId): FreeNpcConversationEligi
     useServerIncidentStore.getState().incidentResultToAcknowledge !== null ||
     isFollowUpAuditBlocking(audit.followUpAudit) ||
     isOfficeIntrusionBlocking(access.intrusion) ||
-    anyServerIncidentBlocking(Object.values(useServerIncidentStore.getState().incidents))
+    anyServerIncidentBlocking(Object.values(useServerIncidentStore.getState().incidents)) ||
+    // §8: don't invite a free chat with a colleague who is mid NPC↔NPC conversation
+    useNpcAmbientStore.getState().active !== null
 
   return canOpenFreeNpcConversation({
     npcId,

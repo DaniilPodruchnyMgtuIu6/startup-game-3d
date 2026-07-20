@@ -5,7 +5,16 @@ import { useCharacterStore, PLAYER_ID } from './characterStore'
 import { useCharacterTransform, WALK_SPEED } from './useCharacterTransform'
 import { useServerIncidentsStore, type ServerRole } from '../game/serverIncidentsStore'
 import { buildHeldMug, disposeHeldProp } from './heldProps'
+import { useNpcAmbientStore } from '../game/npcAmbientStore'
+import { visibleLineFor } from '../game/npcAmbientConversation'
+import { NPC_CHARACTER_ID, type NpcId } from '../game/npcChatTypes'
 import type { CharacterModelConfig, ClipName } from './characters/definition'
+
+// Reverse of NPC_CHARACTER_ID: 3D character id → chat NpcId, for showing an
+// ambient conversation's speech bubble over the right participant.
+const NPC_ID_FOR_CHARACTER: Record<string, NpcId> = Object.fromEntries(
+  (Object.entries(NPC_CHARACTER_ID) as [NpcId, string][]).map(([npcId, charId]) => [charId, npcId]),
+)
 
 const SIT_SETTLE_MS = 1000
 const BREW_MS = 3500
@@ -136,9 +145,24 @@ export function CharacterModel({ characterId, config, label }: CharacterModelPro
 
   useCharacterTransform(characterId, group, config.walkLift ?? 0)
 
+  // Feature 16 §8/§9: a compact speech bubble over this colleague, shown ONLY
+  // while an NPC↔NPC ambient conversation is running and this character is one of
+  // the two participants. Distinct from the name tag and the story/chat markers.
+  const ambient = useNpcAmbientStore((s) => s.active)
+  const npcId = NPC_ID_FOR_CHARACTER[characterId]
+  const bubble =
+    ambient && npcId && (ambient.conversation.mover === npcId || ambient.conversation.host === npcId)
+      ? visibleLineFor(ambient.conversation, ambient.lineIndex, npcId)
+      : null
+
   return (
     <group ref={group}>
       <primitive object={base.scene} />
+      {bubble ? (
+        <Html position={[0, 2.55, 0]} center zIndexRange={[8, 0]} pointerEvents="none">
+          <div className="npc-bubble">{bubble}</div>
+        </Html>
+      ) : null}
       {label ? (
         <Html position={[0, 2.05, 0]} center zIndexRange={[6, 0]} pointerEvents="none">
           <div className="npc-tag">

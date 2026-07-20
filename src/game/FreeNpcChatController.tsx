@@ -14,6 +14,7 @@ import { useServerIncidentStore } from './serverIncidentStore'
 import { useCutsceneStore } from '../cutscenes/cutsceneStore'
 import { useServerIncidentsStore } from './serverIncidentsStore'
 import { useNpcConversationStore } from './npcConversationStore'
+import { useNpcAmbientStore } from './npcAmbientStore'
 import { useCharacterStore, PLAYER_ID } from '../character/characterStore'
 import { nearestWalkable } from '../character/grid'
 import { releaseClaims } from '../interaction/interactionRegistry'
@@ -68,6 +69,7 @@ function NpcChatTarget({ npcId }: { npcId: NpcId }) {
   useServerIncidentStore((s) => s.incidentResultToAcknowledge)
   useServerIncidentStore((s) => s.incidents)
   useGameOutcomeStore((s) => s.status)
+  useNpcAmbientStore((s) => s.active)
 
   const charId = NPC_CHARACTER_ID[npcId]
   const present = useCharacterStore((s) => s.characters[charId] !== undefined)
