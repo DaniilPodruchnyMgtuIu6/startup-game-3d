@@ -3,9 +3,11 @@ import { useFrame } from '@react-three/fiber'
 import { useNpcAmbientStore } from './npcAmbientStore'
 import { useCharacterStore } from '../character/characterStore'
 import { nearestWalkable } from '../character/grid'
+import type { Point } from '../character/navigation'
 import { releaseClaims } from '../interaction/interactionRegistry'
 import { NPC_CHARACTER_ID } from './npcChatTypes'
-import { approachPoint, isWithinMeetDistance, facingBetween } from './meetingGeometry'
+import { facingBetween } from './meetingGeometry'
+import { conversationApproachPoint, separatedMoverPosition, horizontalDistance, ARRIVE_EPS } from './conversationStaging'
 
 // Feature 16 §8: stages the NPC↔NPC conversation the Workday Flow started. It
 // reuses the free-chat approach pattern (pause both brains via sceneOwned, walk
@@ -39,6 +41,7 @@ export function NpcAmbientConversationController() {
   const phaseRef = useRef<'idle' | 'gather' | 'talk'>('idle')
   const moverRef = useRef<string | null>(null)
   const hostRef = useRef<string | null>(null)
+  const approachRef = useRef<Point | null>(null)
   const gatherElapsed = useRef(0)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
@@ -79,11 +82,15 @@ export function NpcAmbientConversationController() {
     phaseRef.current = 'talk'
     const mp = store.characters[mover]?.position
     const hp = store.characters[host]?.position
+    const hostRot = store.characters[host]?.rotationY ?? 0
     store.dispatchTo(mover, { type: 'TALK_START' })
     store.dispatchTo(host, { type: 'TALK_START' })
     if (mp && hp) {
-      store.setTransform(mover, mp, facingBetween(mp, hp))
-      store.setTransform(host, hp, facingBetween(hp, mp))
+      // Guarantee a clean speaking gap: if they ended up too close (walk timed out
+      // while overlapping), push the mover out along their axis. Then face off.
+      const mpFinal = separatedMoverPosition(mp, hp, hostRot)
+      store.setTransform(mover, mpFinal, facingBetween(mpFinal, hp))
+      store.setTransform(host, hp, facingBetween(hp, mpFinal))
     }
     const lineCount = current.conversation.lines.length
     useNpcAmbientStore.getState().setLineIndex(0)
@@ -128,8 +135,12 @@ export function NpcAmbientConversationController() {
     pausePlanner(host)
     releaseClaims(mover)
     releaseClaims(host)
-    // walk the mover up to a spot in front of the host (no teleport)
-    store.dispatchTo(mover, { type: 'CLICK_FLOOR', point: nearestWalkable(approachPoint(hostEntity.position, hostEntity.rotationY)) })
+    // Walk the mover to a spot a clean speaking distance short of the host, on the
+    // mover's own side (no teleport). It stops there — not on top of the host —
+    // even if the two happened to start close together.
+    const ap = nearestWalkable(conversationApproachPoint(moverEntity.position, hostEntity.position, hostEntity.rotationY))
+    approachRef.current = ap
+    store.dispatchTo(mover, { type: 'CLICK_FLOOR', point: ap })
     // Guaranteed timeout via a real timer (not the useFrame delta), so the day is
     // never stuck waiting for an arrival that a stalled render loop can't report.
     timers.current.push(
@@ -144,18 +155,15 @@ export function NpcAmbientConversationController() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [convId])
 
-  // Detect the mover's arrival (or give up and talk in place after a timeout).
+  // Talk once the mover has reached its approach point (so they end up properly
+  // spaced), or give up and talk after a timeout.
   useFrame((_, delta) => {
     if (phaseRef.current !== 'gather') return
     gatherElapsed.current += delta
-    const store = useCharacterStore.getState()
-    const mover = moverRef.current
-    const host = hostRef.current
-    if (!mover || !host) return
-    const mp = store.characters[mover]?.position
-    const hp = store.characters[host]?.position
-    if (!mp || !hp) return
-    if (isWithinMeetDistance(mp, hp) || gatherElapsed.current > GATHER_TIMEOUT_S) startTalk()
+    const mp = useCharacterStore.getState().characters[moverRef.current ?? '']?.position
+    const ap = approachRef.current
+    if (!mp || !ap) return
+    if (horizontalDistance(mp, ap) < ARRIVE_EPS || gatherElapsed.current > GATHER_TIMEOUT_S) startTalk()
   })
 
   return null

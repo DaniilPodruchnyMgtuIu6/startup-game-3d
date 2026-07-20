@@ -154,12 +154,15 @@ export function CharacterModel({ characterId, config, label }: CharacterModelPro
     ambient && npcId && (ambient.conversation.mover === npcId || ambient.conversation.host === npcId)
       ? visibleLineFor(ambient.conversation, ambient.lineIndex, npcId)
       : null
+  // Stagger the two speakers' bubbles vertically (host higher, mover lower) so
+  // they never overlap on screen even when the colleagues stand side by side.
+  const bubbleY = ambient?.conversation.host === npcId ? 3.05 : 2.5
 
   return (
     <group ref={group}>
       <primitive object={base.scene} />
       {bubble ? (
-        <Html position={[0, 2.55, 0]} center zIndexRange={[8, 0]} pointerEvents="none">
+        <Html position={[0, bubbleY, 0]} center zIndexRange={[8, 0]} pointerEvents="none">
           <div className="npc-bubble">{bubble}</div>
         </Html>
       ) : null}
