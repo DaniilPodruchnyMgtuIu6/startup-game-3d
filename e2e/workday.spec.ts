@@ -14,8 +14,9 @@ test('the workday advances automatically, with no manual end-day button', async 
   // the manual button is dev-only — absent from the production build
   await expect(page.getByRole('button', { name: /Завершить рабочий день/ })).toHaveCount(0)
 
-  // no interaction: the day auto-completes and the daily report appears
-  await expect(page.getByText(/Итоги дня/)).toBeVisible({ timeout: 25_000 })
+  // no interaction: the day plays a colleague conversation (§8, walk-up + readable
+  // speech bubbles), then auto-completes and the daily report appears
+  await expect(page.getByText(/Итоги дня/)).toBeVisible({ timeout: 45_000 })
 
   expect(errors, `unexpected app errors:\n${errors.join('\n')}`).toEqual([])
 })

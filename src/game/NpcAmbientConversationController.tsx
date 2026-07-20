@@ -15,8 +15,8 @@ import { approachPoint, isWithinMeetDistance, facingBetween } from './meetingGeo
 // the day. Renders nothing (the bubbles live on the characters; the HUD note is
 // in WorkdayFlowController).
 
-const LINE_MS = 2400 // how long each spoken line lingers before the next
-const END_LINGER_MS = 1200 // pause after the final line before wrapping up
+const LINE_MS = 4500 // how long each spoken line stays up before the next (readable)
+const END_LINGER_MS = 4000 // the final line lingers this long before wrapping up
 const GATHER_TIMEOUT_S = 7 // fall back to talking in place if the walk gets stuck
 
 function pausePlanner(id: string) {

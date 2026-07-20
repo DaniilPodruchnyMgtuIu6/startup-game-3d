@@ -49,6 +49,17 @@ export function shouldOpenSprintKickoff(
   return day <= 1 && kickoffShownForSprint !== sprintNumber
 }
 
+// Feature 16 §8: an ambient colleague conversation must never play on top of a
+// mandatory scene. The one-time security breach fires on exactly the days an
+// ambient conversation would (sprint ≥ 2, first prototype ready), and its trigger
+// cannot see a running conversation — so while the breach is still due, the day is
+// yielded to it (it fires, completes, and Sonya's post-audit marker then appears).
+// Follow-up audit / intrusion / server incidents are already covered by
+// canAutoAdvanceWorkday's blocking guards; the breach is the one that is not.
+export function securityBreachStillDue(breachCompleted: boolean, sprintNumber: number, prototypeReady: boolean): boolean {
+  return !breachCompleted && sprintNumber >= 2 && prototypeReady
+}
+
 export type DailyBeatKind = 'kickoff' | 'mid-sprint' | 'pre-review' | 'quiet'
 
 export interface DailyBeat {

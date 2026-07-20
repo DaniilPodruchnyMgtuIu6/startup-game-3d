@@ -19,6 +19,7 @@ import { completeWorkday, canCompleteCurrentWorkday } from './completeWorkday'
 import {
   canAutoAdvanceWorkday,
   shouldOpenSprintKickoff,
+  securityBreachStillDue,
   getDailyBeat,
   type WorkdayFlowContext,
   type DailyBeat,
@@ -32,7 +33,7 @@ import { RISK_DOMAINS } from './riskCatalog'
 import { getDetectedRiskLevel } from './riskRules'
 import { getEmployee, DEVELOPER_CATALOG, PROJECT_MANAGER, SECURITY_SPECIALIST_ID } from './teamCatalog'
 import { getProductTask } from './productTaskCatalog'
-import { plannedLoadForEmployee, completedInSprint, incompletePlanned, productReadiness } from './productRules'
+import { plannedLoadForEmployee, completedInSprint, incompletePlanned, productReadiness, hasFirstPrototype } from './productRules'
 import { hasSecuritySpecialist } from './teamRules'
 import { getCharacterById } from '../character/characters'
 import { femalePm } from '../character/characters/femalePm'
@@ -216,6 +217,22 @@ export function WorkdayFlowController() {
     if (shouldOpenSprintKickoff(day, sprintNumber, useSprintStore.getState().kickoffShownForSprint)) {
       useSprintStore.getState().markSprintKickoffShown(sprintNumber)
       useGameStore.getState().startDialogue(buildSprintKickoffDialogue(buildKickoffContext()))
+      return
+    }
+    // §8 priority: an ambient conversation must never play on top of a mandatory
+    // scene. The one-time security-breach fires on exactly these days (sprint ≥ 2,
+    // first prototype ready) and its trigger cannot see a running conversation —
+    // so while it is still due, yield the day to it. It fires, completes, and
+    // Sonya's post-audit marker then appears; only afterwards do conversations
+    // resume. (Follow-up audit / intrusion / server incidents are already covered
+    // by canAutoAdvanceWorkday's blocking guards.)
+    if (
+      securityBreachStillDue(
+        useSecurityStoryStore.getState().securityBreach.status === 'completed',
+        sprintNumber,
+        hasFirstPrototype(useProductStore.getState().taskStates),
+      )
+    ) {
       return
     }
     const dayKey = `${sprintNumber}:${day}`

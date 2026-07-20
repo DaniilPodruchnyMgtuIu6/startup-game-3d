@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { canAutoAdvanceWorkday, shouldOpenSprintKickoff, getDailyBeat, type WorkdayFlowContext } from './workdayFlow'
+import { canAutoAdvanceWorkday, shouldOpenSprintKickoff, securityBreachStillDue, getDailyBeat, type WorkdayFlowContext } from './workdayFlow'
 import { autoCompleteWorkday, currentFlowContext } from './WorkdayFlowController'
 import { useSprintStore, loadKickoffShown } from './sprintStore'
 import { useEconomyStore } from './economyStore'
@@ -44,6 +44,15 @@ describe('canAutoAdvanceWorkday', () => {
     expect(canAutoAdvanceWorkday({ ...clear, followUpAuditBlocking: true })).toBe(false)
     expect(canAutoAdvanceWorkday({ ...clear, officeIntrusionBlocking: true })).toBe(false)
     expect(canAutoAdvanceWorkday({ ...clear, serverIncidentBlocking: true })).toBe(false)
+  })
+})
+
+describe('securityBreachStillDue (ambient yields to the mandatory breach)', () => {
+  it('is true only while the breach is unfinished AND it could fire (sprint ≥ 2, prototype ready)', () => {
+    expect(securityBreachStillDue(false, 2, true)).toBe(true) // breach pending on a qualifying day → yield
+    expect(securityBreachStillDue(true, 2, true)).toBe(false) // already done → conversations resume
+    expect(securityBreachStillDue(false, 1, true)).toBe(false) // sprint 1: breach can't fire yet
+    expect(securityBreachStillDue(false, 3, false)).toBe(false) // no prototype: breach can't fire yet
   })
 })
 
