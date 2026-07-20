@@ -32,6 +32,10 @@ export interface NpcAmbientContext {
   overloadedDev: boolean // a developer is planned > 10 days this sprint
   detectedHighRisk: boolean // some domain's DETECTED risk is high/critical
   serverRecoveryActive: boolean // a server incident is in recovery
+  // СКУД (access control) has been offered but not installed (available/postponed).
+  accessControlDecisionPending: boolean
+  // an office-intrusion threat is armed — the HUD countdown is running.
+  intrusionArmed: boolean
   readiness: number // OfficeFlow readiness %, 0..100
   day: number
   sprintNumber: number
@@ -55,6 +59,40 @@ interface PoolEntry {
 
 const STORY: PoolEntry[] = [
   {
+    // Foreshadows the office intrusion once the threat is armed (§10): the entrance
+    // is exposed and the countdown is running — colleagues push to install СКУД.
+    conversation: {
+      id: 'intrusion-imminent',
+      mover: 'sonya-sokolova',
+      host: 'kirill-morozov',
+      hudSummary: 'Соня и Кирилл торопят с установкой СКУД, пока вход открыт.',
+      lines: [
+        { speaker: 'sonya-sokolova', text: 'Если в ближайшие дни не поставим СКУД, к нам может войти кто угодно.' },
+        { speaker: 'kirill-morozov', text: 'Вход и правда открыт для любого. Давай не тянуть с этим.' },
+      ],
+    },
+    when: (c) => c.intrusionArmed,
+    once: true,
+    priority: 10,
+  },
+  {
+    // Foreshadows the intrusion earlier — СКУД has been offered but not installed:
+    // colleagues recall a similar break-in caused by an open entrance.
+    conversation: {
+      id: 'access-control-warning',
+      mover: 'alina-belova',
+      host: 'kirill-morozov',
+      hudSummary: 'Алина и Кирилл вспомнили кражу у соседей из-за открытого входа.',
+      lines: [
+        { speaker: 'alina-belova', text: 'Слышал, к соседям на этаже зашёл кто-то под видом курьера и вынес ноутбук прямо со стола?' },
+        { speaker: 'kirill-morozov', text: 'Ага. И на входе у них — никакого контроля доступа. У нас, между прочим, тоже.' },
+      ],
+    },
+    when: (c) => c.accessControlDecisionPending && !c.intrusionArmed,
+    once: true,
+    priority: 20,
+  },
+  {
     // §8: Кирилл и Илья — при server recovery
     conversation: {
       id: 'kirill-ilya-recovery',
@@ -68,7 +106,7 @@ const STORY: PoolEntry[] = [
     },
     when: (c) => c.serverRecoveryActive,
     once: true,
-    priority: 1,
+    priority: 30,
   },
   {
     // §8: Соня и Илья — при detected high risk
@@ -84,7 +122,7 @@ const STORY: PoolEntry[] = [
     },
     when: (c) => c.detectedHighRisk,
     once: true,
-    priority: 2,
+    priority: 40,
   },
   {
     // §8: Соня и Кирилл — при перегрузке
@@ -100,7 +138,7 @@ const STORY: PoolEntry[] = [
     },
     when: (c) => c.overloadedDev,
     once: true,
-    priority: 3,
+    priority: 50,
   },
 ]
 

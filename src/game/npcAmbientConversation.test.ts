@@ -6,6 +6,8 @@ const base: NpcAmbientContext = {
   overloadedDev: false,
   detectedHighRisk: false,
   serverRecoveryActive: false,
+  accessControlDecisionPending: false,
+  intrusionArmed: false,
   readiness: 50,
   day: 3,
   sprintNumber: 2,
@@ -36,6 +38,18 @@ describe('pickNpcAmbientConversation', () => {
     // high risk would trigger the Sonya↔Ilya beat, but only once Ilya exists
     expect(pickNpcAmbientConversation({ ...base, detectedHighRisk: true })!.id).not.toBe('sonya-ilya-risk')
     expect(pickNpcAmbientConversation({ ...base, detectedHighRisk: true, ilyaHired: true })!.id).toBe('sonya-ilya-risk')
+  })
+
+  it('foreshadows the intrusion: СКУД offered → a similar-break-in warning (no Ilya needed)', () => {
+    const c = pickNpcAmbientConversation({ ...base, accessControlDecisionPending: true })!
+    expect(c.id).toBe('access-control-warning')
+    expect([c.mover, c.host]).not.toContain('ilya-vlasov') // works before any security hire
+  })
+
+  it('escalates the foreshadow once the intrusion is armed, above the softer warning', () => {
+    // armed → the urgent beat; the softer "offered" beat only shows before arming
+    const c = pickNpcAmbientConversation({ ...base, accessControlDecisionPending: true, intrusionArmed: true })!
+    expect(c.id).toBe('intrusion-imminent')
   })
 
   it('prioritises server recovery over a detected risk when both are true', () => {

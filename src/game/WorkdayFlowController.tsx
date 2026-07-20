@@ -92,6 +92,7 @@ function buildAmbientContext(): NpcAmbientContext {
   const states = useProductStore.getState().taskStates
   const signals = useRiskStore.getState().signals
   const incidents = Object.values(useServerIncidentStore.getState().incidents)
+  const access = useAccessControlStore.getState()
   const sprint = useSprintStore.getState()
   return {
     ilyaHired: hasSecuritySpecialist(useTeamStore.getState().hires),
@@ -101,6 +102,9 @@ function buildAmbientContext(): NpcAmbientContext {
       return level === 'high' || level === 'critical'
     }),
     serverRecoveryActive: incidents.some((i) => i.status === 'recovery-required' || i.status === 'recovering'),
+    accessControlDecisionPending:
+      access.accessControl.proposalStatus === 'available' || access.accessControl.proposalStatus === 'postponed',
+    intrusionArmed: access.intrusion.status === 'armed',
     readiness: productReadiness(states),
     day: sprint.day,
     sprintNumber: sprint.sprintNumber,
