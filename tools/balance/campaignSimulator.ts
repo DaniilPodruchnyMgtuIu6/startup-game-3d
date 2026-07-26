@@ -20,6 +20,10 @@ import { useServerIncidentsStore } from '../../src/game/serverIncidentsStore'
 import { useGameOutcomeStore } from '../../src/game/gameOutcomeStore'
 import { useStoryDecisionStore } from '../../src/game/story/storyDecisionStore'
 import { useStoryWorkStore } from '../../src/game/story/storyWorkStore'
+import { useStoryConsequenceStore } from '../../src/game/story/storyConsequenceStore'
+import { applyConsequenceEffects } from '../../src/game/story/storyConsequences'
+import type { StoryConsequenceId } from '../../src/game/story/level1Checkpoints'
+import type { Level1StoryDecisionId } from '../../src/game/story/level1Timeline'
 import { useCutsceneStore } from '../../src/cutscenes/cutsceneStore'
 import { completeWorkday } from '../../src/game/completeWorkday'
 import { hireDeveloper } from '../../src/game/hireDeveloper'
@@ -84,6 +88,9 @@ export interface ResetOptions {
   // the real post-audit branch creates it. With Ilya he closes findings (Kirill
   // stays on product); without him Kirill is diverted for the technical ones.
   withCorrectivePlan?: boolean
+  // Feature 17C: when false, the baseline story record is NOT pre-resolved via
+  // legacy migration - the scenario drives the real Level 1 decisions itself.
+  legacyBaseline?: boolean
 }
 
 // Fresh, deterministic game. Story is pre-completed so completeWorkday is not
@@ -114,9 +121,12 @@ export function resetCampaign(opts: ResetOptions = {}): void {
   // decided (see the story preset above) - the baseline node mirrors that.
   useStoryDecisionStore.getState().resetLevel1Story()
   useStoryWorkStore.getState().resetStoryWork()
-  useStoryDecisionStore
-    .getState()
-    .recordLegacyBaselineResolution(opts.withIlya ? 'approve-security-hire' : 'decline-security-hire', { sprintNumber: 1, day: 1 })
+  useStoryConsequenceStore.getState().resetConsequences()
+  if (opts.legacyBaseline !== false) {
+    useStoryDecisionStore
+      .getState()
+      .recordLegacyBaselineResolution(opts.withIlya ? 'approve-security-hire' : 'decline-security-hire', { sprintNumber: 1, day: 1 })
+  }
   // No CutsceneRunner in the sim — clear any scene id the harness left set.
   useCutsceneStore.setState({ activeSceneId: null })
 
@@ -184,8 +194,38 @@ export function startSprint(): void {
   note(`start sprint (${r.started ? 'ok' : 'blocked:' + (r as { reason?: string }).reason})`)
 }
 
+// Feature 17C: resolve a Level 1 decision through the real store + handlers.
+export function decideStory(id: Level1StoryDecisionId, choiceId: string): void {
+  const s = useSprintStore.getState()
+  const moment = { sprintNumber: s.sprintNumber, day: s.day }
+  useStoryDecisionStore.getState().unlockDecision(id, moment)
+  useStoryDecisionStore.getState().resolveDecision(id, choiceId, moment)
+  note(`story ${id} -> ${choiceId}`)
+}
+
+// Feature 17C: hold every queued mandatory consequence scene deterministically
+// (no dialogue runner in the sim) - the same effects the real scene applies.
+// `choices` picks an option for warning scenes (defaults to declining).
+export function resolvePendingStoryConsequences(choices: Partial<Record<StoryConsequenceId, string>> = {}): StoryConsequenceId[] {
+  const held: StoryConsequenceId[] = []
+  for (let guard = 0; guard < 20; guard++) {
+    const conseq = useStoryConsequenceStore.getState()
+    const next = conseq.pendingConsequenceIds[0]
+    if (!next) break
+    conseq.startConsequence(next)
+    const s = useSprintStore.getState()
+    applyConsequenceEffects(next, { sprintNumber: s.sprintNumber, day: s.day }, choices[next])
+    useStoryConsequenceStore.getState().completeConsequence(next)
+    held.push(next)
+    note(`consequence ${next}${choices[next] ? ` (${choices[next]})` : ''}`)
+  }
+  return held
+}
+
 export interface DayHooks {
   before?: () => void
+  // Choice per warning consequence scene held before the day completes.
+  consequenceChoices?: Partial<Record<StoryConsequenceId, string>>
 }
 
 // Completes one working day through the single real use-case, accumulating who
@@ -194,6 +234,8 @@ export function completeDay(hooks: DayHooks = {}): ReturnType<typeof completeWor
   // mandatory events first, matching the real event order (audit before the day)
   resolvePendingAuditIfAny()
   assignOpenFindings()
+  // Feature 17C: unheld consequence scenes block the day - hold them now.
+  resolvePendingStoryConsequences(hooks.consequenceChoices)
   hooks.before?.()
   useSprintStore.setState({ confirmingEndDay: true })
   const result = completeWorkday()

@@ -2,6 +2,7 @@ import { STORY_BALANCE } from '../balance/storyBalance'
 import { toWorkdayIndex } from '../workdayIndex'
 import { useStoryDecisionStore } from './storyDecisionStore'
 import { useStoryWorkStore } from './storyWorkStore'
+import { useStoryConsequenceStore } from './storyConsequenceStore'
 import type { Level1StoryDecisionId } from './level1Timeline'
 
 // Derived, read-only consequences of RESOLVED story choices (Feature 17B).
@@ -33,19 +34,32 @@ export function getBaselinePath(): BaselinePath {
 // final cost never drops below zero.
 export function getStoryIncidentCostModifierRub(incidentId: string): number {
   let modifier = 0
+  const isAuthOrDb = incidentId === 'auth-account-incident' || incidentId === 'database-exposure-review'
   if (incidentId === 'auth-account-incident' && resolvedChoice('developer-admin-access') === 'grant-permanent-admin') {
     modifier += STORY_BALANCE.adminAccess.permanentAuthIncidentCostIncreaseRub
   }
-  if (
-    (incidentId === 'auth-account-incident' || incidentId === 'database-exposure-review') &&
-    resolvedChoice('architecture-boundary') === 'separate-security-boundaries'
-  ) {
+  if (isAuthOrDb && resolvedChoice('architecture-boundary') === 'separate-security-boundaries') {
     modifier -= STORY_BALANCE.architecture.separateIncidentCostReductionRub
+  }
+  // 17C §10: the shared technical access widens the blast radius - the
+  // emergency response of an AUTH/DATABASE incident becomes more expensive.
+  if (isAuthOrDb && resolvedChoice('architecture-boundary') === 'keep-shared-architecture') {
+    modifier += STORY_BALANCE.consequences.architectureIncidentCostIncreaseRub
   }
   if (resolvedChoice('suspicious-activity-disclosure') === 'report-activity-immediately') {
     modifier -= STORY_BALANCE.disclosure.reportIncidentCostReductionRub
   }
   return modifier
+}
+
+// 17C §10: shared architecture also makes the recovery of an AUTH/DATABASE
+// incident one day longer (applied per incident naturally - the effort is read
+// once per incident lifecycle).
+export function getStoryRecoveryEffortExtraDays(incidentId: string): number {
+  const isAuthOrDb = incidentId === 'auth-account-incident' || incidentId === 'database-exposure-review'
+  return isAuthOrDb && resolvedChoice('architecture-boundary') === 'keep-shared-architecture'
+    ? STORY_BALANCE.consequences.architectureRecoveryEffortIncreaseDays
+    : 0
 }
 
 // --- Risk detection ----------------------------------------------------------
@@ -62,6 +76,9 @@ export function getStoryDetectionDelayReductionDays(): number {
 export type RestoreReadiness = 'verified' | 'configured' | 'absent' | 'unknown'
 
 export function getRestoreReadiness(): RestoreReadiness {
+  // A finished late restore drill (17C) verifies recovery regardless of the
+  // original choice. Lazy import-free read via the consequence store.
+  if (useStoryConsequenceStore.getState().lateRestoreDrillCompleted) return 'verified'
   const choice = resolvedChoice('backup-and-restore-strategy')
   if (choice === 'run-full-restore-drill') return 'verified'
   if (choice === 'configure-backups-only') return 'configured'

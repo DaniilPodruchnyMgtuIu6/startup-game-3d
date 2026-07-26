@@ -23,6 +23,10 @@ export type GameFailureReason =
   | 'leadership-suspension'
   | 'service-collapse'
   | 'delivery-deadline-missed'
+  // Feature 17C: the project files are destroyed with no verified recovery.
+  | 'unrecoverable-project-data-loss'
+  // Feature 17C: leadership discovers a concealed critical risk at release.
+  | 'concealed-critical-release-risk'
 
 export type LeadershipReviewStatus = 'inactive' | 'grace-period' | 'recovered' | 'failed'
 
@@ -38,6 +42,8 @@ export const LEADERSHIP_GRACE_PERIOD_DAYS = TIMELINE_BALANCE.leadershipGraceWork
 export const MAX_SERVER_DOWNTIME_DAYS = TIMELINE_BALANCE.maxServerDowntimeDays
 
 const ALL_FAILURE_REASONS: GameFailureReason[] = [
+  'unrecoverable-project-data-loss',
+  'concealed-critical-release-risk',
   'budget-exhausted',
   'leadership-suspension',
   'service-collapse',
@@ -47,6 +53,10 @@ const ALL_FAILURE_REASONS: GameFailureReason[] = [
 // Fixed priority when several conditions hold at once. Lower number wins as the
 // primary reason; the rest become contributing reasons.
 const FAILURE_PRIORITY: Record<GameFailureReason, number> = {
+  // Story-driven terminals (Feature 17C) outrank the metric-driven ones - their
+  // mandatory scenes have already played when they register.
+  'unrecoverable-project-data-loss': 0,
+  'concealed-critical-release-risk': 0,
   'budget-exhausted': 1,
   'leadership-suspension': 2,
   'service-collapse': 3,

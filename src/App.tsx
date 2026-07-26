@@ -46,7 +46,7 @@ import { initializeSecurityAuditIfReady } from './game/initializeSecurityAudit'
 import { reconcileRiskSignals } from './game/reconcileRiskSignals'
 import { reconcileAccessControlThreatAndProposal } from './game/reconcileAccessControl'
 import { reconcileServerIncidentThreatsAtStartup } from './game/reconcileServerIncidents'
-import { reconcileStoryDecisionsAtStartup } from './game/story/reconcileStoryDecisions'
+import { reconcileStoryDecisionsAtStartup, reconcileStoryConsequencesAtStartup } from './game/story/reconcileStoryDecisions'
 import { useServerIncidentStore } from './game/serverIncidentStore'
 import { useRiskStore } from './game/riskStore'
 import { RISK_DOMAINS } from './game/riskCatalog'
@@ -77,6 +77,9 @@ reconcilePlanningWithoutTeam()
 // Feature 17A §9: create/repair the Level 1 story-decision records against a
 // pre-17 save (legacy staffing choice -> resolved baseline; never replayed).
 reconcileStoryDecisionsAtStartup()
+// Feature 17C §15: data-loss checkpoints already passed by an old save are
+// skipped - the catastrophe never fires retroactively.
+reconcileStoryConsequencesAtStartup()
 
 // The shared reset flag has now been consumed by every store's module-load
 // hydration; strip ?intro so a later manual reload keeps the new game's progress.

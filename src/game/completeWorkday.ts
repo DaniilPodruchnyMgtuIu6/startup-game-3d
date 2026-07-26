@@ -20,6 +20,7 @@ import { isStoryDecisionBlockingNow } from './story/storyDecisionSelectors'
 import { useStoryWorkStore, type ApplyStoryWorkdayResult } from './story/storyWorkStore'
 import { applyStoryFollowUpsForWorkday } from './story/storyFollowUps'
 import { getStoryDetectionDelayReductionDays } from './story/storyEffectSelectors'
+import { evaluateStoryCheckpoints, isStoryConsequencePending } from './story/storyConsequences'
 import { isOfficeIntrusionBlocking, canUnlockAccessControlProposal, shouldEscalateAccessControl } from './accessControlRules'
 import { accessControlNotImplementedSignals } from './riskSignals'
 import { riskMomentAt } from './riskContext'
@@ -81,6 +82,10 @@ export function completeWorkday(): CompleteWorkdayResult {
   // A mandatory Level 1 story decision must be resolved before the day can end
   // (Feature 17A §7).
   if (isStoryDecisionBlockingNow()) {
+    return { completed: false, reason: 'required-story-decision' }
+  }
+  // A pending Feature 17C consequence scene must be held before the next day.
+  if (isStoryConsequencePending()) {
     return { completed: false, reason: 'required-story-decision' }
   }
   // A pending/running follow-up audit must be resolved before the next day.
@@ -178,6 +183,11 @@ export function completeWorkday(): CompleteWorkdayResult {
 
   // 11. reconcile server incident threats against ACTUAL domain risk + rack instability
   useServerIncidentStore.getState().reconcileServerIncidentThreats(completedWorkdayIndex)
+
+  // 11b. Feature 17C consequence checkpoints - evaluated AFTER every risk and
+  //      threat reconciliation of the day (§13); the queued mandatory scenes
+  //      surface behind the daily report and block the next day until held.
+  evaluateStoryCheckpoints({ sprintNumber, day, completedWorkdayIndex })
 
   // 12. surface the day's report to the player (does not re-run any calc)
   useProductStore.getState().showReport(productResult.record)

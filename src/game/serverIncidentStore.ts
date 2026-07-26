@@ -9,7 +9,8 @@ import { hasSecuritySpecialist } from './teamRules'
 import { getActualRiskLevel } from './riskRules'
 import { createServerIncidentTransaction, createServerDowntimeTransaction } from './economyRules'
 import { serverIncidentOccurredSignals, serverIncidentRecoveredSignals } from './riskSignals'
-import { getStoryIncidentCostModifierRub, isQuietInvestigationOpen } from './story/storyEffectSelectors'
+import { getStoryIncidentCostModifierRub, getStoryRecoveryEffortExtraDays, isQuietInvestigationOpen } from './story/storyEffectSelectors'
+import { applyStoryIncidentConsequences } from './story/storyConsequences'
 import { riskMomentAt } from './riskContext'
 import { getServerIncident, type ServerIncidentDefinition, type ServerIncidentId } from './serverIncidentCatalog'
 import type { BoardTask } from './tasks'
@@ -200,6 +201,9 @@ export const useServerIncidentStore = create<ServerIncidentStore>()((set, get) =
       // Feature 17B: an incident landing while the team quietly investigates the
       // suspicious activity means leadership learns about the delay.
       if (isQuietInvestigationOpen()) useSecurityAuditStore.getState().raiseLeadershipComplaint()
+      // Feature 17C: past decisions shape this incident - neighbor-domain
+      // spread, checkpoint records and the mandatory consequence scenes.
+      applyStoryIncidentConsequences(incidentId, moment)
 
       setIncident(incidentId, {
         ...state,
@@ -268,7 +272,7 @@ export const useServerIncidentStore = create<ServerIncidentStore>()((set, get) =
           continue
         }
         const employeeId = state.assignedEmployeeId
-        const effort = getServerRecoveryEffort(def.id, state.hadSecuritySpecialistAtIncident === true)
+        const effort = getServerRecoveryEffort(def.id, state.hadSecuritySpecialistAtIncident === true, getStoryRecoveryEffortExtraDays(def.id))
         const before = state.recoveryProgressDays
         const after = Math.min(effort, before + 1)
         const completed = after >= effort

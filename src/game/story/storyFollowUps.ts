@@ -7,14 +7,24 @@ import { STORY_BALANCE } from '../balance/storyBalance'
 import type { BoardTask } from '../tasks'
 import { useStoryDecisionStore } from './storyDecisionStore'
 import { useStoryWorkStore } from './storyWorkStore'
+import { useStoryConsequenceStore } from './storyConsequenceStore'
 import { missedHireDeadlineSignals } from './storyRiskSignals'
 import { getBaselinePath } from './storyEffectSelectors'
+import {
+  CLEANUP_ASSIGNMENT_ID,
+  CLEANUP_TEST_DATA_TASK_ID,
+  CONFIRM_RESTORE_TASK_ID,
+  HARDENING_ASSIGNMENT_PREFIX,
+  HARDENING_TASK_ID,
+  LATE_DRILL_ASSIGNMENT_ID,
+  RECOVERY_ASSIGNMENT_ID,
+  RECOVER_PROJECT_TASK_ID,
+} from './level1Checkpoints'
 
-// Delayed consequences of the Level 1 decisions (Feature 17B): the baseline
-// audit result landing two workdays later, Ilya's internal review starting on
-// his real hire (with the 3-workday hire deadline), and the postponed-backup
-// warning. Every step is idempotent - stable task ids, stable signal ids,
-// stable assignment ids - so reloads and repeated calls change nothing.
+// Delayed follow-ups of the Level 1 decisions (Features 17B/17C): the baseline
+// audit result and internal review land as mandatory result scenes, the hire
+// deadline raises governance once, and finished story work closes its visible
+// tasks. Every step is idempotent (stable task/signal/assignment/scene ids).
 
 export const BASELINE_AUDIT_RESULT_TASK: BoardTask = {
   id: 'complete-baseline-security-audit',
@@ -25,12 +35,6 @@ export const BASELINE_AUDIT_RESULT_TASK: BoardTask = {
 export const INTERNAL_REVIEW_TASK: BoardTask = {
   id: 'complete-internal-security-review',
   text: 'Провести внутреннюю проверку безопасности (Илья)',
-  done: false,
-}
-
-export const BACKUP_WARNING_TASK: BoardTask = {
-  id: 'return-to-backup-restore-check',
-  text: 'Вернуться к проверке восстановления резервных копий',
   done: false,
 }
 
@@ -83,18 +87,18 @@ export function applyStoryFollowUpsForWorkday(ctx: StoryFollowUpContext): void {
   const record = baselineRecord()
   const resolvedIndex = baselineResolvedIndex()
   const path = getBaselinePath()
+  const conseq = useStoryConsequenceStore.getState()
 
   // 1. External audit: the result report lands N completed workdays after the
-  //    order - the department task closes.
+  //    order as a mandatory result scene (17C §3) - never twice.
   if (!record.migratedFromLegacy && path === 'external-audit' && resolvedIndex !== undefined) {
     if (ctx.completedWorkdayIndex >= resolvedIndex + STORY_BALANCE.baselineAudit.resultDelayWorkdays) {
-      useGameStore.getState().completeTask(BASELINE_AUDIT_RESULT_TASK.id)
+      conseq.queueConsequenceOnce('baseline-audit-result')
     }
   }
 
   // 2. Hire-first path: the review starts on a real hire; a hire that never
-  //    happened within the deadline raises governance once and keeps a warning
-  //    in the objective flow (the task stays open).
+  //    happened within the deadline raises governance once.
   ensureInternalReviewStarted()
   if (!record.migratedFromLegacy && path === 'internal-review' && resolvedIndex !== undefined) {
     const ilyaHired = hasSecuritySpecialist(useTeamStore.getState().hires)
@@ -105,17 +109,24 @@ export function applyStoryFollowUpsForWorkday(ctx: StoryFollowUpContext): void {
     }
   }
 
-  // 3. Ilya's finished review closes its task.
+  // 3. Ilya's finished review lands as its result scene (17C §3).
   if (ctx.finishedAssignmentIds.includes(INTERNAL_REVIEW_ASSIGNMENT_ID)) {
-    useGameStore.getState().completeTask(INTERNAL_REVIEW_TASK.id)
+    conseq.queueConsequenceOnce('internal-review-complete')
   }
 
-  // 4. Postponed backups: a visible warning task appears after the delay.
-  const backup = useStoryDecisionStore.getState().decisions['backup-and-restore-strategy']
-  if (backup.status === 'resolved' && backup.selectedChoiceId === 'postpone-backup-work' && backup.resolvedAt) {
-    const backupIndex = toWorkdayIndex(backup.resolvedAt.sprintNumber, backup.resolvedAt.day)
-    if (ctx.completedWorkdayIndex >= backupIndex + STORY_BALANCE.backupRestore.postponeWarningDelayWorkdays) {
-      addTaskOnce(BACKUP_WARNING_TASK)
-    }
+  // 4. Finished consequence work closes its visible tasks (17C).
+  const game = useGameStore.getState()
+  if (ctx.finishedAssignmentIds.includes(LATE_DRILL_ASSIGNMENT_ID)) {
+    conseq.setLateRestoreDrillCompleted()
+    game.completeTask(CONFIRM_RESTORE_TASK_ID)
+  }
+  if (ctx.finishedAssignmentIds.includes(RECOVERY_ASSIGNMENT_ID)) {
+    game.completeTask(RECOVER_PROJECT_TASK_ID)
+  }
+  if (ctx.finishedAssignmentIds.includes(CLEANUP_ASSIGNMENT_ID)) {
+    game.completeTask(CLEANUP_TEST_DATA_TASK_ID)
+  }
+  if (ctx.finishedAssignmentIds.some((id) => id.startsWith(HARDENING_ASSIGNMENT_PREFIX))) {
+    game.completeTask(HARDENING_TASK_ID)
   }
 }

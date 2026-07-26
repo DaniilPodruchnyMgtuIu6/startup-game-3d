@@ -99,4 +99,22 @@ export const STORY_BALANCE = {
     hideRiskGovernanceImpact: 4,
     hideRiskScorePenalty: 25,
   },
+  // 17C consequence checkpoints
+  consequences: {
+    adminConsequenceIdentityImpact: 1,
+    testDataConsequenceSensitiveImpact: 1,
+    testDataCleanupEffortDays: 1,
+    architectureNeighborImpact: 1,
+    architectureIncidentCostIncreaseRub: 40_000,
+    architectureRecoveryEffortIncreaseDays: 1,
+    investigationSuccessGovernanceMitigation: -1,
+    dismissEscalationGovernanceImpact: 2,
+  },
+  // 17C data-loss branch
+  dataLoss: {
+    recoveryCostRub: 300_000,
+    recoveryEffortDays: 3,
+    recoveryContinuityImpact: 2,
+    verifiedRestoreContinuityMitigation: -1,
+  },
 } as const

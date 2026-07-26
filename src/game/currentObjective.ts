@@ -9,6 +9,9 @@ export interface ObjectiveContext {
   // Feature 17A: the objective text of the pending mandatory story decision
   // (undefined when none is pending). Takes priority over everything below.
   storyDecisionText?: string
+  // Feature 17C §7: workdays left to remove the critical project-loss risk
+  // after the final warning (undefined when the window is not open).
+  dataLossDaysLeft?: number
   postAuditPending: boolean
   serverIncidentNeedingAssignee?: string // incident title awaiting a recovery assignee
   // Feature 16 §9: the office-intrusion threat is armed — working days left before it fires.
@@ -34,6 +37,12 @@ export function getCurrentObjective(ctx: ObjectiveContext): Objective | null {
 
   // Feature 17A §7: a mandatory story decision is THE current goal.
   if (ctx.storyDecisionText) return { id: 'resolve-story-dialogue', text: ctx.storyDecisionText, target: 'sonya' }
+  // Feature 17C §7: the open data-loss window is the loudest warning.
+  if (ctx.dataLossDaysLeft !== undefined)
+    return {
+      text: `Устраните критический риск потери проекта. Осталось рабочих дней: ${ctx.dataLossDaysLeft}.`,
+      target: 'security-board',
+    }
   if (ctx.postAuditPending) return { text: 'Поговорите с Соней о результатах аудита.', target: 'sonya' }
   if (ctx.intrusionArmedDaysLeft !== undefined)
     return {

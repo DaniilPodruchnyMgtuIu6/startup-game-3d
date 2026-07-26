@@ -184,17 +184,20 @@ export function getServerIncidentImmediateCost(
   return Math.max(0, base + storyModifierRub)
 }
 
-export function getServerRecoveryEffort(incidentId: ServerIncidentId, hasSecuritySpecialistAtIncident: boolean): number {
+// `storyExtraDays` (Feature 17C): the shared-architecture choice makes an
+// AUTH/DATABASE recovery one day longer.
+export function getServerRecoveryEffort(incidentId: ServerIncidentId, hasSecuritySpecialistAtIncident: boolean, storyExtraDays = 0): number {
   const def = getServerIncident(incidentId)!
-  return hasSecuritySpecialistAtIncident ? def.recoveryEffortWithSecuritySpecialist : def.recoveryEffortWithoutSecuritySpecialist
+  const base = hasSecuritySpecialistAtIncident ? def.recoveryEffortWithSecuritySpecialist : def.recoveryEffortWithoutSecuritySpecialist
+  return base + Math.max(0, storyExtraDays)
 }
 
 export function getServerDowntimeCost(incidentId: ServerIncidentId): number {
   return getServerIncident(incidentId)!.downtimeCostPerDay
 }
 
-export function getRemainingServerRecoveryEffort(state: ServerIncidentState): number {
-  return Math.max(0, getServerRecoveryEffort(state.incidentId, state.hadSecuritySpecialistAtIncident === true) - state.recoveryProgressDays)
+export function getRemainingServerRecoveryEffort(state: ServerIncidentState, storyExtraDays = 0): number {
+  return Math.max(0, getServerRecoveryEffort(state.incidentId, state.hadSecuritySpecialistAtIncident === true, storyExtraDays) - state.recoveryProgressDays)
 }
 
 export function serverRecoveryWorkdayId(sprintNumber: number, day: number): string {

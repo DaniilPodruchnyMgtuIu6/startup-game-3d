@@ -15,6 +15,8 @@ const REASON_TITLE: Record<GameFailureReason, string> = {
   'leadership-suspension': 'Проект приостановлен руководством',
   'service-collapse': 'OfficeFlow не удалось восстановить',
   'delivery-deadline-missed': 'MVP не подготовлен в срок',
+  'unrecoverable-project-data-loss': 'Проект потерян',
+  'concealed-critical-release-risk': 'Скрытый риск раскрыт руководством',
 }
 
 const REASON_DESC: Record<GameFailureReason, string> = {
@@ -26,6 +28,10 @@ const REASON_DESC: Record<GameFailureReason, string> = {
     'Критичный инфраструктурный инцидент оставался нерешённым слишком долго. Затраты и остановка работы сделали продолжение проекта невозможным.',
   'delivery-deadline-missed':
     'Шесть спринтов завершены, но ключевые задачи OfficeFlow остались незавершёнными. Руководство закрыло первый этап проекта и назначило другого руководителя.',
+  'unrecoverable-project-data-loss':
+    'Рабочие файлы OfficeFlow были удалены или зашифрованы. Проверенной резервной копии и завершённого аудита не оказалось.',
+  'concealed-critical-release-risk':
+    'В финальном отчёте о выпуске был скрыт критический риск. Руководство обнаружило расхождение, остановило проект и отстранило вас от управления.',
 }
 
 const CONTRIBUTING_LABEL: Record<GameFailureReason, string> = {
@@ -33,6 +39,8 @@ const CONTRIBUTING_LABEL: Record<GameFailureReason, string> = {
   'leadership-suspension': 'проект получил рекомендацию о приостановке',
   'service-collapse': 'сервис оставался недоступен пять рабочих дней',
   'delivery-deadline-missed': 'ключевые задачи не завершены к дедлайну',
+  'unrecoverable-project-data-loss': 'рабочие файлы утрачены без проверенной копии',
+  'concealed-critical-release-risk': 'критический риск был скрыт в отчёте о выпуске',
 }
 
 export function GameOverOverlay() {

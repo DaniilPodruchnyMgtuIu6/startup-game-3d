@@ -2,7 +2,10 @@ import { useSprintStore } from '../sprintStore'
 import { useTeamStore } from '../teamStore'
 import { useSecurityStoryStore } from '../securityStoryStore'
 import { hasInitialDevelopmentTeam } from '../teamRules'
+import { toWorkdayIndex } from '../workdayIndex'
+import { LEVEL1_TIMELINE_BALANCE } from '../balance/timelineBalance'
 import { useStoryDecisionStore } from './storyDecisionStore'
+import { useStoryConsequenceStore } from './storyConsequenceStore'
 import { canUnlockSecurityBaseline } from './storyDecisionRules'
 
 // Feature 17A §9: startup migration of the story-decision records against a
@@ -35,5 +38,29 @@ export function reconcileStoryDecisionsAtStartup(): void {
     })
   ) {
     story.unlockDecision('security-baseline-path', moment)
+  }
+}
+
+// Feature 17C §15: a save loaded PAST a fixed data-loss moment with its
+// checkpoint still pending can only be a pre-17C campaign - the catastrophe is
+// never applied retroactively, the checkpoints are marked skipped. A live 17C
+// campaign evaluates every checkpoint at the end of its own day, so its records
+// are already immutable before this point is ever passed.
+export function reconcileStoryConsequencesAtStartup(): void {
+  const conseq = useStoryConsequenceStore.getState()
+  const sprint = useSprintStore.getState()
+  const idx = toWorkdayIndex(sprint.sprintNumber, sprint.day)
+
+  const warningIndex = toWorkdayIndex(LEVEL1_TIMELINE_BALANCE.dataLossFinalWarning.sprintNumber, LEVEL1_TIMELINE_BALANCE.dataLossFinalWarning.day)
+  if (conseq.checkpoints['data-loss-final-warning'].status === 'pending' && idx > warningIndex) {
+    conseq.markCheckpoint('data-loss-final-warning', 'skipped-migration', idx)
+  }
+  const resolutionIndex = toWorkdayIndex(LEVEL1_TIMELINE_BALANCE.dataLossResolution.sprintNumber, LEVEL1_TIMELINE_BALANCE.dataLossResolution.day)
+  if (
+    conseq.checkpoints['data-loss-resolution'].status === 'pending' &&
+    idx > resolutionIndex &&
+    conseq.finalWarningShownAtWorkdayIndex === undefined
+  ) {
+    conseq.markCheckpoint('data-loss-resolution', 'skipped-migration', idx)
   }
 }

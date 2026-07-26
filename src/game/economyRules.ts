@@ -20,6 +20,8 @@ export type MoneyTransactionCategory =
   // Feature 17B story-decision costs
   | 'security-audit'
   | 'story-decision'
+  // Feature 17C emergency recovery of the project from an unverified backup
+  | 'security-recovery'
 
 export interface ExpenseBreakdownItem {
   code: string
@@ -178,7 +180,7 @@ export function createSecurityIncidentTransaction(amount: number, sprintNumber: 
 // never charge twice.
 export function createStoryDecisionTransaction(
   id: string,
-  category: Extract<MoneyTransactionCategory, 'security-audit' | 'story-decision' | 'security-investment'>,
+  category: Extract<MoneyTransactionCategory, 'security-audit' | 'story-decision' | 'security-investment' | 'security-recovery'>,
   title: string,
   amount: number,
   sprintNumber: number,
@@ -301,6 +303,7 @@ const CATEGORIES: MoneyTransactionCategory[] = [
   'service-downtime',
   'security-audit',
   'story-decision',
+  'security-recovery',
 ]
 
 function isPositiveInt(value: unknown): value is number {

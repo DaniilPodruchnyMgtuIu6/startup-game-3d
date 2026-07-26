@@ -33,6 +33,8 @@ import { hasCompletedCoreMvp } from '../game/productRules'
 import { getCurrentObjective } from '../game/currentObjective'
 import { useStoryDecisionStore } from '../game/story/storyDecisionStore'
 import { getActiveBlockingDecision } from '../game/story/storyDecisionSelectors'
+import { useStoryConsequenceStore } from '../game/story/storyConsequenceStore'
+import { LEVEL1_TIMELINE_BALANCE } from '../game/balance/timelineBalance'
 import './ui.css'
 
 const WARNING_TEXT: Record<Exclude<BudgetWarning, 'ok'>, string> = {
@@ -86,6 +88,9 @@ export function SprintHud() {
   // Feature 17A: a pending mandatory story decision becomes the current goal.
   useStoryDecisionStore((s) => s.activeDecisionId)
   const storyDecision = getActiveBlockingDecision()
+  // Feature 17C §7: the countdown of the open data-loss window.
+  const finalWarningShownAt = useStoryConsequenceStore((s) => s.finalWarningShownAtWorkdayIndex)
+  const dataLossResolutionStatus = useStoryConsequenceStore((s) => s.checkpoints['data-loss-resolution'].status)
 
   if (gamePhase !== 'free') return null
 
@@ -99,6 +104,14 @@ export function SprintHud() {
     sprintPhase,
     outcomeBlocking,
     storyDecisionText: storyDecision ? `${storyDecision.objectiveTitle}. ${storyDecision.objectiveDescription}` : undefined,
+    dataLossDaysLeft:
+      finalWarningShownAt !== undefined && dataLossResolutionStatus === 'pending'
+        ? Math.max(
+            0,
+            toWorkdayIndex(LEVEL1_TIMELINE_BALANCE.dataLossResolution.sprintNumber, LEVEL1_TIMELINE_BALANCE.dataLossResolution.day) -
+              toWorkdayIndex(sprintNumber, day),
+          )
+        : undefined,
     postAuditPending: isPostAuditConversationRequired(postAuditConversation),
     intrusionArmedDaysLeft,
     serverIncidentNeedingAssignee: incidentNeedingAssignee ? getServerIncident(incidentNeedingAssignee.incidentId)?.title : undefined,

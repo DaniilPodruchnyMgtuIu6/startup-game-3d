@@ -22,7 +22,8 @@ import {
   canUnlockSecurityPriority,
   canUnlockSuspiciousActivityDisclosure,
 } from './storyDecisionRules'
-import { BASELINE_AUDIT_RESULT_TASK, INTERNAL_REVIEW_TASK, MISSED_HIRE_DEADLINE_SIGNAL_ID } from './storyFollowUps'
+import { MISSED_HIRE_DEADLINE_SIGNAL_ID } from './storyFollowUps'
+import { useStoryConsequenceStore } from './storyConsequenceStore'
 import { getBaselinePath } from './storyEffectSelectors'
 import type { Level1StoryDecisionId } from './level1Timeline'
 
@@ -44,15 +45,11 @@ const RISKY_CHOICES = new Set([
 function baselineFollowUpSettled(): boolean {
   const record = useStoryDecisionStore.getState().decisions['security-baseline-path']
   if (record.migratedFromLegacy) return true // the pre-17 campaign is past this point
-  const path = getBaselinePath()
-  const tasks = useGameStore.getState().tasks
-  if (path === 'external-audit') return tasks.some((t) => t.id === BASELINE_AUDIT_RESULT_TASK.id && t.done)
-  if (path === 'internal-review') {
-    const reviewDone = tasks.some((t) => t.id === INTERNAL_REVIEW_TASK.id && t.done)
-    const deadlineMissed = useRiskStore.getState().signals.some((s) => s.id === MISSED_HIRE_DEADLINE_SIGNAL_ID)
-    return reviewDone || deadlineMissed
-  }
-  return false
+  if (getBaselinePath() === 'undecided') return false
+  // Either the review really completed (result scene held) or the hire-first
+  // path overran its deadline - both settle the baseline follow-up.
+  if (useStoryConsequenceStore.getState().baselineSecurityReviewCompleted) return true
+  return useRiskStore.getState().signals.some((s) => s.id === MISSED_HIRE_DEADLINE_SIGNAL_ID)
 }
 
 export function evaluateStoryUnlocks(): Level1StoryDecisionId[] {

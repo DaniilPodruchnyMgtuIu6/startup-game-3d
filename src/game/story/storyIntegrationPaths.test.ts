@@ -150,9 +150,12 @@ it('path B: hire Ilya → controlled access → masked data → logging priority
   expect(getRestoreReadiness()).toBe('absent')
   // central logging shortens future detection delays
   expect(getStoryDetectionDelayReductionDays()).toBe(STORY_BALANCE.firstPriority.loggingDetectionDelayReductionWorkdays)
-  // permanent-admin was NOT chosen - AUTH costs stay unmodified on this path
-  expect(getStoryIncidentCostModifierRub('auth-account-incident')).toBe(0)
-  expect(getServerIncidentImmediateCost('auth-account-incident', true, getStoryIncidentCostModifierRub('auth-account-incident'))).toBe(100_000)
+  // permanent-admin was NOT chosen, but the shared architecture (17C §10)
+  // widens the blast radius - the AUTH emergency response costs more
+  expect(getStoryIncidentCostModifierRub('auth-account-incident')).toBe(STORY_BALANCE.consequences.architectureIncidentCostIncreaseRub)
+  expect(getServerIncidentImmediateCost('auth-account-incident', true, getStoryIncidentCostModifierRub('auth-account-incident'))).toBe(
+    100_000 + STORY_BALANCE.consequences.architectureIncidentCostIncreaseRub,
+  )
   // hardening left its mitigation on the detected high domain
   expect(
     useRiskStore

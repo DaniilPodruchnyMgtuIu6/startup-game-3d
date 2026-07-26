@@ -98,6 +98,28 @@ export function registerGameFailureIfNeeded(sourceRef: string, context: Register
   return useGameOutcomeStore.getState().registerPendingFailure(failureSnapshot)
 }
 
+// Feature 17C: register a story-driven defeat (data loss, concealed release
+// risk) with the current live statistics through the normal pending-failure
+// flow. Idempotent - an existing outcome blocks re-registration.
+export function registerStoryFailure(reason: GameFailureReason, sourceRef: string): { registered: boolean } {
+  if (useGameOutcomeStore.getState().status !== 'playing') return { registered: false }
+  const sprint = useSprintStore.getState()
+  const snapshot = buildEvaluationSnapshot(sprint.sprintNumber, sprint.day)
+  const failureSnapshot = buildGameFailureSnapshot(reason, [], {
+    failedAt: { sprintNumber: sprint.sprintNumber, day: sprint.day },
+    balance: snapshot.balance,
+    productProgressPercent: snapshot.productProgressPercent,
+    completedProductTasks: snapshot.completedProductTasks,
+    totalProductTasks: snapshot.totalProductTasks,
+    completedSprints: snapshot.completedSprints,
+    totalAuditFines: totalAuditFines(),
+    unresolvedSecurityFindings: snapshot.unresolvedSecurityFindings,
+    unresolvedServerIncidentIds: snapshot.unresolvedServerIncidents.map((i) => i.incidentId),
+    primarySourceRef: sourceRef,
+  })
+  return useGameOutcomeStore.getState().registerPendingFailure(failureSnapshot)
+}
+
 // Dev-only: force a defeat with the current live statistics through the normal
 // register flow (the coordinator then opens the screen at a safe moment).
 export function forceRegisterFailureForDev(reason: GameFailureReason): { registered: boolean } {

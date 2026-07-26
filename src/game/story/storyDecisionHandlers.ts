@@ -19,6 +19,7 @@ import type { Level1StoryDecisionId } from './level1Timeline'
 import { useStoryWorkStore } from './storyWorkStore'
 import { storyChoiceSignals, dismissedWarningDomainSignal, hardeningMitigationSignals } from './storyRiskSignals'
 import { BASELINE_AUDIT_RESULT_TASK, ensureInternalReviewStarted } from './storyFollowUps'
+import { HARDENING_TASK_ID } from './level1Checkpoints'
 
 // Explicit effect handlers - one per fixed decision (Feature 17B §9: effects
 // apply through exactly one handler). Idempotency: every money/task/signal/
@@ -218,6 +219,11 @@ export function resolveReleaseRiskChoice(ctx: StoryDecisionEffectContext): Story
       return level === 'high' || level === 'critical'
     })
     changed = useRiskStore.getState().addSignalsOnce(hardeningMitigationSignals(domains, riskMomentOf(ctx))).added.length > 0 || changed
+    // 17C §12: the hardening work is visible - a task plus a real assignment
+    // for the best available employee; daily costs keep running as usual.
+    changed = addTaskOnce({ id: HARDENING_TASK_ID, text: 'Завершить укрепление системы перед выпуском', done: false }) || changed
+    const worker = hasSecuritySpecialist(useTeamStore.getState().hires) ? 'ilya-vlasov' : 'kirill-morozov'
+    changed = occupy(ctx, worker, B.release.hardeningDelayWorkdays, 'Укрепление системы перед выпуском') || changed
   }
   // known-risk and hide-open-risk act through the score/readiness selectors.
   return { operationId: ctx.operationId, effectsChanged: changed }

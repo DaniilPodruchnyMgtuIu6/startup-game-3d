@@ -35,6 +35,7 @@ import {
   isHiddenRiskChoice,
   isReleaseRiskDecisionPending,
 } from './story/storyEffectSelectors'
+import { useStoryConsequenceStore } from './story/storyConsequenceStore'
 
 // Feature 13 release use-case. Gathers live snapshots, re-checks readiness, and
 // (only on the player's confirmation) starts the final cutscene. The success
@@ -238,9 +239,20 @@ export function releaseOfficeFlowMvp(context: StoryMoment): ReleaseOfficeFlowMvp
   if (outcome.campaignRelease.status === 'released') return { released: false, reason: 'already-released' }
 
   const readiness = getMvpReleaseReadiness()
-  if (!readiness.ready) return { released: false, reason: 'not-ready', readiness }
+  if (!readiness.ready) {
+    // Feature 17C §12: attempting to ship with a concealed critical risk is the
+    // moment leadership compares the report with reality - the discovery scene
+    // queues once and ends the campaign through the normal outcome flow.
+    if (readiness.blockingReasons.includes('hidden-risk-blocked')) {
+      useStoryConsequenceStore.getState().markCheckpoint('release-consequence', 'triggered', toWorkdayIndex(context.sprintNumber, context.day))
+      useStoryConsequenceStore.getState().queueConsequenceOnce('concealed-risk-discovered')
+    }
+    return { released: false, reason: 'not-ready', readiness }
+  }
 
   const moment: StoryMoment = { sprintNumber: context.sprintNumber, day: context.day }
+  // The pre-release decision path completes cleanly - record the checkpoint.
+  useStoryConsequenceStore.getState().markCheckpoint('release-consequence', 'passed', toWorkdayIndex(context.sprintNumber, context.day))
   outcome.markMvpReleaseRunning(moment)
   // Early release meets the campaign deadline (reuses Feature 12; never a second
   // deadline state). A deadline already met at the sprint-6 review stays met.

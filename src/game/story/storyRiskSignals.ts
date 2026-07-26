@@ -136,3 +136,9 @@ export function missedHireDeadlineSignals(moment: RiskCreationMoment): RiskSigna
     make('story-decision:security-baseline-path:hire-deadline-missed', 'governance', STORY_BALANCE.internalSecurityReview.missedDeadlineGovernanceImpact, moment, IMMEDIATE),
   ]
 }
+
+// Feature 17C: a one-off consequence-scene signal. The effect id doubles as the
+// idempotency key (make appends the domain, keeping multi-domain effects unique).
+export function storyConsequenceSignal(effectId: string, domain: RiskDomain, impact: number, moment: RiskCreationMoment): RiskSignal[] {
+  return [make(effectId, domain, impact, moment, IMMEDIATE)]
+}
