@@ -9,7 +9,7 @@ import type { CharacterDefinition } from './definition'
 export const ilyaVlasov: CharacterDefinition = {
   id: 'npc-ilya-vlasov',
   displayName: 'Илья Власов',
-  portrait: '/dialogue_pictures/security/security_1_without_emotions.png',
+  portrait: '/dialogue_pictures/ilya_vlasov/ilya_neutral.jpg',
   persona: {
     name: 'Илья Власов',
     role: 'Специалист по информационной безопасности',

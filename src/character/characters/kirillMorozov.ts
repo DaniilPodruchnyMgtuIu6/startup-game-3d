@@ -7,6 +7,7 @@ import type { CharacterDefinition } from './definition'
 export const kirillMorozov: CharacterDefinition = {
   id: 'npc-kirill-morozov',
   displayName: 'Кирилл Морозов',
+  portrait: '/dialogue_pictures/kirill_morozov/kirill_neutral.jpg',
   persona: {
     name: 'Кирилл Морозов',
     role: 'Backend-разработчик',

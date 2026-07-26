@@ -10,7 +10,7 @@ import type { PostAuditDialogueBranch, SecurityStaffingDecision } from './securi
 const asSonya = (text: string): DialogueLine => ({
   speaker: femalePm.persona!.name,
   speakerRole: femalePm.persona!.role,
-  portrait: femalePm.portrait,
+  portrait: femalePm.portraitWorried ?? femalePm.portrait,
   text,
 })
 

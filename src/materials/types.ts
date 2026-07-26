@@ -25,6 +25,11 @@ export interface OfficeMaterials {
   fabricLounge: StandardMaterialProps
   screenEmissive: StandardMaterialProps
   screenOff: StandardMaterialProps
+  // Lit screen showing the OfficeFlow dashboard (TV panel, occupied monitors).
+  screenDashboard: StandardMaterialProps
+  // Printed wall posters (open-space decor).
+  posterOfficeFlow: StandardMaterialProps
+  posterLockScreen: StandardMaterialProps
   ledGreen: StandardMaterialProps
   ledAmber: StandardMaterialProps
   ledRed: StandardMaterialProps

@@ -36,7 +36,7 @@ export function Monitor({ position = [0, 0, 0], rotation = [0, 0, 0], on = false
       </mesh>
       <mesh position={[0, screenY, BODY_THICKNESS / 2 + 0.002]}>
         <boxGeometry args={[SCREEN_WIDTH - 0.03, SCREEN_HEIGHT - 0.03, 0.002]} />
-        <meshStandardMaterial {...(on ? materials.screenEmissive : materials.screenOff)} />
+        <meshStandardMaterial {...(on ? materials.screenDashboard : materials.screenOff)} />
       </mesh>
     </group>
   )

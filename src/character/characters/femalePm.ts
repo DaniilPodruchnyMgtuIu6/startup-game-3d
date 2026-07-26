@@ -7,6 +7,7 @@ export const femalePm: CharacterDefinition = {
   id: 'npc-female-pm',
   displayName: 'Product Manager',
   portrait: '/dialogue_pictures/prodact_manager/pm.jpeg',
+  portraitWorried: '/dialogue_pictures/prodact_manager/pm_worried.jpg',
   persona: {
     name: 'Соня Соколова',
     age: 29,

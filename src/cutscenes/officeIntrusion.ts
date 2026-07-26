@@ -21,7 +21,7 @@ const SONYA_MARK_DEEP: Point = [1.6, 0, 1.4]
 const CAMERA_TARGET: Point = [2, 1.1, 3]
 const CAMERA_POSITION: Point = [8, 3.2, 7]
 
-const asSonya = (text: string) => ({ speaker: femalePm.persona!.name, speakerRole: femalePm.persona!.role, portrait: femalePm.portrait, text })
+const asSonya = (text: string) => ({ speaker: femalePm.persona!.name, speakerRole: femalePm.persona!.role, portrait: femalePm.portraitWorried ?? femalePm.portrait, text })
 const asIlya = (text: string) => ({ speaker: ilyaVlasov.persona!.name, speakerRole: ilyaVlasov.persona!.role, portrait: ilyaVlasov.portrait, text })
 
 // The office-intrusion scene (Feature 10). A temporary visitor enters; with Ilya

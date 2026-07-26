@@ -50,6 +50,9 @@ export interface CharacterDefinition {
   model: CharacterModelConfig
   // Drawn portrait shown next to this character's dialogue lines.
   portrait?: string
+  // Optional worried/concerned variant of the portrait for tense scenes
+  // (incidents, audits, intrusions). Falls back to `portrait` when absent.
+  portraitWorried?: string
   persona?: Persona
   // Present => the character lives autonomously in the office as an NPC.
   npc?: NpcSettings

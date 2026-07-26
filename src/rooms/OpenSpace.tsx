@@ -7,6 +7,7 @@ import { CoffeeTable } from '../furniture/CoffeeTable'
 import { TrackLight } from '../furniture/TrackLight'
 import { AcousticCeilingPanel } from '../furniture/AcousticCeilingPanel'
 import { Whiteboard } from '../furniture/Whiteboard'
+import { WallPoster } from '../furniture/WallPoster'
 import { PlanningMarker } from '../furniture/PlanningMarker'
 import { useCharacterStore, PLAYER_ID } from '../character/characterStore'
 import { useGameStore } from '../game/gameStore'
@@ -119,6 +120,11 @@ export function OpenSpace() {
       />
       <CoffeeTable position={[0.1, 0, 0]} rotation={[0, Math.PI / 2, 0]} />
       <OpenSpaceWhiteboard />
+      {/* Printed posters on the open-space face of the server-room wall, north
+          of its door - same wall and 0.15 offset convention as the whiteboard
+          (see scene/whiteboardSpot.ts), so they face the isometric camera. */}
+      <WallPoster position={[-5.85, 1.55, 6.35]} rotation={[0, Math.PI / 2, 0]} variant="officeFlow" />
+      <WallPoster position={[-5.85, 1.55, 7.25]} rotation={[0, Math.PI / 2, 0]} variant="lockScreen" />
       {PLANT_POSITIONS.map(([x, z], i) => (
         <Plant key={i} position={[x, 0, z]} />
       ))}

@@ -27,12 +27,20 @@ export function OfficeMaterialsProvider({ children }: { children: ReactNode }) {
     normalMap: '/textures/boucle/normal.jpg',
     roughnessMap: '/textures/boucle/roughness.jpg',
   })
+  const artTex = useTexture({
+    dashboard: '/textures/officeflow_dashboard.jpg',
+    posterOfficeFlow: '/posters/officeflow.jpg',
+    posterLockScreen: '/posters/lock_screen.jpg',
+  })
 
   const value = useMemo<OfficeMaterials>(() => {
     wood.map.colorSpace = SRGBColorSpace
     concrete.map.colorSpace = SRGBColorSpace
     leatherTex.map.colorSpace = SRGBColorSpace
     boucleTex.map.colorSpace = SRGBColorSpace
+    artTex.dashboard.colorSpace = SRGBColorSpace
+    artTex.posterOfficeFlow.colorSpace = SRGBColorSpace
+    artTex.posterLockScreen.colorSpace = SRGBColorSpace
 
     return {
       floorWoodTextures: wood,
@@ -61,12 +69,22 @@ export function OfficeMaterialsProvider({ children }: { children: ReactNode }) {
       },
       screenEmissive: procedural.screenEmissive,
       screenOff: procedural.screenOff,
+      screenDashboard: {
+        map: artTex.dashboard,
+        emissive: '#ffffff',
+        emissiveMap: artTex.dashboard,
+        emissiveIntensity: 0.75,
+        roughness: 0.35,
+        metalness: 0.05,
+      },
+      posterOfficeFlow: { map: artTex.posterOfficeFlow, roughness: 0.85, metalness: 0 },
+      posterLockScreen: { map: artTex.posterLockScreen, roughness: 0.85, metalness: 0 },
       ledGreen: procedural.ledGreen,
       ledAmber: procedural.ledAmber,
       ledRed: procedural.ledRed,
       chairFabric: procedural.chairFabric,
     }
-  }, [wood, concrete, leatherTex, boucleTex])
+  }, [wood, concrete, leatherTex, boucleTex, artTex])
 
   return <MaterialsContext.Provider value={value}>{children}</MaterialsContext.Provider>
 }

@@ -6,6 +6,7 @@ import type { CharacterDefinition } from './definition'
 export const alinaBelova: CharacterDefinition = {
   id: 'npc-alina-belova',
   displayName: 'Алина Белова',
+  portrait: '/dialogue_pictures/alina_belova/alina_neutral.jpg',
   persona: {
     name: 'Алина Белова',
     role: 'Frontend-разработчик',
