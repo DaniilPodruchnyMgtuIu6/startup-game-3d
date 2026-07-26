@@ -1,0 +1,17 @@
+# <asset-id>
+- Tool/model:
+- Date, session:
+- Cost (credits):
+- Aspect/resolution:
+- Reference media: <файл/URL + роль (identity | style)>
+- Style: Soft Pixar-like 3D (docs/art/visual-art-bible.md) | Flat vector OfficeFlow
+- Subject (персонаж/локация):
+- Action / Emotion:
+- Camera shot / focal feeling:
+- Lighting / Palette:
+- Props:
+- Consistency constraints: <референс; что запрещено менять>
+- Negative constraints: no watermark, no photorealism, no text вне диегетики
+- Prompt: <полный текст>
+- Post-processing:
+- Result: <production path | rejected + причина>

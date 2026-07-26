@@ -895,3 +895,23 @@ unrecoverable-project-data-loss.
 Оно невозможно без заранее показанных предупреждений и возможности исправления.
 
 Все редактируемые суммы, сроки, effort и impacts Feature 17 хранятся в src/game/balance/, а не в React-компонентах.
+
+Визуальный production pass и Higgsfield
+
+Higgsfield используется только через фактически подключённые инструменты и только для референсов, consistent character assets, storyboard, keyframes, motion references и подходящих production-материалов.
+
+Higgsfield не заменяет рабочий 3D rig, skeleton, animation clips, Three.js camera, NPC planner и игровую логику.
+
+Внешность постоянного персонажа не должна меняться между сценами.
+
+Все персонажи сохраняют единый стилизованный визуальный язык игры.
+
+Эмоционально важные сюжетные сцены снимаются преимущественно на уровне глаз персонажей с использованием medium, close-up, over-the-shoulder, reaction и group shots. Постоянная верхняя камера в диалогах запрещена.
+
+Позиция whiteboard и принятая игровая планировка не меняются без отдельной причины.
+
+Generated assets проходят approval, оптимизацию и регистрацию происхождения до использования в production.
+
+Визуальные улучшения не меняют choices, баланс и последствия Feature 01–17.
+
+Красивый визуал не должен нарушать performance budget, навигацию, reload, reset и deterministic gameplay.

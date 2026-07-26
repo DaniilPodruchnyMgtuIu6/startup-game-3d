@@ -246,6 +246,48 @@ Checkpoints, последствия и сюжетные поражения Level
 
 17A–17B
 
+18A
+
+Art Direction и Higgsfield workflow
+
+01–17
+
+18B
+
+Идентичность персонажей и art pass моделей
+
+18A
+
+18C
+
+Анимации, эмоции и character performance
+
+18B
+
+18D
+
+Cinematic Director и язык камеры
+
+18B–18C
+
+18E
+
+Офис, материалы, свет и атмосфера
+
+18A
+
+18F
+
+Cinematic production сюжетных сцен
+
+18C–18E
+
+18G
+
+Визуальная оптимизация, QA и release gate
+
+18A–18F
+
 Правило перехода к следующей фиче
 
 Следующая фича не начинается, пока текущая не соответствует всем условиям:
@@ -266,7 +308,7 @@ production-сборка проходит;
 
 На текущем этапе Claude Code нужно передать только:
 
-17a-story-core-and-balance-config.md
+18a-art-direction-and-higgsfield-workflow.md
 
 Feature 17: обязательное дробление
 
@@ -279,3 +321,23 @@ Feature 17 выполняется тремя отдельными частями
 17c-level1-checkpoints-consequences-and-testing.md.
 
 Claude Code не должен реализовывать 17B до успешной проверки 17A и не должен реализовывать 17C до успешной проверки 17B.
+
+Feature 18: визуальный production pass
+
+Feature 18 выполняется строго последовательно:
+
+18a-art-direction-and-higgsfield-workflow.md;
+
+18b-character-identity-and-model-art-pass.md;
+
+18c-animation-emotion-and-character-performance.md;
+
+18d-cinematic-director-and-camera-language.md;
+
+18e-office-environment-lighting-and-materials.md;
+
+18f-story-scene-cinematic-production.md;
+
+18g-visual-optimization-qa-and-release.md.
+
+Каждая часть требует отдельного подтверждения пользователя. Claude Code не должен менять персонажей, анимации, офис и все сюжетные сцены в одной итерации.

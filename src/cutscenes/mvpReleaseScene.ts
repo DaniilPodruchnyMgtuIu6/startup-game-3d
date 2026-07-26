@@ -30,8 +30,8 @@ const KIRILL_MARK: Point = [-3.8, 0, 2.5]
 const ILYA_MARK: Point = [-3.0, 0, 2.7]
 
 const asSonya = (text: string): DialogueLine => ({ speaker: femalePm.persona!.name, speakerRole: femalePm.persona!.role, portrait: femalePm.portrait, text })
-const asKirill = (text: string): DialogueLine => ({ speaker: kirillMorozov.persona!.name, speakerRole: kirillMorozov.persona!.role, text })
-const asAlina = (text: string): DialogueLine => ({ speaker: alinaBelova.persona!.name, speakerRole: alinaBelova.persona!.role, text })
+const asKirill = (text: string): DialogueLine => ({ speaker: kirillMorozov.persona!.name, speakerRole: kirillMorozov.persona!.role, portrait: kirillMorozov.portrait, text })
+const asAlina = (text: string): DialogueLine => ({ speaker: alinaBelova.persona!.name, speakerRole: alinaBelova.persona!.role, portrait: alinaBelova.portrait, text })
 const asIlya = (text: string): DialogueLine => ({ speaker: ilyaVlasov.persona!.name, speakerRole: ilyaVlasov.persona!.role, portrait: ilyaVlasov.portrait, text })
 const asLeadership = (text: string): DialogueLine => ({ speaker: 'Руководство', speakerRole: 'Сообщение', text })
 

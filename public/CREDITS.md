@@ -1,5 +1,17 @@
 # Asset credits
 
+## Generated assets (Higgsfield AI)
+
+Dialogue portraits (`dialogue_pictures/kirill_morozov/`, `dialogue_pictures/alina_belova/`,
+`dialogue_pictures/ilya_vlasov/`, `dialogue_pictures/prodact_manager/pm_worried.jpg`),
+wall posters (`posters/`) and the OfficeFlow dashboard texture
+(`textures/officeflow_dashboard.jpg`) were generated with Higgsfield AI
+(Nano Banana 2) for this project. Prompts and parameters are archived in
+`assets/source/prompts/`; the approval trail lives in
+`docs/art/generated-asset-register.md`.
+
+## Textures & HDRI
+
 All textures and the HDRI are CC0 (no attribution legally required) from Poly Haven (https://polyhaven.com):
 
 - Wood Floor — https://polyhaven.com/a/wood_floor
