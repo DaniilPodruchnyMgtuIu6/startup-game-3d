@@ -17,8 +17,9 @@ export function DialoguePanel() {
         <div className="card-body">
           <div className="dialogue-choices">
             {choice.options.map((option) => (
-              <button key={option.id} className="primary" onClick={() => chooseOption(option.id)}>
-                {option.label}
+              <button key={option.id} className="primary dialogue-choice" onClick={() => chooseOption(option.id)}>
+                <span className="dialogue-choice-label">{option.label}</span>
+                {option.hint ? <span className="dialogue-choice-hint">{option.hint}</span> : null}
               </button>
             ))}
           </div>

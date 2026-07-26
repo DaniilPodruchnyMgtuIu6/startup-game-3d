@@ -29,6 +29,12 @@ import {
   type OfficeIntrusionOutcome,
 } from './mvpReleaseRules'
 import type { StoryMoment } from './securityStoryRules'
+import {
+  getHardeningDaysLeft,
+  getStoryReleaseScoreAdjustment,
+  isHiddenRiskChoice,
+  isReleaseRiskDecisionPending,
+} from './story/storyEffectSelectors'
 
 // Feature 13 release use-case. Gathers live snapshots, re-checks readiness, and
 // (only on the player's confirmation) starts the final cutscene. The success
@@ -107,6 +113,15 @@ export function gatherReleaseReadinessSnapshot(): MvpReleaseReadinessSnapshot {
     officeIntrusionOccurred: access.intrusion.status === 'resolved',
     serverIncidentsOccurred: occurredServerIncidentIds().length > 0,
     hasDetectedElevatedRisk: RISK_DOMAINS.some((d) => ELEVATED_OR_WORSE.includes(getDetectedRiskLevel(signals, d))),
+    // Feature 17B story gating
+    storyReleaseDecisionPending: isReleaseRiskDecisionPending(),
+    storyHardeningDaysLeft: getHardeningDaysLeft(toWorkdayIndex(sprint.sprintNumber, sprint.day)),
+    storyHiddenRiskBlocked:
+      isHiddenRiskChoice() &&
+      (getActualRiskLevel(signals, 'governance') === 'critical' ||
+        Object.values(useServerIncidentStore.getState().incidents).some((s) =>
+          ['pending', 'running', 'recovery-required', 'recovering'].includes(s.status),
+        )),
   }
 }
 
@@ -141,6 +156,7 @@ export function buildCampaignSuccessSnapshot(moment: StoryMoment): CampaignSucce
     leadershipComplaint: audit.leadershipComplaint,
     shutdownRecommendation: audit.shutdownRecommendation,
     accessControlActive,
+    storyScorePenalty: getStoryReleaseScoreAdjustment(),
     actualRiskLevels,
     balance,
   })

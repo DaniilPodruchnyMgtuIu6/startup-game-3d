@@ -172,9 +172,16 @@ export function anyServerIncidentBlocking(incidentStates: ServerIncidentState[])
 
 // --- Costs & effort ---------------------------------------------------------
 
-export function getServerIncidentImmediateCost(incidentId: ServerIncidentId, hasSecuritySpecialistAtIncident: boolean): number {
+// `storyModifierRub` (Feature 17B): resolved story choices may raise or lower
+// the emergency-response bill. The result never drops below zero.
+export function getServerIncidentImmediateCost(
+  incidentId: ServerIncidentId,
+  hasSecuritySpecialistAtIncident: boolean,
+  storyModifierRub = 0,
+): number {
   const def = getServerIncident(incidentId)!
-  return hasSecuritySpecialistAtIncident ? def.immediateCostWithSecuritySpecialist : def.immediateCostWithoutSecuritySpecialist
+  const base = hasSecuritySpecialistAtIncident ? def.immediateCostWithSecuritySpecialist : def.immediateCostWithoutSecuritySpecialist
+  return Math.max(0, base + storyModifierRub)
 }
 
 export function getServerRecoveryEffort(incidentId: ServerIncidentId, hasSecuritySpecialistAtIncident: boolean): number {

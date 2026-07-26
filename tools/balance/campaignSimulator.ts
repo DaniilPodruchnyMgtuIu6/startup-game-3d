@@ -19,6 +19,7 @@ import { useServerIncidentStore, INITIAL_SERVER_INCIDENT_DATA } from '../../src/
 import { useServerIncidentsStore } from '../../src/game/serverIncidentsStore'
 import { useGameOutcomeStore } from '../../src/game/gameOutcomeStore'
 import { useStoryDecisionStore } from '../../src/game/story/storyDecisionStore'
+import { useStoryWorkStore } from '../../src/game/story/storyWorkStore'
 import { useCutsceneStore } from '../../src/cutscenes/cutsceneStore'
 import { completeWorkday } from '../../src/game/completeWorkday'
 import { hireDeveloper } from '../../src/game/hireDeveloper'
@@ -112,6 +113,7 @@ export function resetCampaign(opts: ResetOptions = {}): void {
   // Feature 17A: the sim models a campaign whose staffing fork is already
   // decided (see the story preset above) - the baseline node mirrors that.
   useStoryDecisionStore.getState().resetLevel1Story()
+  useStoryWorkStore.getState().resetStoryWork()
   useStoryDecisionStore
     .getState()
     .recordLegacyBaselineResolution(opts.withIlya ? 'approve-security-hire' : 'decline-security-hire', { sprintNumber: 1, day: 1 })

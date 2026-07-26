@@ -72,12 +72,13 @@ describe('baseline eligibility (17A §9)', () => {
 })
 
 describe('legacy fork mapping', () => {
-  it('maps both directions consistently', () => {
-    expect(mapBaselineChoiceToStaffingDecision('order-external-audit')).toBe('decline-security-hire')
+  it('maps both directions consistently, accepting the 17A legacy alias', () => {
+    expect(mapBaselineChoiceToStaffingDecision('commission-security-audit')).toBe('decline-security-hire')
+    expect(mapBaselineChoiceToStaffingDecision('order-external-audit')).toBe('decline-security-hire') // 17A alias
     expect(mapBaselineChoiceToStaffingDecision('hire-security-specialist-first')).toBe('approve-security-hire')
     expect(mapBaselineChoiceToStaffingDecision('nonsense')).toBeUndefined()
     expect(mapStaffingDecisionToBaselineChoice('approve-security-hire')).toBe('hire-security-specialist-first')
-    expect(mapStaffingDecisionToBaselineChoice('decline-security-hire')).toBe('order-external-audit')
+    expect(mapStaffingDecisionToBaselineChoice('decline-security-hire')).toBe('commission-security-audit')
   })
 })
 

@@ -57,18 +57,22 @@ describe('workday flow blocking (17A §7)', () => {
   it('after the decision resolves the day completes again', () => {
     useSprintStore.setState({ sprintNumber: 1, day: 2, phase: 'active', confirmingEndDay: true })
     story().unlockDecision('security-baseline-path', M)
-    story().resolveDecision('security-baseline-path', 'order-external-audit', M)
+    story().resolveDecision('security-baseline-path', 'commission-security-audit', M)
     expect(completeWorkday().completed).toBe(true)
   })
 })
 
-describe('story marker vs DeepSeek (17A §7)', () => {
-  it('a pending Sonya decision hides her optional chat, not her colleagues', () => {
+describe('story marker vs DeepSeek (17A/17B §7)', () => {
+  it('a pending decision hides the chat of every scene participant, not of outsiders', () => {
     story().unlockDecision('security-baseline-path', M)
+    // Sonya, Kirill and Alina take part in the baseline scene - their optional
+    // chats hide; Ilya is not a participant.
     expect(npcRequiredInteractionPending('sonya-sokolova')).toBe(true)
-    expect(npcRequiredInteractionPending('kirill-morozov')).toBe(false)
-    story().resolveDecision('security-baseline-path', 'order-external-audit', M)
+    expect(npcRequiredInteractionPending('kirill-morozov')).toBe(true)
+    expect(npcRequiredInteractionPending('ilya-vlasov')).toBe(true) // his own onboarding gate, not the scene
+    story().resolveDecision('security-baseline-path', 'commission-security-audit', M)
     expect(npcRequiredInteractionPending('sonya-sokolova')).toBe(false)
+    expect(npcRequiredInteractionPending('kirill-morozov')).toBe(false)
   })
 })
 

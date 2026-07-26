@@ -37,8 +37,18 @@ export function storyDecisionOperationId(decisionId: Level1StoryDecisionId, choi
   return `story-decision:${decisionId}:${choiceId}`
 }
 
+// 17A shipped the baseline audit choice as `order-external-audit`; 17B renamed
+// it to the spec id. Old persisted choices map to the canonical id on load.
+const LEGACY_CHOICE_ALIASES: Partial<Record<Level1StoryDecisionId, Record<string, string>>> = {
+  'security-baseline-path': { 'order-external-audit': 'commission-security-audit' },
+}
+
+export function canonicalChoiceId(decisionId: Level1StoryDecisionId, choiceId: string): string {
+  return LEGACY_CHOICE_ALIASES[decisionId]?.[choiceId] ?? choiceId
+}
+
 export function isValidChoiceForDecision(decisionId: Level1StoryDecisionId, choiceId: string): boolean {
-  return getStoryDecision(decisionId)?.choiceIds.includes(choiceId) ?? false
+  return getStoryDecision(decisionId)?.choiceIds.includes(canonicalChoiceId(decisionId, choiceId)) ?? false
 }
 
 // --- Eligibility (17A §6) ----------------------------------------------------
@@ -60,57 +70,90 @@ export function canUnlockSecurityBaseline(ctx: SecurityBaselineUnlockContext): b
   return ctx.bothDevelopersHired && ctx.sprintNumber === 1 && ctx.sprintPhase === 'planning' && !ctx.legacyStaffingDecided
 }
 
-export interface RoleQuestionUnlockContext {
-  employeeHired: boolean
+// 2. Kirill's admin-access question: first active sprint, before his first
+// backend progress lands (a save already past that point never replays it).
+export interface DeveloperAdminAccessUnlockContext {
+  kirillHired: boolean
   baselineResolved: boolean
+  sprintNumber: number
+  sprintPhase: string
+  hasBackendProgress: boolean
 }
 
-export function canUnlockDeveloperAdminAccess(ctx: RoleQuestionUnlockContext): boolean {
-  return ctx.employeeHired && ctx.baselineResolved
+export function canUnlockDeveloperAdminAccess(ctx: DeveloperAdminAccessUnlockContext): boolean {
+  return ctx.kirillHired && ctx.baselineResolved && ctx.sprintNumber === 1 && ctx.sprintPhase === 'active' && !ctx.hasBackendProgress
 }
 
-export function canUnlockFrontendTestData(ctx: RoleQuestionUnlockContext): boolean {
-  return ctx.employeeHired && ctx.baselineResolved
+// 3. Alina's test-data question opens once her first frontend task is really
+// in work (progress exists), not merely planned.
+export interface FrontendTestDataUnlockContext {
+  alinaHired: boolean
+  baselineResolved: boolean
+  frontendTaskStarted: boolean
 }
 
-export function canUnlockSecurityPriority(ctx: RoleQuestionUnlockContext): boolean {
-  return ctx.employeeHired && ctx.baselineResolved
+export function canUnlockFrontendTestData(ctx: FrontendTestDataUnlockContext): boolean {
+  return ctx.alinaHired && ctx.baselineResolved && ctx.frontendTaskStarted
 }
 
+// 4. Ilya's first-priority question: he is really hired and his one-time
+// introduction talk is over.
+export interface SecurityPriorityUnlockContext {
+  ilyaHired: boolean
+  ilyaIntroduced: boolean
+}
+
+export function canUnlockSecurityPriority(ctx: SecurityPriorityUnlockContext): boolean {
+  return ctx.ilyaHired && ctx.ilyaIntroduced
+}
+
+// 5. Backup strategy: the first prototype exists and the baseline follow-up
+// (audit result / internal review) is finished or overdue.
 export interface BackupStrategyUnlockContext {
   firstPrototypeReady: boolean
   baselineResolved: boolean
+  baselineFollowUpSettled: boolean
 }
 
 export function canUnlockBackupStrategy(ctx: BackupStrategyUnlockContext): boolean {
-  return ctx.firstPrototypeReady && ctx.baselineResolved
+  return ctx.firstPrototypeReady && ctx.baselineResolved && ctx.baselineFollowUpSettled
 }
 
+// 6. Architecture boundary: enough of the product exists to argue about, and
+// neither AUTH nor DATABASE has already had its incident resolved.
 export interface ArchitectureBoundaryUnlockContext {
   completedProductTasks: number
   baselineResolved: boolean
+  authOrDatabaseIncidentResolved: boolean
 }
 
 export function canUnlockArchitectureBoundary(ctx: ArchitectureBoundaryUnlockContext): boolean {
-  return ctx.completedProductTasks >= 4 && ctx.baselineResolved
+  return ctx.completedProductTasks >= 6 && ctx.baselineResolved && !ctx.authOrDatabaseIncidentResolved
 }
 
+// 7. Suspicious activity: the first serious signal - an armed AUTH/DATABASE
+// threat or a detected critical identity/sensitive risk.
 export interface SuspiciousActivityUnlockContext {
-  seriousSignalDetected: boolean
+  authOrDatabaseThreatArmed: boolean
+  detectedIdentityOrSensitiveCritical: boolean
   baselineResolved: boolean
 }
 
 export function canUnlockSuspiciousActivityDisclosure(ctx: SuspiciousActivityUnlockContext): boolean {
-  return ctx.seriousSignalDetected && ctx.baselineResolved
+  return ctx.baselineResolved && (ctx.authOrDatabaseThreatArmed || ctx.detectedIdentityOrSensitiveCritical)
 }
 
+// 8. Pre-release decision: the product is done and there is something honest
+// to decide about (a detected high/critical risk or a risky-choice history).
 export interface ReleaseRiskUnlockContext {
-  mvpReleaseReady: boolean
-  baselineResolved: boolean
+  allProductTasksDone: boolean
+  releaseStarted: boolean
+  hasDetectedHighOrCriticalRisk: boolean
+  hasRiskyChoiceHistory: boolean
 }
 
 export function canUnlockReleaseRiskDecision(ctx: ReleaseRiskUnlockContext): boolean {
-  return ctx.mvpReleaseReady && ctx.baselineResolved
+  return ctx.allProductTasksDone && !ctx.releaseStarted && (ctx.hasDetectedHighOrCriticalRisk || ctx.hasRiskyChoiceHistory)
 }
 
 // --- Priority & blocking -----------------------------------------------------
@@ -140,13 +183,14 @@ export function isBlockingStoryDecisionPending(records: StoryDecisionRecords): b
 // held: "order an audit" keeps the findings on the team (decline the hire),
 // "hire the specialist first" approves the hire.
 export function mapBaselineChoiceToStaffingDecision(choiceId: string): SecurityStaffingDecision | undefined {
-  if (choiceId === 'order-external-audit') return 'decline-security-hire'
-  if (choiceId === 'hire-security-specialist-first') return 'approve-security-hire'
+  const canonical = canonicalChoiceId('security-baseline-path', choiceId)
+  if (canonical === 'commission-security-audit') return 'decline-security-hire'
+  if (canonical === 'hire-security-specialist-first') return 'approve-security-hire'
   return undefined
 }
 
 export function mapStaffingDecisionToBaselineChoice(decision: SecurityStaffingDecision): string {
-  return decision === 'approve-security-hire' ? 'hire-security-specialist-first' : 'order-external-audit'
+  return decision === 'approve-security-hire' ? 'hire-security-specialist-first' : 'commission-security-audit'
 }
 
 // --- Persistence normalisation ----------------------------------------------
@@ -168,7 +212,9 @@ function normalizeRecord(id: Level1StoryDecisionId, raw: unknown): StoryDecision
 
   let status: StoryDecisionStatus = STATUSES.includes(r.status as StoryDecisionStatus) ? (r.status as StoryDecisionStatus) : 'locked'
   const selectedChoiceId =
-    typeof r.selectedChoiceId === 'string' && isValidChoiceForDecision(id, r.selectedChoiceId) ? r.selectedChoiceId : undefined
+    typeof r.selectedChoiceId === 'string' && isValidChoiceForDecision(id, r.selectedChoiceId)
+      ? canonicalChoiceId(id, r.selectedChoiceId)
+      : undefined
 
   // running never survives a reload; a resolved record without a valid choice
   // rolls back to available so the scene can be held again.

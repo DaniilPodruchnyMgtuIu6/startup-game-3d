@@ -22,7 +22,7 @@ describe('store init & reset (17A §5/§10)', () => {
 
   it('reset clears an unlocked/resolved campaign back to locked', () => {
     store().unlockDecision('security-baseline-path', M)
-    store().resolveDecision('security-baseline-path', 'order-external-audit', M)
+    store().resolveDecision('security-baseline-path', 'commission-security-audit', M)
     store().markCheckpointCompleted('cp-1')
     store().resetLevel1Story()
     expect(store().decisions['security-baseline-path']).toEqual(initialStoryDecisionRecords()['security-baseline-path'])
@@ -42,7 +42,7 @@ describe('unlock/start/resolve lifecycle', () => {
 
   it('unlock is idempotent and never rewinds a resolved decision', () => {
     store().unlockDecision('security-baseline-path', M)
-    store().resolveDecision('security-baseline-path', 'order-external-audit', M)
+    store().resolveDecision('security-baseline-path', 'commission-security-audit', M)
     store().unlockDecision('security-baseline-path', { sprintNumber: 2, day: 2 })
     expect(store().decisions['security-baseline-path'].status).toBe('resolved')
   })
@@ -84,17 +84,17 @@ describe('unlock/start/resolve lifecycle', () => {
 describe('repeated & partial resolve (17A §8)', () => {
   it('a repeated resolve returns the EXISTING choice and applies nothing', () => {
     store().unlockDecision('security-baseline-path', M)
-    store().resolveDecision('security-baseline-path', 'order-external-audit', M)
+    store().resolveDecision('security-baseline-path', 'commission-security-audit', M)
     const again = store().resolveDecision('security-baseline-path', 'hire-security-specialist-first', { sprintNumber: 2, day: 2 })
     expect(again.applied).toBe(false)
-    expect(again.choiceId).toBe('order-external-audit') // the original choice is the truth
-    expect(store().decisions['security-baseline-path'].selectedChoiceId).toBe('order-external-audit')
+    expect(again.choiceId).toBe('commission-security-audit') // the original choice is the truth
+    expect(store().decisions['security-baseline-path'].selectedChoiceId).toBe('commission-security-audit')
     expect(store().decisions['security-baseline-path'].resolvedAt).toEqual(M)
   })
 
   it('a partially-applied resolve (choice saved, effects flag off) completes safely', () => {
     store().unlockDecision('security-baseline-path', M)
-    store().resolveDecision('security-baseline-path', 'order-external-audit', M)
+    store().resolveDecision('security-baseline-path', 'commission-security-audit', M)
     // simulate the crash between saving the choice and marking effects applied
     useStoryDecisionStore.setState({
       decisions: {
@@ -102,10 +102,10 @@ describe('repeated & partial resolve (17A §8)', () => {
         'security-baseline-path': { ...store().decisions['security-baseline-path'], effectsApplied: false },
       },
     })
-    const retry = store().resolveDecision('security-baseline-path', 'order-external-audit', M)
+    const retry = store().resolveDecision('security-baseline-path', 'commission-security-audit', M)
     expect(retry.applied).toBe(false)
     expect(store().decisions['security-baseline-path'].effectsApplied).toBe(true)
-    expect(store().decisions['security-baseline-path'].selectedChoiceId).toBe('order-external-audit')
+    expect(store().decisions['security-baseline-path'].selectedChoiceId).toBe('commission-security-audit')
   })
 })
 
@@ -132,7 +132,7 @@ describe('legacy sync & checkpoints', () => {
 describe('persistence (17A §9/§10)', () => {
   it('save/load round-trips and ?intro returns the fresh state', () => {
     store().unlockDecision('security-baseline-path', M)
-    store().resolveDecision('security-baseline-path', 'order-external-audit', M)
+    store().resolveDecision('security-baseline-path', 'commission-security-audit', M)
     saveStoryDecisions(window.localStorage, {
       decisions: store().decisions,
       activeDecisionId: store().activeDecisionId,
@@ -141,7 +141,7 @@ describe('persistence (17A §9/§10)', () => {
 
     const loaded = loadStoryDecisions(window.localStorage, '')
     expect(loaded.decisions['security-baseline-path'].status).toBe('resolved')
-    expect(loaded.decisions['security-baseline-path'].selectedChoiceId).toBe('order-external-audit')
+    expect(loaded.decisions['security-baseline-path'].selectedChoiceId).toBe('commission-security-audit')
 
     const reset = loadStoryDecisions(window.localStorage, '?intro')
     expect(Object.values(reset.decisions).every((r) => r.status === 'locked')).toBe(true)

@@ -235,6 +235,25 @@ button.primary:hover {
   margin-top: 0;
 }
 
+/* Feature 17B: a decision button with a qualitative consequence hint under the
+   label. Hints describe trade-offs in words - never raw numbers. */
+button.dialogue-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  max-width: 320px;
+  text-align: left;
+  white-space: normal;
+}
+.dialogue-choice-label {
+  font-weight: 600;
+}
+.dialogue-choice-hint {
+  font: 400 12px/1.4 system-ui, sans-serif;
+  color: rgba(255, 255, 255, 0.75);
+}
+
 /* The whiteboard up close: aluminium frame, marker handwriting */
 .taskboard {
   position: relative;

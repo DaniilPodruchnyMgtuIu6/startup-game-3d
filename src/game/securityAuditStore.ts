@@ -232,6 +232,10 @@ interface SecurityAuditStore extends SecurityAuditData {
   resolvePendingAudit: (moment: { sprintNumber: number; day: number }) => ResolveFollowUpAuditResult
   markAuditFailed: () => void
   acknowledgeAuditResult: () => void
+  // Feature 17B: an honest disclosure clears the complaint; an incident during
+  // a quiet investigation raises it.
+  clearLeadershipComplaint: () => void
+  raiseLeadershipComplaint: () => void
   resetSecurityAudit: () => void
 }
 
@@ -407,6 +411,18 @@ export const useSecurityAuditStore = create<SecurityAuditStore>()((set, get) => 
     },
 
     acknowledgeAuditResult: () => set({ auditResultToAcknowledge: null }),
+
+    clearLeadershipComplaint: () => {
+      if (!get().leadershipComplaint) return
+      set({ leadershipComplaint: false })
+      persist()
+    },
+
+    raiseLeadershipComplaint: () => {
+      if (get().leadershipComplaint) return
+      set({ leadershipComplaint: true })
+      persist()
+    },
 
     resetSecurityAudit: () => {
       set({ ...INITIAL_SECURITY_AUDIT, auditResultToAcknowledge: null })

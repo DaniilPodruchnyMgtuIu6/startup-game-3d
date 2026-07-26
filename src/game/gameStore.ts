@@ -25,6 +25,9 @@ interface ActiveDialogue {
 export interface ChoiceOption {
   id: string
   label: string
+  // Qualitative consequence hint shown under the label (Feature 17B). Never a
+  // raw number - the player reads trade-offs, not risk scores.
+  hint?: string
 }
 
 interface ActiveChoice {

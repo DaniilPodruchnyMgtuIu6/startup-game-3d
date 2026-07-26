@@ -4,68 +4,94 @@ import { Html } from '@react-three/drei'
 import type { Group } from 'three'
 import { useGameStore } from '../gameStore'
 import { useSprintStore } from '../sprintStore'
+import { useTeamStore } from '../teamStore'
+import { useProductStore } from '../productStore'
+import { useRiskStore } from '../riskStore'
+import { useSecurityStoryStore } from '../securityStoryStore'
+import { useServerIncidentStore } from '../serverIncidentStore'
+import { useGameOutcomeStore } from '../gameOutcomeStore'
 import { useCutsceneStore } from '../../cutscenes/cutsceneStore'
 import { useServerIncidentsStore } from '../serverIncidentsStore'
 import { useCharacterStore, PLAYER_ID } from '../../character/characterStore'
-import { femalePm } from '../../character/characters/femalePm'
 import { isWithinMeetDistance } from '../meetingGeometry'
 import { useStoryDecisionStore } from './storyDecisionStore'
 import { getStoryDecision } from './storyDecisionCatalog'
+import { evaluateStoryUnlocks } from './evaluateStoryUnlocks'
 import {
-  SONYA,
-  beginApproachToSonyaForBaseline,
-  runBaselineDecisionConversation,
+  beginApproachToStoryScene,
+  getSceneLeadCharacterId,
+  runStoryDecisionConversation,
   resumePlanner,
-} from './baselineInteraction'
+} from './storyDecisionInteraction'
+import type { Level1StoryDecisionId } from './level1Timeline'
 import '../../ui/ui.css'
 
-// Story glue for the Level 1 baseline decision (Feature 17A): while the
-// decision is available Sonya wears the amber "!" story marker (distinct from
-// the optional DeepSeek 💬 per Feature 16), the player walks to her and the
-// scripted talk records the choice. Mirrors PostAuditConversationController.
+// Story glue for the Level 1 decisions (Features 17A/17B). Two jobs:
+//   1. re-evaluate the deterministic scene triggers whenever relevant state
+//      changes (hires, progress, risks, threats) - never on a timer;
+//   2. while a decision is available, hang the amber "!" story marker over the
+//      scene's lead colleague (distinct from the optional DeepSeek 💬), walk
+//      the player over on click and run the scripted talk.
 export function Level1StoryDecisionController() {
   const gamePhase = useGameStore((s) => s.phase)
+  // Trigger inputs - each subscription re-runs the evaluation effect below.
+  const sprintPhase = useSprintStore((s) => s.phase)
+  const day = useSprintStore((s) => s.day)
+  const hires = useTeamStore((s) => s.hires)
+  const taskStates = useProductStore((s) => s.taskStates)
+  const signals = useRiskStore((s) => s.signals)
+  const incidents = useServerIncidentStore((s) => s.incidents)
+  const ilyaIntroduced = useSecurityStoryStore((s) => s.hasIntroducedSecuritySpecialist)
+  const legacyStaffing = useSecurityStoryStore((s) => s.postAuditConversation.staffingDecision)
+  const outcomeStatus = useGameOutcomeStore((s) => s.status)
+  const tasks = useGameStore((s) => s.tasks)
   const activeDecisionId = useStoryDecisionStore((s) => s.activeDecisionId)
+
+  useEffect(() => {
+    if (gamePhase !== 'free' || outcomeStatus !== 'playing') return
+    evaluateStoryUnlocks()
+  }, [gamePhase, outcomeStatus, sprintPhase, day, hires, taskStates, signals, incidents, ilyaIntroduced, legacyStaffing, tasks])
+
   if (gamePhase !== 'free') return null
-  // 17A ships exactly one live scene - the baseline path. Later decisions get
-  // their scenes in 17B; until then they never become available in production.
-  if (activeDecisionId !== 'security-baseline-path') return null
-  return <SonyaBaselineMarker />
+  if (!activeDecisionId) return null
+  return <StorySceneMarker decisionId={activeDecisionId} />
 }
 
-function SonyaBaselineMarker() {
-  const status = useStoryDecisionStore((s) => s.decisions['security-baseline-path'].status)
+function StorySceneMarker({ decisionId }: { decisionId: Level1StoryDecisionId }) {
+  const status = useStoryDecisionStore((s) => s.decisions[decisionId].status)
   const activeDialogue = useGameStore((s) => s.activeDialogue !== null)
   const activeChoice = useGameStore((s) => s.activeChoice !== null)
   const inputLocked = useCharacterStore((s) => s.inputLocked)
   const cutsceneRunning = useCutsceneStore((s) => s.activeSceneId !== null)
   const minigameOpen = useServerIncidentsStore((s) => s.activeMinigame !== null)
-  useSprintStore((s) => s.phase)
+  useTeamStore((s) => s.hires) // the lead may change when Ilya is hired
 
   const opened = useRef(false)
   const approaching = useRef(false)
   const markerRef = useRef<Group>(null)
+  const characterId = getSceneLeadCharacterId(decisionId)
 
   // If the controller unmounts mid-conversation (reset), roll the decision back
   // to available and hand control back - nothing stays locked.
   useEffect(() => {
     return () => {
       if (!opened.current) return
-      resumePlanner()
+      resumePlanner(characterId)
       useCharacterStore.getState().setInputLocked(false)
-      useStoryDecisionStore.getState().markDecisionInterrupted('security-baseline-path')
+      useStoryDecisionStore.getState().markDecisionInterrupted(decisionId)
     }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [decisionId])
 
   useFrame(() => {
-    const sonya = useCharacterStore.getState().characters[SONYA]
-    if (markerRef.current && sonya) markerRef.current.position.set(sonya.position[0], 0, sonya.position[2])
+    const lead = useCharacterStore.getState().characters[characterId]
+    if (markerRef.current && lead) markerRef.current.position.set(lead.position[0], 0, lead.position[2])
     if (opened.current || !approaching.current) return
     const player = useCharacterStore.getState().characters[PLAYER_ID]
-    if (!player || !sonya) return
-    if (!isWithinMeetDistance(player.position, sonya.position)) return
+    if (!player || !lead) return
+    if (!isWithinMeetDistance(player.position, lead.position)) return
     opened.current = true
-    void runBaselineDecisionConversation().then(() => {
+    void runStoryDecisionConversation(decisionId).then(() => {
       opened.current = false
       approaching.current = false
     })
@@ -75,14 +101,15 @@ function SonyaBaselineMarker() {
 
   const beginApproach = () => {
     if (opened.current || approaching.current || !eligible) return
-    if (beginApproachToSonyaForBaseline()) approaching.current = true
+    if (beginApproachToStoryScene(decisionId)) approaching.current = true
   }
 
   // The marker shows only while the decision awaits the player.
   if (status !== 'available') return null
 
-  const def = getStoryDecision('security-baseline-path')
-  const spawn = useCharacterStore.getState().characters[SONYA]?.position ?? femalePm.npc!.spawn
+  const def = getStoryDecision(decisionId)
+  const spawn = useCharacterStore.getState().characters[characterId]?.position
+  if (!spawn) return null // the lead NPC is not in the office (e.g. not hired yet)
   return (
     <group ref={markerRef} position={[spawn[0], 0, spawn[2]]}>
       <Html position={[0, 2.2, 0]} center zIndexRange={[10, 0]}>

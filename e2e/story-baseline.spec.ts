@@ -6,6 +6,9 @@ import { openApp, collectAppErrors } from './helpers'
 // up -> scripted dialogue -> the audit/hire fork -> reaction line -> the marker
 // clears and the first sprint is no longer story-blocked.
 test('the baseline decision scene runs end-to-end after both hires', async ({ page }) => {
+  // The hire clicks + the walk to Sonya under software rendering take well over
+  // the default budget - this spec drives the longest UI path in the suite.
+  test.setTimeout(180_000)
   const errors = collectAppErrors(page)
   await page.addInitScript(() =>
     localStorage.setItem('startup-office-progress', JSON.stringify({ playerName: 'Тест', phase: 'free', tasks: [], reprimands: 0 })),

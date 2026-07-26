@@ -17,6 +17,9 @@ import { ensureMvpReleaseTask } from './releaseOfficeFlowMvp'
 import { getEmployeeSalaryExpenses, getHiredEmployeeIds, getHiredDeveloperIds, hasSecuritySpecialist } from './teamRules'
 import { isPostAuditConversationRequired } from './securityStoryRules'
 import { isStoryDecisionBlockingNow } from './story/storyDecisionSelectors'
+import { useStoryWorkStore, type ApplyStoryWorkdayResult } from './story/storyWorkStore'
+import { applyStoryFollowUpsForWorkday } from './story/storyFollowUps'
+import { getStoryDetectionDelayReductionDays } from './story/storyEffectSelectors'
 import { isOfficeIntrusionBlocking, canUnlockAccessControlProposal, shouldEscalateAccessControl } from './accessControlRules'
 import { accessControlNotImplementedSignals } from './riskSignals'
 import { riskMomentAt } from './riskContext'
@@ -49,6 +52,7 @@ export interface CompleteWorkdayResult {
   securityResult?: ApplySecurityWorkdayResult
   accessControlResult?: ApplyAccessControlWorkdayResult
   serverRecoveryResult?: ApplyServerRecoveryWorkdayResult
+  storyWorkResult?: ApplyStoryWorkdayResult
   auditScheduleResult?: ScheduleAuditResult
   sprintNumber?: number
   day?: number
@@ -101,9 +105,16 @@ export function completeWorkday(): CompleteWorkdayResult {
   const accessControlResult = useAccessControlStore.getState().applyAccessControlWorkday(sprintNumber, day)
   // 3. security corrective work for the day (idempotent) - who was diverted?
   const securityResult = useSecurityAuditStore.getState().applySecurityWorkday(sprintNumber, day)
+  // 3b. story-decision work for the day (Feature 17B, idempotent per day key)
+  const storyWorkResult = useStoryWorkStore.getState().applyStoryWorkday(sprintNumber, day)
   const developerIds = getHiredDeveloperIds(useTeamStore.getState().hires)
-  // developers diverted to a corrective finding OR a server recovery make no product
-  const divertedToSecurity = new Set([...securityResult.divertedEmployeeIds, ...serverRecoveryResult.divertedEmployeeIds])
+  // developers diverted to a corrective finding, a server recovery OR story
+  // work make no product progress this day
+  const divertedToSecurity = new Set([
+    ...securityResult.divertedEmployeeIds,
+    ...serverRecoveryResult.divertedEmployeeIds,
+    ...storyWorkResult.busyEmployeeIds,
+  ])
   const excludedDeveloperIds = developerIds.filter((id) => divertedToSecurity.has(id))
 
   // 3. deterministic development progress (diverted developers make none), THEN
@@ -116,10 +127,15 @@ export function completeWorkday(): CompleteWorkdayResult {
   // 6. advance the sprint clock (day -> day+1, or day 10 -> review)
   useSprintStore.getState().confirmEndDay()
 
-  // 7. detect risk signals whose delay elapsed by the completed day
+  // 7. detect risk signals whose delay elapsed by the completed day (a story
+  //    choice - central logging - may shorten detection delays)
   const completedWorkdayIndex = toWorkdayIndex(sprintNumber, day)
   const hasSpecialist = hasSecuritySpecialist(useTeamStore.getState().hires)
-  useRiskStore.getState().detectDueSignals(completedWorkdayIndex, hasSpecialist)
+  useRiskStore.getState().detectDueSignals(completedWorkdayIndex, hasSpecialist, getStoryDetectionDelayReductionDays())
+
+  // 7b. Feature 17B follow-ups tied to the completed day: baseline audit result,
+  //     Ilya hire deadline, postponed-backup warning, finished story work tasks.
+  applyStoryFollowUpsForWorkday({ sprintNumber, day, completedWorkdayIndex, finishedAssignmentIds: storyWorkResult.finishedAssignmentIds })
 
   // 8. the incident's access-log task closes once both findings are closed
   syncAccessLogsTask()
@@ -191,6 +207,7 @@ export function completeWorkday(): CompleteWorkdayResult {
     securityResult,
     accessControlResult,
     serverRecoveryResult,
+    storyWorkResult,
     auditScheduleResult,
     sprintNumber,
     day,

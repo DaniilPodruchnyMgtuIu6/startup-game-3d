@@ -84,10 +84,10 @@ describe('legacy numbers are unchanged after the move', () => {
     expect(MAX_SERVER_DOWNTIME_DAYS).toBe(5)
   })
 
-  it('story balance holds the 17A draft values (not yet wired to gameplay)', () => {
-    expect(STORY_BALANCE.baselineAudit).toEqual({ costRub: 140_000, resultDelayWorkdays: 2 })
-    expect(STORY_BALANCE.internalSecurityReview).toEqual({ effortDays: 2, hireDeadlineWorkdays: 3 })
-    expect(STORY_BALANCE.backupRestore).toEqual({
+  it('story balance keeps the 17A base values (17B added fields around them)', () => {
+    expect(STORY_BALANCE.baselineAudit).toMatchObject({ costRub: 140_000, resultDelayWorkdays: 2 })
+    expect(STORY_BALANCE.internalSecurityReview).toMatchObject({ effortDays: 2, hireDeadlineWorkdays: 3 })
+    expect(STORY_BALANCE.backupRestore).toMatchObject({
       fullDrillCostRub: 60_000,
       fullDrillEffortDays: 2,
       configureOnlyCostRub: 30_000,

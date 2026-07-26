@@ -25,6 +25,7 @@ export type RiskSignalSource =
   | 'access-control-implementation'
   | 'access-control-incident'
   | 'server-incident'
+  | 'story-decision'
 
 export interface RiskMoment {
   sprintNumber: number
@@ -49,15 +50,18 @@ export interface RiskSignal {
 export const DEFAULT_RISK_DETECTION_DELAY_DAYS = 3
 export const SECURITY_SPECIALIST_DETECTION_DELAY_DAYS = 1
 
-export function effectiveDetectionDelay(signal: RiskSignal, hasSecuritySpecialist: boolean): number {
+// `delayReductionDays` (Feature 17B central-logging choice) shortens the delay,
+// never below zero and never below an explicit override.
+export function effectiveDetectionDelay(signal: RiskSignal, hasSecuritySpecialist: boolean, delayReductionDays = 0): number {
   if (signal.detectionDelayOverride !== undefined) return Math.max(0, signal.detectionDelayOverride)
-  return hasSecuritySpecialist ? SECURITY_SPECIALIST_DETECTION_DELAY_DAYS : DEFAULT_RISK_DETECTION_DELAY_DAYS
+  const base = hasSecuritySpecialist ? SECURITY_SPECIALIST_DETECTION_DELAY_DAYS : DEFAULT_RISK_DETECTION_DELAY_DAYS
+  return Math.max(0, base - Math.max(0, delayReductionDays))
 }
 
 // A signal becomes detectable once currentWorkdayIndex has reached its creation
 // index plus its effective delay.
-export function isSignalDue(signal: RiskSignal, currentWorkdayIndex: number, hasSecuritySpecialist: boolean): boolean {
-  return currentWorkdayIndex >= signal.createdAtWorkdayIndex + effectiveDetectionDelay(signal, hasSecuritySpecialist)
+export function isSignalDue(signal: RiskSignal, currentWorkdayIndex: number, hasSecuritySpecialist: boolean, delayReductionDays = 0): boolean {
+  return currentWorkdayIndex >= signal.createdAtWorkdayIndex + effectiveDetectionDelay(signal, hasSecuritySpecialist, delayReductionDays)
 }
 
 // --- Scores & levels --------------------------------------------------------
@@ -237,6 +241,7 @@ const SOURCES: RiskSignalSource[] = [
   'access-control-implementation',
   'access-control-incident',
   'server-incident',
+  'story-decision',
 ]
 
 function validMoment(raw: unknown): RiskMoment | undefined {

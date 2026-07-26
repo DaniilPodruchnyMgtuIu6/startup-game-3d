@@ -37,6 +37,10 @@ export type MvpReleaseBlockingReason =
   | 'server-minigame-open'
   | 'blocking-overlay-open'
   | 'blocking-dialogue-open'
+  // Feature 17B story gating
+  | 'story-release-decision-pending'
+  | 'hardening-in-progress'
+  | 'hidden-risk-blocked'
 
 export type MvpReleaseWarning =
   | 'security-specialist-not-hired'
@@ -76,6 +80,10 @@ export interface MvpReleaseReadinessSnapshot {
   serverMinigameOpen: boolean
   blockingOverlayOpen: boolean
   blockingDialogueOpen: boolean
+  // Feature 17B story gating (all default-safe for pre-17 saves)
+  storyReleaseDecisionPending?: boolean
+  storyHardeningDaysLeft?: number
+  storyHiddenRiskBlocked?: boolean
   // warning inputs
   securitySpecialistHired: boolean
   accessControlActive: boolean
@@ -144,6 +152,13 @@ export function evaluateMvpReleaseReadiness(snapshot: MvpReleaseReadinessSnapsho
   if (snapshot.blockingOverlayOpen) blockingReasons.push('blocking-overlay-open')
   if (snapshot.blockingDialogueOpen) blockingReasons.push('blocking-dialogue-open')
 
+  // Feature 17B: the pre-release decision must be held first; hardening delays
+  // the release by its remaining workdays; a hidden risk with critical
+  // governance or an unresolved incident cannot ship.
+  if (snapshot.storyReleaseDecisionPending) blockingReasons.push('story-release-decision-pending')
+  if ((snapshot.storyHardeningDaysLeft ?? 0) > 0) blockingReasons.push('hardening-in-progress')
+  if (snapshot.storyHiddenRiskBlocked) blockingReasons.push('hidden-risk-blocked')
+
   const warnings: MvpReleaseWarning[] = []
   if (!snapshot.securitySpecialistHired) warnings.push('security-specialist-not-hired')
   if (!snapshot.accessControlActive) warnings.push('access-control-not-active')
@@ -211,6 +226,9 @@ export interface CampaignSuccessScoreSnapshot {
   accessControlActive: boolean
   actualRiskLevels: Record<RiskDomain, RiskLevel>
   balance: number
+  // Feature 17B: cumulative penalty from the Level 1 story choices (production
+  // test data, known-risk release, hidden risk). 0 for a pre-17 save.
+  storyScorePenalty?: number
 }
 
 export interface CampaignSuccessScoreResult {
@@ -251,6 +269,7 @@ export function calculateCampaignSuccessScore(snapshot: CampaignSuccessScoreSnap
   if (!snapshot.accessControlActive) score -= 5
   for (const level of Object.values(snapshot.actualRiskLevels)) score -= riskPenalty(level)
   score -= budgetPenalty(snapshot.balance)
+  score -= Math.max(0, snapshot.storyScorePenalty ?? 0)
   return { score: clampScore(score) }
 }
 

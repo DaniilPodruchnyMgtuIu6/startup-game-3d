@@ -5,6 +5,7 @@ import { isIntroReset } from './gameStore'
 import { canPlanProductTasks, clearPlanningWithoutTeam } from './planningGate'
 import {
   addToPlan,
+  applyStoryEffortReduction as applyStoryEffortReductionRule,
   applyWorkdayProgress,
   initialTaskStates,
   moveInPlan,
@@ -101,6 +102,8 @@ interface ProductStore {
   ) => { applied: boolean; record: WorkdayProgressRecord }
   // carry incomplete tasks back to the backlog for the next planning
   prepareNextPlanning: () => void
+  // Feature 17B: a story choice reduces an employee's remaining product effort.
+  applyStoryEffortReduction: (employeeId: string, days: number) => { reducedDays: number }
 
   showReport: (record: WorkdayProgressRecord) => void
   closeReport: () => void
@@ -165,6 +168,15 @@ export const useProductStore = create<ProductStore>()((set, get) => {
     prepareNextPlanning: () => {
       set({ taskStates: prepareNextPlanningRule(get().taskStates), planningDismissed: false })
       persist()
+    },
+
+    applyStoryEffortReduction: (employeeId, days) => {
+      const { states, reducedDays } = applyStoryEffortReductionRule(get().taskStates, employeeId, days)
+      if (reducedDays > 0) {
+        set({ taskStates: states })
+        persist()
+      }
+      return { reducedDays }
     },
 
     showReport: (record) => set({ activeReport: record }),

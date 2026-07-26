@@ -53,7 +53,7 @@ export interface DetectRiskSignalsResult {
 interface RiskStore {
   signals: RiskSignal[]
   addSignalsOnce: (signals: RiskSignal[]) => AddRiskSignalsResult
-  detectDueSignals: (currentWorkdayIndex: number, hasSecuritySpecialist: boolean) => DetectRiskSignalsResult
+  detectDueSignals: (currentWorkdayIndex: number, hasSecuritySpecialist: boolean, delayReductionDays?: number) => DetectRiskSignalsResult
   acknowledgeDetectedSignals: (currentWorkdayIndex: number) => void
   resetRisks: () => void
 }
@@ -85,11 +85,11 @@ export const useRiskStore = create<RiskStore>()((set, get) => {
 
     // Fill detectedAtWorkdayIndex on every signal whose delay has elapsed and
     // which is not yet detected. Returns the signals detected on this call.
-    detectDueSignals: (currentWorkdayIndex, hasSecuritySpecialist) => {
+    detectDueSignals: (currentWorkdayIndex, hasSecuritySpecialist, delayReductionDays = 0) => {
       const detected: RiskSignal[] = []
       const signals = get().signals.map((s) => {
         if (s.detectedAtWorkdayIndex !== undefined) return s
-        if (!isSignalDue(s, currentWorkdayIndex, hasSecuritySpecialist)) return s
+        if (!isSignalDue(s, currentWorkdayIndex, hasSecuritySpecialist, delayReductionDays)) return s
         const next = { ...s, detectedAtWorkdayIndex: currentWorkdayIndex }
         detected.push(next)
         return next

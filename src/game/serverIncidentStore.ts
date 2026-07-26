@@ -9,6 +9,7 @@ import { hasSecuritySpecialist } from './teamRules'
 import { getActualRiskLevel } from './riskRules'
 import { createServerIncidentTransaction, createServerDowntimeTransaction } from './economyRules'
 import { serverIncidentOccurredSignals, serverIncidentRecoveredSignals } from './riskSignals'
+import { getStoryIncidentCostModifierRub, isQuietInvestigationOpen } from './story/storyEffectSelectors'
 import { riskMomentAt } from './riskContext'
 import { getServerIncident, type ServerIncidentDefinition, type ServerIncidentId } from './serverIncidentCatalog'
 import type { BoardTask } from './tasks'
@@ -181,7 +182,7 @@ export const useServerIncidentStore = create<ServerIncidentStore>()((set, get) =
       const def = getServerIncident(incidentId)!
       if (state.status !== 'pending' && state.status !== 'running') return { resolved: false }
       const hadSpecialist = state.hadSecuritySpecialistAtIncident ?? hasSecuritySpecialist(useTeamStore.getState().hires)
-      const immediateCost = getServerIncidentImmediateCost(incidentId, hadSpecialist)
+      const immediateCost = getServerIncidentImmediateCost(incidentId, hadSpecialist, getStoryIncidentCostModifierRub(incidentId))
       const downtimeCost = getServerDowntimeCost(incidentId)
 
       if (state.effectsApplied) {
@@ -196,6 +197,9 @@ export const useServerIncidentStore = create<ServerIncidentStore>()((set, get) =
         .applyOneTimeExpense(createServerIncidentTransaction(incidentId, def.immediateTransactionTitle, immediateCost, moment.sprintNumber, moment.day))
       useRiskStore.getState().addSignalsOnce(serverIncidentOccurredSignals(incidentId, def.riskDomain, riskMomentAt(moment.sprintNumber, moment.day)))
       addTaskOnce(RECOVERY_TASK[incidentId])
+      // Feature 17B: an incident landing while the team quietly investigates the
+      // suspicious activity means leadership learns about the delay.
+      if (isQuietInvestigationOpen()) useSecurityAuditStore.getState().raiseLeadershipComplaint()
 
       setIncident(incidentId, {
         ...state,

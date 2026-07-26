@@ -3,6 +3,7 @@ import { isIntroReset } from '../gameStore'
 import type { StoryMoment, SecurityStaffingDecision } from '../securityStoryRules'
 import type { Level1StoryDecisionId } from './level1Timeline'
 import {
+  canonicalChoiceId,
   getActiveBlockingDecisionId,
   initialStoryDecisionRecords,
   isValidChoiceForDecision,
@@ -125,7 +126,8 @@ export const useStoryDecisionStore = create<StoryDecisionStore>()((set, get) => 
     // repeated call returns the EXISTING choice without re-applying anything; a
     // partially-applied resolve (choice saved, effects flag still false) safely
     // finishes the effect application on retry.
-    resolveDecision: (id, choiceId, moment) => {
+    resolveDecision: (id, rawChoiceId, moment) => {
+      const choiceId = canonicalChoiceId(id, rawChoiceId)
       const record = get().decisions[id]
       const finalChoiceId = record.selectedChoiceId ?? choiceId
       const operationId = storyDecisionOperationId(id, finalChoiceId)

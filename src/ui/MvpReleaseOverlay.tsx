@@ -27,6 +27,9 @@ const BLOCKER_LABEL: Record<MvpReleaseBlockingReason, string> = {
   'server-minigame-open': 'Открыта серверная мини-игра',
   'blocking-overlay-open': 'Открыто обязательное окно',
   'blocking-dialogue-open': 'Идёт диалог',
+  'story-release-decision-pending': 'Сначала примите решение о рисках выпуска с Соней',
+  'hardening-in-progress': 'Идёт укрепление системы перед выпуском',
+  'hidden-risk-blocked': 'Скрытый риск не позволяет отправить отчёт руководству',
 }
 
 const WARNING_LABEL: Record<MvpReleaseWarning, string> = {

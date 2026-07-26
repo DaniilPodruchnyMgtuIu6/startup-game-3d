@@ -17,6 +17,9 @@ export type MoneyTransactionCategory =
   | 'security-incident'
   | 'server-incident'
   | 'service-downtime'
+  // Feature 17B story-decision costs
+  | 'security-audit'
+  | 'story-decision'
 
 export interface ExpenseBreakdownItem {
   code: string
@@ -168,6 +171,22 @@ export function createSecurityIncidentTransaction(amount: number, sprintNumber: 
   }
 }
 
+// --- Story-decision expenses (Feature 17B) -----------------------------------
+
+// One-off expense created by a Level 1 story choice. The id IS the idempotency
+// key (derived from the story operation id), so a repeated handler call can
+// never charge twice.
+export function createStoryDecisionTransaction(
+  id: string,
+  category: Extract<MoneyTransactionCategory, 'security-audit' | 'story-decision' | 'security-investment'>,
+  title: string,
+  amount: number,
+  sprintNumber: number,
+  day: number,
+): MoneyTransaction {
+  return { id, kind: 'expense', category, title, amount, sprintNumber, day }
+}
+
 // --- Server incidents & downtime (Feature 11) -------------------------------
 
 export function serverIncidentTransactionId(incidentId: string): string {
@@ -280,6 +299,8 @@ const CATEGORIES: MoneyTransactionCategory[] = [
   'security-incident',
   'server-incident',
   'service-downtime',
+  'security-audit',
+  'story-decision',
 ]
 
 function isPositiveInt(value: unknown): value is number {

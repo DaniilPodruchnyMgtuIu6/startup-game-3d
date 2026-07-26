@@ -65,6 +65,30 @@ export function remainingEffort(state: ProductTaskState): number {
   return Math.max(0, effortOf(state.taskId) - state.progressDays)
 }
 
+// Feature 17B (keep-shared-architecture): reduce the remaining effort of an
+// employee's product tasks by up to `days`, catalog order, never below zero.
+// Progress may reach the full effort, but the task still completes only on the
+// next confirmed workday - a story choice never finishes work by itself.
+export function applyStoryEffortReduction(
+  states: ProductTaskState[],
+  employeeId: string,
+  days: number,
+): { states: ProductTaskState[]; reducedDays: number } {
+  let budget = Math.max(0, Math.floor(days))
+  if (budget === 0) return { states, reducedDays: 0 }
+  let reducedDays = 0
+  const next = states.map((s) => {
+    if (budget === 0 || s.status === 'done') return s
+    if (getProductTask(s.taskId)?.assigneeEmployeeId !== employeeId) return s
+    const take = Math.min(budget, remainingEffort(s))
+    if (take === 0) return s
+    budget -= take
+    reducedDays += take
+    return { ...s, progressDays: s.progressDays + take }
+  })
+  return { states: next, reducedDays }
+}
+
 // --- Planning (only valid while the sprint phase is `planning`) -------------
 
 export function canModifyPlan(phase: 'planning' | 'active' | 'review'): boolean {
