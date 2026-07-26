@@ -13,6 +13,11 @@ Production-код ссылается только на approved/integrated. Се
 | poster-officeflow | Higgsfield MCP / nano_banana_2 | assets/source/prompts/posters-sheet.md | integrated | Higgsfield generation (проект) | public/posters/officeflow.jpg |
 | poster-lock-screen | Higgsfield MCP / nano_banana_2 | assets/source/prompts/posters-sheet.md | integrated | Higgsfield generation (проект) | public/posters/lock_screen.jpg |
 | screen-officeflow-dashboard | Higgsfield MCP / nano_banana_2 | assets/source/prompts/officeflow-dashboard.md | integrated | Higgsfield generation (проект) | public/textures/officeflow_dashboard.jpg |
+| identity-sheets-sonya (turnaround+expressions+poses) | Higgsfield MCP / nano_banana_2 | assets/source/prompts/identity-sheets-18b.md | approved (reference-only) | Higgsfield generation (проект) | — docs/art/characters/sonya-sokolova/ |
+| identity-sheets-kirill (turnaround+expressions+poses) | Higgsfield MCP / nano_banana_2 | assets/source/prompts/identity-sheets-18b.md | approved (reference-only) | Higgsfield generation (проект) | — docs/art/characters/kirill-morozov/ |
+| identity-sheets-alina (turnaround+expressions+poses) | Higgsfield MCP / nano_banana_2 | assets/source/prompts/identity-sheets-18b.md | approved (reference-only) | Higgsfield generation (проект) | — docs/art/characters/alina-belova/ |
+| identity-sheets-ilya (turnaround+expressions+poses) | Higgsfield MCP / nano_banana_2 | assets/source/prompts/identity-sheets-18b.md | approved (reference-only) | Higgsfield generation (проект) | — docs/art/characters/ilya-vlasov/ |
+| identity-sheets-founder (turnaround+expressions+poses) | Higgsfield MCP / nano_banana_2 | assets/source/prompts/identity-sheets-18b.md | approved (reference-only) | Higgsfield generation (проект) | — docs/art/characters/player-founder/ |
 
 Наследованные до-реестровые генерации (эталоны стиля, приняты ранее):
 `public/dialogue_pictures/prodact_manager/pm.jpeg`, `boss/*.jpeg`,

@@ -1,6 +1,15 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { useGLTF, useAnimations, Html } from '@react-three/drei'
-import { Vector3, type Group, type Object3D } from 'three'
+import {
+  Vector3,
+  type Group,
+  type Object3D,
+  type Mesh,
+  type MeshStandardMaterial,
+  type OrthographicCamera,
+} from 'three'
+import { useCutsceneCameraStore } from '../scene/camera/cameraController'
 import { useCharacterStore, PLAYER_ID } from './characterStore'
 import { useCharacterTransform, WALK_SPEED } from './useCharacterTransform'
 import { useServerIncidentsStore, type ServerRole } from '../game/serverIncidentsStore'
@@ -18,6 +27,11 @@ const NPC_ID_FOR_CHARACTER: Record<string, NpcId> = Object.fromEntries(
 
 const SIT_SETTLE_MS = 1000
 const BREW_MS = 3500
+
+// Feature 18B §6: below this orthographic zoom the office is so far out that
+// name tags turn into unreadable overlapping clutter - hide them until the
+// player zooms back in (default zoom is 28, allowed range 12-70).
+const TAG_MIN_ZOOM = 19
 
 const CLIP_FOR_STATE: Record<string, ClipName> = {
   idle: 'idle',
@@ -76,6 +90,29 @@ export function CharacterModel({ characterId, config, label }: CharacterModelPro
 
   const group = useRef<Group>(null)
   const { actions } = useAnimations(clips, group)
+
+  // Feature 18B §4: art pass over the shared skinned model. The Mixamo exports
+  // ship raw: meshes cast no shadows (characters visually float), culling uses
+  // bind-pose bounds (seated/typing poses pop out at screen edges), and the
+  // body/hair atlas materials carry stray metalness that reads grey and waxy
+  // under the studio HDRI. Matte skin/cloth with a slight sheen on hair follows
+  // the Art Bible. Idempotent: the GLTF cache shares one scene per character,
+  // so re-running writes the same values onto the same materials.
+  useEffect(() => {
+    base.scene.traverse((object) => {
+      const mesh = object as Mesh
+      if (!mesh.isMesh) return
+      mesh.castShadow = true
+      mesh.frustumCulled = false
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+      for (const material of materials) {
+        const standard = material as MeshStandardMaterial
+        if (!standard.isMeshStandardMaterial) continue
+        standard.metalness = 0
+        standard.roughness = /hair/i.test(standard.name) ? 0.45 : 0.85
+      }
+    })
+  }, [base])
 
   const stateKind = useCharacterStore((s) => s.characters[characterId]?.state.kind)
 
@@ -158,6 +195,23 @@ export function CharacterModel({ characterId, config, label }: CharacterModelPro
   // they never overlap on screen even when the colleagues stand side by side.
   const bubbleY = ambient?.conversation.host === npcId ? 3.05 : 2.5
 
+  // Feature 18B §6: the name tag hides while a cutscene's cinematic perspective
+  // camera is active (a floating tag over a close-up face breaks the shot) and
+  // when the isometric camera is zoomed far out (unreadable clutter). The zoom
+  // check runs every 10th frame and only touches state on a threshold cross.
+  const cutsceneActive = useCutsceneCameraStore((s) => s.active)
+  const [zoomedOut, setZoomedOut] = useState(false)
+  const tagFrame = useRef(0)
+  useFrame(({ camera }) => {
+    if (!label) return
+    tagFrame.current = (tagFrame.current + 1) % 10
+    if (tagFrame.current !== 0) return
+    const ortho = camera as OrthographicCamera
+    const isOut = ortho.isOrthographicCamera === true && ortho.zoom < TAG_MIN_ZOOM
+    if (isOut !== zoomedOut) setZoomedOut(isOut)
+  })
+  const tagVisible = label !== undefined && !cutsceneActive && !zoomedOut
+
   return (
     <group ref={group}>
       <primitive object={base.scene} />
@@ -166,7 +220,7 @@ export function CharacterModel({ characterId, config, label }: CharacterModelPro
           <div className="npc-bubble">{bubble}</div>
         </Html>
       ) : null}
-      {label ? (
+      {label && tagVisible ? (
         <Html position={[0, 2.05, 0]} center zIndexRange={[6, 0]} pointerEvents="none">
           <div className="npc-tag">
             <span className="npc-tag-name">{label.name}</span>
