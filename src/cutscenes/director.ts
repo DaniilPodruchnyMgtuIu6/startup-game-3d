@@ -1,4 +1,5 @@
 import { useCharacterStore } from '../character/characterStore'
+import { usePerformanceStore } from '../character/performance/performanceStore'
 import { nearestWalkable } from '../character/grid'
 import { useGameStore } from '../game/gameStore'
 import { flyTo } from '../scene/camera/cameraController'
@@ -124,6 +125,16 @@ export function createDirector(): CutsceneDirector {
     },
     look(characterId, on) {
       useCharacterStore.getState().dispatchTo(characterId, { type: on ? 'LOOK_START' : 'LOOK_END' })
+    },
+    emotion(characterId, emotion) {
+      const performance = usePerformanceStore.getState()
+      if (emotion) performance.setEmotion(characterId, emotion)
+      else performance.clearEmotion(characterId)
+    },
+    perform(characterId, clip) {
+      useCharacterStore
+        .getState()
+        .dispatchTo(characterId, clip ? { type: 'PERFORM_START', clip } : { type: 'PERFORM_END' })
     },
     sit(characterId, target, kind) {
       const eventType = kind === 'workstation' ? ('CLICK_WORKSTATION' as const) : ('CLICK_SEAT' as const)

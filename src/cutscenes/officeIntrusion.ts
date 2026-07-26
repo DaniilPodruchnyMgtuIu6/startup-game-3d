@@ -49,6 +49,9 @@ export const officeIntrusionScene: CutsceneScript = async (director) => {
       director.face('intruder', ilyaVlasov.id)
       await director.walk(femalePm.id, SONYA_MARK_EARLY)
       director.face(femalePm.id, 'intruder')
+      // 18C §5: body language for the beat - Ilya is firm, Sonya worried.
+      director.emotion(ilyaVlasov.id, 'angry-controlled')
+      director.emotion(femalePm.id, 'concerned')
       director.talk(ilyaVlasov.id, true)
       await director.say([
         asIlya('У этого посетителя нет согласованного доступа. Я остановил его до входа в рабочую зону.'),
@@ -56,11 +59,14 @@ export const officeIntrusionScene: CutsceneScript = async (director) => {
         asIlya('Да. На этот раз мы успели. Но наблюдение сотрудника не заменяет контроль входа.'),
       ])
       director.talk(ilyaVlasov.id, false)
+      director.emotion(ilyaVlasov.id, null)
+      director.emotion(femalePm.id, null)
     } else {
       await director.walk('intruder', INTRUDER_WORKSTATION)
       await director.walk(femalePm.id, SONYA_MARK_DEEP)
       director.face(femalePm.id, 'intruder')
       director.face('intruder', femalePm.id)
+      director.emotion(femalePm.id, 'concerned')
       director.talk(femalePm.id, true)
       await director.say([
         asSonya('Этот человек не должен был попасть в рабочую зону. Он успел подойти к компьютеру до того, как его остановили.'),
@@ -68,6 +74,7 @@ export const officeIntrusionScene: CutsceneScript = async (director) => {
         asSonya('Ручного контроля недостаточно. Нам нужна работающая система доступа.'),
       ])
       director.talk(femalePm.id, false)
+      director.emotion(femalePm.id, null)
     }
 
     // Commit the deterministic result (idempotent) and remove the temporary actor.

@@ -3,6 +3,8 @@ import { useFrame } from '@react-three/fiber'
 import { useGLTF, useAnimations, Html } from '@react-three/drei'
 import {
   Vector3,
+  LoopOnce,
+  LoopRepeat,
   type Group,
   type Object3D,
   type Mesh,
@@ -10,6 +12,7 @@ import {
   type OrthographicCamera,
 } from 'three'
 import { useCutsceneCameraStore } from '../scene/camera/cameraController'
+import { useCharacterPerformance } from './performance/useCharacterPerformance'
 import { useCharacterStore, PLAYER_ID } from './characterStore'
 import { useCharacterTransform, WALK_SPEED } from './useCharacterTransform'
 import { useServerIncidentsStore, type ServerRole } from '../game/serverIncidentsStore'
@@ -58,15 +61,30 @@ const CLIP_FALLBACKS: Record<ClipName, ClipName[]> = {
   sofaSit: ['sitIdle', 'idle'],
   talk: ['idle'],
   look: ['idle'],
+  // 18C gesture clips degrade to plain talking on rigs without them
+  agree: ['talk', 'idle'],
+  celebrate: ['talk', 'idle'],
+  explain: ['talk', 'idle'],
 }
 
-export function resolveClip(stateKind: string, available: ReadonlySet<string>): ClipName {
-  const preferred = CLIP_FOR_STATE[stateKind] ?? 'idle'
+export function resolveClip(stateKind: string, available: ReadonlySet<string>, performClip?: ClipName): ClipName {
+  // 18C: the performing state carries its own clip name; everything else maps
+  // through the state table. Both walk the same fallback chains.
+  const preferred = stateKind === 'performing' && performClip ? performClip : (CLIP_FOR_STATE[stateKind] ?? 'idle')
   if (available.has(preferred)) return preferred
   for (const fallback of CLIP_FALLBACKS[preferred]) {
     if (available.has(fallback)) return fallback
   }
   return 'idle'
+}
+
+// Feature 18C §4: how long 'sittingDown' plays before settling into the seated
+// state. With a real one-shot sit clip we follow the clip itself (minus the
+// crossfade overlap) instead of an arbitrary timeout; characters that fall back
+// to a seated loop keep the old short settle.
+export function sitSettleMs(clipName: ClipName, clipDurationSec: number): number {
+  if (clipName !== 'sit') return SIT_SETTLE_MS
+  return Math.max(600, Math.round((clipDurationSec - 0.35) * 1000))
 }
 
 export interface CharacterModelProps {
@@ -115,19 +133,35 @@ export function CharacterModel({ characterId, config, label }: CharacterModelPro
   }, [base])
 
   const stateKind = useCharacterStore((s) => s.characters[characterId]?.state.kind)
+  // 18C: the clip a 'performing' state names (undefined in every other state)
+  const performClip = useCharacterStore((s) => {
+    const state = s.characters[characterId]?.state
+    return state?.kind === 'performing' ? state.clip : undefined
+  })
 
   useEffect(() => {
     if (!stateKind) return
-    const clipName = resolveClip(stateKind, availableClips)
+    const clipName = resolveClip(stateKind, availableClips, performClip)
     const action = actions[clipName]
+    if (!action) return
     // The walk clip plays at the ratio of actual travel speed to the clip's
     // own stance pace, so planted feet stay pinned instead of skating.
-    action?.setEffectiveTimeScale(clipName === 'walk' ? WALK_SPEED / config.walkPace : 1)
-    action?.reset().fadeIn(0.3).play()
-    return () => {
-      action?.fadeOut(0.3)
+    action.setEffectiveTimeScale(clipName === 'walk' ? WALK_SPEED / config.walkPace : 1)
+    // 18C §4: 'sit' is a one-shot transition - it must hold its last frame, not
+    // loop back to standing. Loop mode is set every play because the mixer
+    // caches one action per clip and a previous state may have changed it.
+    if (clipName === 'sit') {
+      action.setLoop(LoopOnce, 1)
+      action.clampWhenFinished = true
+    } else {
+      action.setLoop(LoopRepeat, Infinity)
+      action.clampWhenFinished = false
     }
-  }, [stateKind, actions, availableClips, config.walkPace])
+    action.reset().fadeIn(0.3).play()
+    return () => {
+      action.fadeOut(0.3)
+    }
+  }, [stateKind, performClip, actions, availableClips, config.walkPace])
 
   // hand the character a coffee mug while drinking (the Mixamo drink
   // animations raise the LEFT hand to the mouth)
@@ -153,9 +187,12 @@ export function CharacterModel({ characterId, config, label }: CharacterModelPro
 
   useEffect(() => {
     if (stateKind === 'sittingDown') {
+      // 18C §4: settle when the sit-down clip actually finishes (see sitSettleMs)
+      const clipName = resolveClip('sittingDown', availableClips)
+      const duration = actions[clipName]?.getClip().duration ?? 1
       const timer = setTimeout(
         () => useCharacterStore.getState().dispatchTo(characterId, { type: 'SETTLE_ELAPSED' }),
-        SIT_SETTLE_MS,
+        sitSettleMs(clipName, duration),
       )
       return () => clearTimeout(timer)
     }
@@ -166,7 +203,7 @@ export function CharacterModel({ characterId, config, label }: CharacterModelPro
       )
       return () => clearTimeout(timer)
     }
-  }, [stateKind, characterId])
+  }, [stateKind, characterId, availableClips, actions])
 
   // The player reaching a broken rack opens its mini-game overlay; leaving
   // 'repairing' (walk away or REPAIR_DONE) closes it. NPCs never open overlays.
@@ -181,6 +218,11 @@ export function CharacterModel({ characterId, config, label }: CharacterModelPro
   }, [stateKind, characterId])
 
   useCharacterTransform(characterId, group, config.walkLift ?? 0)
+
+  // Feature 18C §5/§6: breathing, clamped head look-at, listener nods and
+  // emotion bone poses. Registered AFTER useAnimations, so its useFrame runs
+  // after the mixer has written this frame's pose and can add on top of it.
+  useCharacterPerformance(characterId, base.scene)
 
   // Feature 16 §8/§9: a compact speech bubble over this colleague, shown ONLY
   // while an NPC↔NPC ambient conversation is running and this character is one of

@@ -6,6 +6,7 @@ import { pmIntroDialogue } from './dialogues'
 import { approachPoint, isWithinMeetDistance, facingBetween } from './meetingGeometry'
 import { femalePm } from '../character/characters/femalePm'
 import { useCharacterStore, PLAYER_ID } from '../character/characterStore'
+import { usePerformanceStore } from '../character/performance/performanceStore'
 import '../ui/ui.css'
 
 // Story glue for phase 'meetPm': the PM waits at her spawn with a pulsing
@@ -35,6 +36,7 @@ function PmMeeting() {
       const store = useCharacterStore.getState()
       store.dispatchTo(PLAYER_ID, { type: 'TALK_END' })
       store.dispatchTo(femalePm.id, { type: 'TALK_END' })
+      usePerformanceStore.getState().clearGaze(PLAYER_ID, femalePm.id)
     }
   }, [])
 
@@ -50,6 +52,7 @@ function PmMeeting() {
     const store = useCharacterStore.getState()
     store.dispatchTo(PLAYER_ID, { type: 'TALK_START' })
     store.dispatchTo(femalePm.id, { type: 'TALK_START' })
+    usePerformanceStore.getState().setGazePair(PLAYER_ID, femalePm.id)
     store.setTransform(PLAYER_ID, player.position, facingBetween(player.position, pm.position))
     store.setTransform(femalePm.id, pm.position, facingBetween(pm.position, player.position))
     const { playerName, startDialogue } = useGameStore.getState()

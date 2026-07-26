@@ -7,6 +7,7 @@ import { useServerIncidentsStore } from './serverIncidentsStore'
 import { useSecurityStoryStore } from './securityStoryStore'
 import { useCutsceneStore } from '../cutscenes/cutsceneStore'
 import { useCharacterStore, PLAYER_ID } from '../character/characterStore'
+import { usePerformanceStore } from '../character/performance/performanceStore'
 import { ilyaVlasov } from '../character/characters/ilyaVlasov'
 import { nearestWalkable } from '../character/grid'
 import { releaseClaims } from '../interaction/interactionRegistry'
@@ -97,6 +98,7 @@ function runTalk() {
   const ilya = store.characters[ILYA]
   store.dispatchTo(PLAYER_ID, { type: 'TALK_START' })
   store.dispatchTo(ILYA, { type: 'TALK_START' })
+  usePerformanceStore.getState().setGazePair(PLAYER_ID, ILYA)
   if (player && ilya) {
     store.setTransform(PLAYER_ID, player.position, facingBetween(player.position, ilya.position))
     store.setTransform(ILYA, ilya.position, facingBetween(ilya.position, player.position))
@@ -129,6 +131,7 @@ function endTalking() {
   const store = useCharacterStore.getState()
   store.dispatchTo(PLAYER_ID, { type: 'TALK_END' })
   store.dispatchTo(ILYA, { type: 'TALK_END' })
+  usePerformanceStore.getState().clearGaze(PLAYER_ID, ILYA)
 }
 
 function pauseIlya() {

@@ -87,6 +87,16 @@ describe('characterMachine', () => {
     expect(nextState(IDLE, { type: 'TALK_END' }, [0, 0, 0])).toEqual(IDLE)
   })
 
+  it('PERFORM_START plays a named gesture; PERFORM_END returns to idle (18C)', () => {
+    const performing = nextState(IDLE, { type: 'PERFORM_START', clip: 'celebrate' }, [0, 0, 0])
+    expect(performing).toEqual({ kind: 'performing', clip: 'celebrate' })
+    expect(nextState(performing, { type: 'PERFORM_END' }, [0, 0, 0])).toEqual({ kind: 'idle' })
+    // PERFORM_END does not disturb other states
+    expect(nextState(IDLE, { type: 'PERFORM_END' }, [0, 0, 0])).toEqual(IDLE)
+    // a listener switching to speaker: performing -> talking works directly
+    expect(nextState(performing, { type: 'TALK_START' }, [0, 0, 0])).toEqual({ kind: 'talking' })
+  })
+
   it('a new click while working interrupts and starts walking to the new target', () => {
     const oldTarget = { point: [1, 0, 1] as [number, number, number], facing: 0 }
     const working: CharacterState = { kind: 'working', target: oldTarget }

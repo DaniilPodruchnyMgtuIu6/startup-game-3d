@@ -1,4 +1,5 @@
 import { buildPath, type Point, type PathHints } from './navigation'
+import type { PerformClip } from './characters/definition'
 
 export interface Target {
   point: Point
@@ -25,6 +26,9 @@ export type CharacterState =
   | { kind: 'repairing'; target: Target; role: string }
   | { kind: 'talking' }
   | { kind: 'looking' }
+  // 18C: playing a named gesture clip (agree/celebrate/explain) - used by
+  // scenes and conversations the same way talking/looking are.
+  | { kind: 'performing'; clip: PerformClip }
 
 export type CharacterEvent =
   | { type: 'CLICK_FLOOR'; point: Point }
@@ -41,6 +45,8 @@ export type CharacterEvent =
   | { type: 'TALK_END' }
   | { type: 'LOOK_START' }
   | { type: 'LOOK_END' }
+  | { type: 'PERFORM_START'; clip: PerformClip }
+  | { type: 'PERFORM_END' }
 
 // While seated the character's rotation IS the seat's facing - reuse it so a
 // character stands up forward off the seat instead of through its backrest.
@@ -82,6 +88,10 @@ export function nextState(
       return { kind: 'looking' }
     case 'LOOK_END':
       return current.kind === 'looking' ? { kind: 'idle' } : current
+    case 'PERFORM_START':
+      return { kind: 'performing', clip: event.clip }
+    case 'PERFORM_END':
+      return current.kind === 'performing' ? { kind: 'idle' } : current
   }
 }
 

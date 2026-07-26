@@ -7,13 +7,25 @@ import { join } from 'node:path'
 const ROOT = process.cwd()
 const DEF_DIR = join(ROOT, 'src/character/characters')
 
-const CLIP_NAMES = ['idle', 'walk', 'sit', 'type', 'drink', 'sitIdle', 'sofaSit', 'talk', 'look']
+const CLIP_NAMES = ['idle', 'walk', 'sit', 'type', 'drink', 'sitIdle', 'sofaSit', 'talk', 'look', 'agree', 'celebrate', 'explain']
 
 interface GltfJson {
   nodes?: { name?: string }[]
   materials?: { name?: string }[]
   images?: unknown[]
-  animations?: { name?: string; channels?: { target?: { node?: number } }[] }[]
+  accessors?: { max?: number[] }[]
+  animations?: { name?: string; channels?: { target?: { node?: number } }[]; samplers?: { input: number }[] }[]
+}
+
+function clipDurationSec(gltf: GltfJson): number {
+  let max = 0
+  for (const anim of gltf.animations ?? []) {
+    for (const sampler of anim.samplers ?? []) {
+      const end = gltf.accessors?.[sampler.input]?.max?.[0] ?? 0
+      if (end > max) max = end
+    }
+  }
+  return max
 }
 
 function parseGlbJson(file: string): GltfJson {
@@ -96,6 +108,29 @@ describe('character model identity (18B §8)', () => {
         const missing = [...targets].filter((bone) => !baseBones.has(bone))
         expect(missing, `${module}: ${url} animates bones missing from ${clips.idle}`).toEqual([])
       }
+    }
+  })
+
+  it('no clip is a 0-second static pose placeholder (18C §1)', () => {
+    for (const { module, clips } of DEFINITIONS) {
+      for (const [name, url] of Object.entries(clips)) {
+        const duration = clipDurationSec(parseGlbJson(join(ROOT, 'public', url.slice(1))))
+        expect(duration, `${module}: ${url} duration ${duration}s`).toBeGreaterThan(0.5)
+      }
+    }
+  })
+
+  it('brain-driven look clips match the LOOK_CLIP_MS the NPC brain waits for (18C)', () => {
+    const npcsSource = readFileSync(join(ROOT, 'src/character/Npcs.tsx'), 'utf8')
+    const constant = Number(npcsSource.match(/LOOK_CLIP_MS = (\d+)/)?.[1])
+    expect(constant).toBeGreaterThan(0)
+    // Guards' look is director-controlled (explicit look(false)); the auto
+    // LOOK_END only ever fires for characters with an office-life brain.
+    const BRAIN_MODULES = new Set(['femalePm.ts', 'kirillMorozov.ts', 'alinaBelova.ts', 'ilyaVlasov.ts', 'businessMan.ts'])
+    for (const { module, clips } of DEFINITIONS) {
+      if (!clips.look || !BRAIN_MODULES.has(module)) continue
+      const duration = clipDurationSec(parseGlbJson(join(ROOT, 'public', clips.look.slice(1))))
+      expect(Math.abs(duration * 1000 - constant), `${module}: look ${duration}s vs LOOK_CLIP_MS ${constant}`).toBeLessThan(150)
     }
   })
 

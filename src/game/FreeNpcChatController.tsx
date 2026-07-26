@@ -16,6 +16,7 @@ import { useServerIncidentsStore } from './serverIncidentsStore'
 import { useNpcConversationStore } from './npcConversationStore'
 import { useNpcAmbientStore } from './npcAmbientStore'
 import { useCharacterStore, PLAYER_ID } from '../character/characterStore'
+import { usePerformanceStore } from '../character/performance/performanceStore'
 import { nearestWalkable } from '../character/grid'
 import { releaseClaims } from '../interaction/interactionRegistry'
 import { approachPoint, isWithinMeetDistance, facingBetween } from './meetingGeometry'
@@ -162,6 +163,7 @@ function openTalk(npcId: NpcId, charId: string) {
   const npc = store.characters[charId]
   store.dispatchTo(PLAYER_ID, { type: 'TALK_START' })
   store.dispatchTo(charId, { type: 'TALK_START' })
+  usePerformanceStore.getState().setGazePair(PLAYER_ID, charId)
   if (player && npc) {
     store.setTransform(PLAYER_ID, player.position, facingBetween(player.position, npc.position))
     store.setTransform(charId, npc.position, facingBetween(npc.position, player.position))
@@ -173,6 +175,7 @@ function endTalking(charId: string) {
   const store = useCharacterStore.getState()
   store.dispatchTo(PLAYER_ID, { type: 'TALK_END' })
   store.dispatchTo(charId, { type: 'TALK_END' })
+  usePerformanceStore.getState().clearGaze(PLAYER_ID, charId)
 }
 
 function pausePlanner(charId: string) {

@@ -2,6 +2,7 @@ import { useGameStore, type ChoiceOption, type DialogueLine } from './gameStore'
 import { useSprintStore } from './sprintStore'
 import { useSecurityStoryStore } from './securityStoryStore'
 import { useCharacterStore, PLAYER_ID } from '../character/characterStore'
+import { usePerformanceStore } from '../character/performance/performanceStore'
 import { femalePm } from '../character/characters/femalePm'
 import { nearestWalkable } from '../character/grid'
 import { releaseClaims } from '../interaction/interactionRegistry'
@@ -70,7 +71,13 @@ function startTalking(): void {
   const player = store.characters[PLAYER_ID]
   const sonya = store.characters[SONYA]
   store.dispatchTo(PLAYER_ID, { type: 'TALK_START' })
-  store.dispatchTo(SONYA, { type: 'TALK_START' })
+  // 18C: Sonya lays out the security case with the explaining gesture clip
+  // (retargeted Higgsfield action) instead of the generic talk loop.
+  store.dispatchTo(SONYA, { type: 'PERFORM_START', clip: 'explain' })
+  usePerformanceStore.getState().setGazePair(PLAYER_ID, SONYA)
+  // §5: the post-audit talk IS the worried beat of the campaign - Sonya carries
+  // the concern until the conversation resolves (cleared in endTalking).
+  usePerformanceStore.getState().setEmotion(SONYA, 'concerned')
   if (player && sonya) {
     store.setTransform(PLAYER_ID, player.position, facingBetween(player.position, sonya.position))
     store.setTransform(SONYA, sonya.position, facingBetween(sonya.position, player.position))
@@ -80,7 +87,9 @@ function startTalking(): void {
 function endTalking(): void {
   const store = useCharacterStore.getState()
   store.dispatchTo(PLAYER_ID, { type: 'TALK_END' })
-  store.dispatchTo(SONYA, { type: 'TALK_END' })
+  store.dispatchTo(SONYA, { type: 'PERFORM_END' })
+  usePerformanceStore.getState().clearGaze(PLAYER_ID, SONYA)
+  usePerformanceStore.getState().clearEmotion(SONYA)
 }
 
 // Shows a linear dialogue and resolves when the player closes its last line -

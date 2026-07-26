@@ -6,8 +6,11 @@ Dialogue portraits (`dialogue_pictures/kirill_morozov/`, `dialogue_pictures/alin
 `dialogue_pictures/ilya_vlasov/`, `dialogue_pictures/prodact_manager/pm_worried.jpg`),
 wall posters (`posters/`) and the OfficeFlow dashboard texture
 (`textures/officeflow_dashboard.jpg`) were generated with Higgsfield AI
-(Nano Banana 2) for this project. Prompts and parameters are archived in
-`assets/source/prompts/`; the approval trail lives in
+(Nano Banana 2) for this project. The gesture animation clips
+(`character/*/agree.glb`, `character/*/celebrate.glb`, `character/*/explain.glb`)
+were produced with Higgsfield AI 3D rigging (Meshy animation actions) and
+retargeted onto the project's own skeletons. Prompts and parameters are
+archived in `assets/source/prompts/`; the approval trail lives in
 `docs/art/generated-asset-register.md`.
 
 ## Textures & HDRI

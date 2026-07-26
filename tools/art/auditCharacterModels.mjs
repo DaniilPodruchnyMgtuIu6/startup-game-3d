@@ -1,7 +1,8 @@
-// Feature 18B §3/§7: deterministic audit of every character GLB. Parses the
-// glTF JSON chunk directly (no three.js needed): triangles, materials,
-// textures + estimated GPU memory, bones, morph targets, animations, file
-// size. Run: node tools/art/auditCharacterModels.mjs [--json]
+// Feature 18B §3/§7 + 18C §1: deterministic audit of every character GLB.
+// Parses the glTF JSON chunk directly (no three.js needed): triangles,
+// materials, textures + estimated GPU memory, bones, morph targets, and per
+// clip - duration, root motion (horizontal Hips travel) and file size.
+// Run: node tools/art/auditCharacterModels.mjs [--json]
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -33,6 +34,25 @@ function auditGlb(file) {
   for (const img of images) {
     if (img.bufferView !== undefined) textureBytes += gltf.bufferViews?.[img.bufferView]?.byteLength ?? 0
   }
+  // 18C §1: duration = latest keyframe time; root motion = horizontal range of
+  // the Hips translation track (in-place clips stay near zero).
+  let duration = 0
+  let rootMotion = 0
+  const nodes = gltf.nodes ?? []
+  for (const anim of gltf.animations ?? []) {
+    for (const sampler of anim.samplers ?? []) {
+      const end = accessors[sampler.input]?.max?.[0] ?? 0
+      if (end > duration) duration = end
+    }
+    for (const channel of anim.channels ?? []) {
+      if (channel.target?.path !== 'translation') continue
+      if (!/Hips$/.test(nodes[channel.target.node]?.name ?? '')) continue
+      const out = accessors[anim.samplers[channel.sampler].output]
+      if (out?.min && out?.max) {
+        rootMotion = Math.max(rootMotion, out.max[0] - out.min[0], out.max[2] - out.min[2])
+      }
+    }
+  }
   return {
     file: file.replace(ROOT, '').replace(/\\/g, '/'),
     fileKB: Math.round(statSync(file).size / 1024),
@@ -44,6 +64,8 @@ function auditGlb(file) {
     textureKB: Math.round(textureBytes / 1024),
     bones,
     morphTargets,
+    durationSec: Math.round(duration * 100) / 100,
+    rootMotion: Math.round(rootMotion * 1000) / 1000,
     animations: (gltf.animations ?? []).map((a) => a.name ?? '?'),
   }
 }
@@ -67,7 +89,9 @@ if (process.argv.includes('--json')) {
     console.log(`\n## ${character} (${files.length} clips, ${Math.round(total / 1024 * 10) / 10} MB total)`)
     console.log(`base: ${base.triangles} tris, ${base.materials} materials [${base.materialNames.join(', ')}], ${base.textures} tex ${base.textureKB} KB, ${base.bones} bones, ${base.morphTargets} morphs`)
     for (const f of files) {
-      console.log(`  ${f.file.split('/').pop()}: ${f.fileKB} KB, ${f.triangles} tris, anims [${f.animations.join(', ')}]`)
+      console.log(
+        `  ${f.file.split('/').pop()}: ${f.fileKB} KB, ${f.durationSec}s, rootXZ ${f.rootMotion}, anims [${f.animations.join(', ')}]`,
+      )
     }
   }
 }

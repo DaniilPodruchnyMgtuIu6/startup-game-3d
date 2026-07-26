@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { recoverSceneCharacters } from './sceneRecovery'
 import { useCutsceneStore } from './cutsceneStore'
 import { useCharacterStore, PLAYER_ID } from '../character/characterStore'
+import { usePerformanceStore } from '../character/performance/performanceStore'
 
 // Regression (Feature 15 deep pass): a cutscene that THROWS mid-run used to
 // leave (a) invisible ghost character entries for its ephemeral actors and
@@ -48,5 +49,15 @@ describe('recoverSceneCharacters', () => {
     recoverSceneCharacters([SONYA])
     expect(useCharacterStore.getState().characters[SONYA].state.kind).toBe('idle')
     expect(useCharacterStore.getState().characters[PLAYER_ID]).toBeDefined()
+  })
+
+  it('wipes every emotion override and gaze pair a failed scene left behind (18C §7)', () => {
+    usePerformanceStore.getState().setEmotion(SONYA, 'concerned')
+    usePerformanceStore.getState().setGazePair(PLAYER_ID, SONYA)
+
+    recoverSceneCharacters([SONYA])
+
+    expect(usePerformanceStore.getState().emotions).toEqual({})
+    expect(usePerformanceStore.getState().gazeTargets).toEqual({})
   })
 })

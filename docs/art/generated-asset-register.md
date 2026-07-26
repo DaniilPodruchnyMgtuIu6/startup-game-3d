@@ -18,6 +18,9 @@ Production-код ссылается только на approved/integrated. Се
 | identity-sheets-alina (turnaround+expressions+poses) | Higgsfield MCP / nano_banana_2 | assets/source/prompts/identity-sheets-18b.md | approved (reference-only) | Higgsfield generation (проект) | — docs/art/characters/alina-belova/ |
 | identity-sheets-ilya (turnaround+expressions+poses) | Higgsfield MCP / nano_banana_2 | assets/source/prompts/identity-sheets-18b.md | approved (reference-only) | Higgsfield generation (проект) | — docs/art/characters/ilya-vlasov/ |
 | identity-sheets-founder (turnaround+expressions+poses) | Higgsfield MCP / nano_banana_2 | assets/source/prompts/identity-sheets-18b.md | approved (reference-only) | Higgsfield generation (проект) | — docs/art/characters/player-founder/ |
+| gesture-clip-agree (×5 ригов) | Higgsfield MCP / 3d_rigging (Meshy, action 25) + retargetMeshyClip | assets/source/prompts/gesture-clips-18c.md | integrated | Higgsfield generation (проект) | public/character/*/agree.glb |
+| gesture-clip-celebrate (×5 ригов) | Higgsfield MCP / 3d_rigging (Meshy, action 298) + retargetMeshyClip | assets/source/prompts/gesture-clips-18c.md | integrated | Higgsfield generation (проект) | public/character/*/celebrate.glb |
+| gesture-clip-explain (×5 ригов) | Higgsfield MCP / 3d_rigging (Meshy, action 313) + retargetMeshyClip | assets/source/prompts/gesture-clips-18c.md | integrated | Higgsfield generation (проект) | public/character/*/explain.glb |
 
 Наследованные до-реестровые генерации (эталоны стиля, приняты ранее):
 `public/dialogue_pictures/prodact_manager/pm.jpeg`, `boss/*.jpeg`,

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useNpcAmbientStore } from './npcAmbientStore'
 import { useCharacterStore } from '../character/characterStore'
+import { usePerformanceStore } from '../character/performance/performanceStore'
 import { nearestWalkable } from '../character/grid'
 import type { Point } from '../character/navigation'
 import { releaseClaims } from '../interaction/interactionRegistry'
@@ -56,6 +57,8 @@ export function NpcAmbientConversationController() {
     for (const id of [moverRef.current, hostRef.current]) {
       if (!id) continue
       store.dispatchTo(id, { type: 'TALK_END' })
+      store.dispatchTo(id, { type: 'PERFORM_END' }) // a listener may be mid-'agree'
+      usePerformanceStore.getState().clearGaze(id)
       resumePlanner(id)
     }
     moverRef.current = null
@@ -85,6 +88,7 @@ export function NpcAmbientConversationController() {
     const hostRot = store.characters[host]?.rotationY ?? 0
     store.dispatchTo(mover, { type: 'TALK_START' })
     store.dispatchTo(host, { type: 'TALK_START' })
+    usePerformanceStore.getState().setGazePair(mover, host)
     if (mp && hp) {
       // Guarantee a clean speaking gap: if they ended up too close (walk timed out
       // while overlapping), push the mover out along their axis. Then face off.
@@ -93,7 +97,20 @@ export function NpcAmbientConversationController() {
       store.setTransform(host, hp, facingBetween(hp, mpFinal))
     }
     const lineCount = current.conversation.lines.length
+    // 18C: per line, the speaker talks and the listener plays the retargeted
+    // 'agree' gesture (nodding along). Roles swap as the lines alternate.
+    const applyLinePose = (index: number) => {
+      const conversation = useNpcAmbientStore.getState().active?.conversation
+      const line = conversation?.lines[index]
+      if (!conversation || !line) return
+      const speaker = NPC_CHARACTER_ID[line.speaker]
+      const listener = NPC_CHARACTER_ID[line.speaker === conversation.mover ? conversation.host : conversation.mover]
+      const chars = useCharacterStore.getState()
+      chars.dispatchTo(speaker, { type: 'TALK_START' })
+      chars.dispatchTo(listener, { type: 'PERFORM_START', clip: 'agree' })
+    }
     useNpcAmbientStore.getState().setLineIndex(0)
+    applyLinePose(0)
     const scheduleFrom = (i: number) => {
       if (i >= lineCount - 1) {
         timers.current.push(setTimeout(finish, END_LINGER_MS))
@@ -102,6 +119,7 @@ export function NpcAmbientConversationController() {
       timers.current.push(
         setTimeout(() => {
           useNpcAmbientStore.getState().setLineIndex(i + 1)
+          applyLinePose(i + 1)
           scheduleFrom(i + 1)
         }, LINE_MS),
       )

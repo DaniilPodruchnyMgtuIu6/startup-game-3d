@@ -147,6 +147,11 @@ async function runScene(director: Parameters<CutsceneScript>[0], { PLAYER_SHOCKE
   director.face('guard1', PLAYER_ID)
   director.face('guard2', PLAYER_ID)
   director.face(PLAYER_ID, 'guard1')
+  // 18C §5: the guards confront the player - controlled anger vs surprise
+  // (recovery clears every emotion when the scene ends either way).
+  director.emotion('guard1', 'angry-controlled')
+  director.emotion('guard2', 'angry-controlled')
+  director.emotion(PLAYER_ID, 'surprised')
   director.talk(PLAYER_ID, true)
   director.talk('guard1', true)
 
@@ -158,6 +163,7 @@ async function runScene(director: Parameters<CutsceneScript>[0], { PLAYER_SHOCKE
     { ...GUARD2_ANGRY, text: 'Мы обязаны сообщать о таком наверх. Но для начала хотим услышать вашу версию.' },
     { ...PLAYER_SHOCKED, text: 'Что?! Оставила компьютер разблокированным средь бела дня?' },
   ])
+  director.emotion(PLAYER_ID, 'sad')
 
   // The choice is skipped when a decision was already recorded (e.g. a reload
   // after choosing), so the saved choice stays the single source of truth.

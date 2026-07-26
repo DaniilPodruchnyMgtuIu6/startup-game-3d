@@ -2,6 +2,7 @@ import { useGameStore, type ChoiceOption, type DialogueLine } from '../gameStore
 import { useSprintStore } from '../sprintStore'
 import { useTeamStore } from '../teamStore'
 import { useCharacterStore, PLAYER_ID } from '../../character/characterStore'
+import { usePerformanceStore } from '../../character/performance/performanceStore'
 import { nearestWalkable } from '../../character/grid'
 import { releaseClaims } from '../../interaction/interactionRegistry'
 import { approachPoint, facingBetween } from '../meetingGeometry'
@@ -84,6 +85,7 @@ function startTalking(characterId: string): void {
   const lead = store.characters[characterId]
   store.dispatchTo(PLAYER_ID, { type: 'TALK_START' })
   store.dispatchTo(characterId, { type: 'TALK_START' })
+  usePerformanceStore.getState().setGazePair(PLAYER_ID, characterId)
   if (player && lead) {
     store.setTransform(PLAYER_ID, player.position, facingBetween(player.position, lead.position))
     store.setTransform(characterId, lead.position, facingBetween(lead.position, player.position))
@@ -94,6 +96,7 @@ function endTalking(characterId: string): void {
   const store = useCharacterStore.getState()
   store.dispatchTo(PLAYER_ID, { type: 'TALK_END' })
   store.dispatchTo(characterId, { type: 'TALK_END' })
+  usePerformanceStore.getState().clearGaze(PLAYER_ID, characterId)
 }
 
 function say(lines: DialogueLine[]): Promise<void> {

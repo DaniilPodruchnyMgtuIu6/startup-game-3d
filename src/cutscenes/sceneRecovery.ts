@@ -1,4 +1,5 @@
 import { useCharacterStore, PLAYER_ID } from '../character/characterStore'
+import { usePerformanceStore } from '../character/performance/performanceStore'
 import { useCutsceneStore } from './cutsceneStore'
 
 // After a scene ends — successfully or by throwing — hand every character the
@@ -9,15 +10,18 @@ import { useCutsceneStore } from './cutsceneStore'
 //   invisible ghost entries behind);
 // - any TALK_START left without its TALK_END is closed, because the NPC brain
 //   only schedules from settled states — a 'talking' leftover froze the NPC
-//   forever after a scene error.
+//   forever after a scene error;
+// - (18C §7) every emotion override and gaze pair is wiped, so a failed scene
+//   can never leave a character permanently worried or staring at a corner.
 export function recoverSceneCharacters(ownedNpcIds: string[]): void {
   const store = useCharacterStore.getState()
   for (const actorId of Object.keys(useCutsceneStore.getState().actors)) {
     store.removeCharacter(actorId)
   }
   for (const id of [PLAYER_ID, ...ownedNpcIds]) {
-    if (useCharacterStore.getState().characters[id]?.state.kind === 'talking') {
-      store.dispatchTo(id, { type: 'TALK_END' })
-    }
+    const kind = useCharacterStore.getState().characters[id]?.state.kind
+    if (kind === 'talking') store.dispatchTo(id, { type: 'TALK_END' })
+    if (kind === 'performing') store.dispatchTo(id, { type: 'PERFORM_END' })
   }
+  usePerformanceStore.getState().clearAllPerformance()
 }

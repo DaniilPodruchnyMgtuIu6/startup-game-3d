@@ -60,6 +60,13 @@ export const officeFlowMvpReleaseScene: CutsceneScript = async (director: Cutsce
     director.face(alinaBelova.id, femalePm.id)
     if (hasIlya) director.face(ilyaVlasov.id, femalePm.id)
 
+    // 18C §5: the release moment - the team stands proud (scene recovery wipes
+    // these after the scene, no manual clear needed on the success path).
+    director.emotion(femalePm.id, 'confident')
+    director.emotion(kirillMorozov.id, 'confident')
+    director.emotion(alinaBelova.id, 'confident')
+    if (hasIlya) director.emotion(ilyaVlasov.id, 'relieved')
+
     // show the built product to the room
     useProductStore.getState().openPrototype()
 
@@ -103,6 +110,18 @@ export const officeFlowMvpReleaseScene: CutsceneScript = async (director: Cutsce
     await director.say([
       asLeadership('Первый этап OfficeFlow принят. MVP разрешён к внутреннему запуску.'),
     ])
+
+    // 18C: the release moment - the whole team cheers (retargeted Higgsfield
+    // celebrate clip) before the success screen takes over.
+    director.perform(femalePm.id, 'celebrate')
+    director.perform(kirillMorozov.id, 'celebrate')
+    director.perform(alinaBelova.id, 'celebrate')
+    if (hasIlya) director.perform(ilyaVlasov.id, 'celebrate')
+    await director.wait(3200)
+    director.perform(femalePm.id, null)
+    director.perform(kirillMorozov.id, null)
+    director.perform(alinaBelova.id, null)
+    if (hasIlya) director.perform(ilyaVlasov.id, null)
 
     // commit the win — the coordinator opens the success screen after the scene
     finalizeMvpReleaseSuccess()

@@ -1,8 +1,26 @@
 import type { Point } from '../navigation'
 import type { ActivityPlanner } from '../npcBehavior'
 
-export const CLIP_NAMES = ['idle', 'walk', 'sit', 'type', 'drink', 'sitIdle', 'sofaSit', 'talk', 'look'] as const
+export const CLIP_NAMES = [
+  'idle',
+  'walk',
+  'sit',
+  'type',
+  'drink',
+  'sitIdle',
+  'sofaSit',
+  'talk',
+  'look',
+  // 18C: Higgsfield/Meshy actions retargeted onto the project rigs
+  // (tools/art/retargetMeshyClip.mjs) - dialogue and story gestures.
+  'agree',
+  'celebrate',
+  'explain',
+] as const
 export type ClipName = (typeof CLIP_NAMES)[number]
+
+// Gesture clips a scene may play through the 'performing' state.
+export type PerformClip = 'agree' | 'celebrate' | 'explain'
 
 export interface CharacterModelConfig {
   // URL per animation clip. 'idle' is required - it is also the base file

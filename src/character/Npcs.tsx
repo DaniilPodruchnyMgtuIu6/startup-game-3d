@@ -18,6 +18,12 @@ import { useGameOutcomeStore } from '../game/gameOutcomeStore'
 // activity after the current plan's stay duration.
 const SETTLED_STATES = new Set(['idle', 'working', 'sittingIdle', 'sofaSitting', 'drinkingCoffee'])
 
+// Feature 18C: one full pass of the look-around clip (security_1/look.glb and
+// its retargets are all 4.75s - guarded by tools/art/characterIdentity.test).
+// A security round now ends with the specialist actually LOOKING at the spot
+// he patrolled to, then his brain resumes normal scheduling.
+const LOOK_CLIP_MS = 4750
+
 function freeTargets(kind: Parameters<typeof getInteractions>[0], ownerId: string) {
   return getInteractions(kind)
     .map((entry) => entry.target)
@@ -34,6 +40,9 @@ function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivit
   // Feature 12: a registered defeat freezes autonomous office life too.
   const outcomeActive = useGameOutcomeStore((s) => s.status !== 'playing')
   const planRef = useRef<ActivityPlan | null>(null)
+  // 18C: whether the current security-round plan has already played its
+  // arrival look-around (reset whenever a new plan is chosen).
+  const lookPlayedRef = useRef(true)
   const rngRef = useRef<(() => number) | null>(null)
   if (!rngRef.current) {
     let seed = 0
@@ -46,7 +55,23 @@ function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivit
     // free play (after the player has met the PM), and pause entirely while
     // a cutscene has taken direct control of this character
     if (gamePhase !== 'free' || sceneOwned || outcomeActive) return
+    // 18C: an in-progress look-around ends by itself after one clip pass; the
+    // brain waits (looking is not a settled state) and resumes on LOOK_END.
+    if (stateKind === 'looking') {
+      const timer = setTimeout(
+        () => useCharacterStore.getState().dispatchTo(id, { type: 'LOOK_END' }),
+        LOOK_CLIP_MS,
+      )
+      return () => clearTimeout(timer)
+    }
     if (!stateKind || !SETTLED_STATES.has(stateKind)) return
+    // 18C: arriving at a patrol point (idle again with a security-round plan)
+    // plays the look-around once before the next activity is scheduled.
+    if (stateKind === 'idle' && planRef.current?.kind === 'security-round' && !lookPlayedRef.current) {
+      lookPlayedRef.current = true
+      useCharacterStore.getState().dispatchTo(id, { type: 'LOOK_START' })
+      return
+    }
     const rng = rngRef.current!
     // first decision after spawn comes quickly; afterwards stay durations rule
     const delay = planRef.current ? planRef.current.stayMs : 1500 + rng() * 2500
@@ -64,6 +89,7 @@ function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivit
         })
         if (cancelled) return
         planRef.current = plan
+        lookPlayedRef.current = plan.kind !== 'security-round'
         const store = useCharacterStore.getState()
         releaseClaims(id)
         // A security round walks to a patrol point and idles there - a floor

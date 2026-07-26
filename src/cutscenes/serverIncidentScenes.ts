@@ -44,6 +44,11 @@ async function runServerScene(director: CutsceneDirector, incidentId: ServerInci
     await director.walk(kirillMorozov.id, KIRILL_MARK)
     if (withIlya) await director.walk(ilyaVlasov.id, ILYA_MARK)
     director.face(femalePm.id, kirillMorozov.id)
+    // 18C §5: an outage briefing - everyone is worried, Kirill focused on the
+    // fix; Ilya keeps his composed working stance (recovery clears these).
+    director.emotion(femalePm.id, 'concerned')
+    director.emotion(kirillMorozov.id, 'focused')
+    if (withIlya) director.emotion(ilyaVlasov.id, 'focused')
     director.talk(femalePm.id, true)
     if (withIlya) director.talk(ilyaVlasov.id, true)
     director.talk(kirillMorozov.id, true)
@@ -51,6 +56,9 @@ async function runServerScene(director: CutsceneDirector, incidentId: ServerInci
     director.talk(femalePm.id, false)
     director.talk(kirillMorozov.id, false)
     if (withIlya) director.talk(ilyaVlasov.id, false)
+    director.emotion(femalePm.id, null)
+    director.emotion(kirillMorozov.id, null)
+    if (withIlya) director.emotion(ilyaVlasov.id, null)
     store().resolveServerIncidentScene(incidentId, moment())
   } catch (error) {
     store().markServerIncidentSceneFailed(incidentId)
