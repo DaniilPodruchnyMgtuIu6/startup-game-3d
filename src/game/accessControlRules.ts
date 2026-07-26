@@ -1,6 +1,7 @@
 import type { RiskLevel } from './riskCatalog'
 import type { StoryMoment } from './securityStoryRules'
 import { getEmployeeActiveSecurityFinding, type SecurityFindingState } from './securityAuditRules'
+import { SECURITY_BALANCE } from './balance/securityBalance'
 
 // Pure, deterministic rules for the access-control (СКУД) initiative and the
 // office-intrusion threat (Feature 10). No Zustand, no randomness, no real time.
@@ -40,9 +41,9 @@ export interface OfficeIntrusionState {
 export const INITIAL_ACCESS_CONTROL: AccessControlState = { proposalStatus: 'locked', progressDays: 0, effectsApplied: false }
 export const INITIAL_INTRUSION: OfficeIntrusionState = { status: 'dormant', effectsApplied: false }
 
-export const OFFICE_INTRUSION_DELAY_DAYS = 4
-export const OFFICE_INTRUSION_RESPONSE_COST_WITH_SPECIALIST = 60_000
-export const OFFICE_INTRUSION_RESPONSE_COST_WITHOUT_SPECIALIST = 140_000
+export const OFFICE_INTRUSION_DELAY_DAYS = SECURITY_BALANCE.intrusion.delayWorkdays
+export const OFFICE_INTRUSION_RESPONSE_COST_WITH_SPECIALIST = SECURITY_BALANCE.intrusion.responseCostWithSpecialistRub
+export const OFFICE_INTRUSION_RESPONSE_COST_WITHOUT_SPECIALIST = SECURITY_BALANCE.intrusion.responseCostWithoutSpecialistRub
 
 const LEVEL_ORDER: RiskLevel[] = ['controlled', 'low', 'elevated', 'high', 'critical']
 function levelRank(level: RiskLevel): number {
@@ -60,7 +61,7 @@ export function canUnlockAccessControlProposal(detectedOfficeAccessLevel: RiskLe
 // --- Implementation effort & assignment -------------------------------------
 
 export function getAccessControlEffortDays(employeeId: AccessControlAssigneeId): number {
-  return employeeId === 'ilya-vlasov' ? 2 : 3
+  return SECURITY_BALANCE.accessControl.effortDaysByAssignee[employeeId]
 }
 
 // Effort still required from the CURRENT assignee (progress carries over on a
@@ -283,7 +284,7 @@ export function shouldEscalateAccessControl(ctx: {
 }): boolean {
   if (ctx.proposalStatus !== 'available' && ctx.proposalStatus !== 'postponed') return false
   if (ctx.availableAtWorkdayIndex === undefined) return false
-  if (ctx.currentWorkdayIndex - ctx.availableAtWorkdayIndex < 2) return false
+  if (ctx.currentWorkdayIndex - ctx.availableAtWorkdayIndex < SECURITY_BALANCE.accessControl.escalationDelayWorkdays) return false
   if (levelRank(ctx.detectedOfficeAccessLevel) < levelRank('elevated')) return false
   if (levelRank(ctx.actualOfficeAccessLevel) < levelRank('elevated')) return false
   return true

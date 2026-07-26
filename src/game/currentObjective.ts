@@ -6,6 +6,9 @@ export interface ObjectiveContext {
   gamePhase: string
   sprintPhase: string
   outcomeBlocking: boolean
+  // Feature 17A: the objective text of the pending mandatory story decision
+  // (undefined when none is pending). Takes priority over everything below.
+  storyDecisionText?: string
   postAuditPending: boolean
   serverIncidentNeedingAssignee?: string // incident title awaiting a recovery assignee
   // Feature 16 §9: the office-intrusion threat is armed — working days left before it fires.
@@ -22,11 +25,15 @@ export interface Objective {
   text: string
   // Which subsystem the objective points at — used to pick the marker/target.
   target: 'sonya' | 'team-panel' | 'board' | 'security-board' | 'none'
+  // Stable id for mandatory story objectives (Feature 17A: resolve-story-dialogue).
+  id?: string
 }
 
 export function getCurrentObjective(ctx: ObjectiveContext): Objective | null {
   if (ctx.outcomeBlocking || ctx.gamePhase !== 'free') return null
 
+  // Feature 17A §7: a mandatory story decision is THE current goal.
+  if (ctx.storyDecisionText) return { id: 'resolve-story-dialogue', text: ctx.storyDecisionText, target: 'sonya' }
   if (ctx.postAuditPending) return { text: 'Поговорите с Соней о результатах аудита.', target: 'sonya' }
   if (ctx.intrusionArmedDaysLeft !== undefined)
     return {

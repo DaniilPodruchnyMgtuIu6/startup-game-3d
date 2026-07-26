@@ -31,6 +31,8 @@ import { getUnacknowledgedDetectedCount } from '../game/riskRules'
 import { toWorkdayIndex } from '../game/workdayIndex'
 import { hasCompletedCoreMvp } from '../game/productRules'
 import { getCurrentObjective } from '../game/currentObjective'
+import { useStoryDecisionStore } from '../game/story/storyDecisionStore'
+import { getActiveBlockingDecision } from '../game/story/storyDecisionSelectors'
 import './ui.css'
 
 const WARNING_TEXT: Record<Exclude<BudgetWarning, 'ok'>, string> = {
@@ -81,6 +83,9 @@ export function SprintHud() {
   )
   const intrusion = useAccessControlStore((s) => s.intrusion)
   const unacknowledgedRisks = useRiskStore((s) => getUnacknowledgedDetectedCount(s.signals) > 0)
+  // Feature 17A: a pending mandatory story decision becomes the current goal.
+  useStoryDecisionStore((s) => s.activeDecisionId)
+  const storyDecision = getActiveBlockingDecision()
 
   if (gamePhase !== 'free') return null
 
@@ -93,6 +98,7 @@ export function SprintHud() {
     gamePhase,
     sprintPhase,
     outcomeBlocking,
+    storyDecisionText: storyDecision ? `${storyDecision.objectiveTitle}. ${storyDecision.objectiveDescription}` : undefined,
     postAuditPending: isPostAuditConversationRequired(postAuditConversation),
     intrusionArmedDaysLeft,
     serverIncidentNeedingAssignee: incidentNeedingAssignee ? getServerIncident(incidentNeedingAssignee.incidentId)?.title : undefined,

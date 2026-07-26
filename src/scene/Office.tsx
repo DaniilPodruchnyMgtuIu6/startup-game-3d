@@ -17,6 +17,7 @@ import { Npcs } from '../character/Npcs'
 import { FloorClickCatcher } from '../character/FloorClickCatcher'
 import { MeetPmController } from '../game/MeetPmController'
 import { PostAuditConversationController } from '../game/PostAuditConversationController'
+import { Level1StoryDecisionController } from '../game/story/Level1StoryDecisionController'
 import { SecuritySpecialistController } from '../game/SecuritySpecialistController'
 import { FreeNpcChatController } from '../game/FreeNpcChatController'
 import { NpcAmbientConversationController } from '../game/NpcAmbientConversationController'
@@ -57,6 +58,7 @@ export function Office({
         <NpcsComponent />
         <StoryComponent />
         <PostAuditConversationController />
+        <Level1StoryDecisionController />
         <SecuritySpecialistController />
         <FreeNpcChatController />
         <NpcAmbientConversationController />

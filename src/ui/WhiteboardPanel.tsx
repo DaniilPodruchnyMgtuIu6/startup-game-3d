@@ -55,6 +55,7 @@ const START_REASON_TEXT: Record<string, string> = {
   'first-sprint-needs-both-roles': 'В первом спринте нужна хотя бы одна задача каждому разработчику.',
   'no-planned-tasks': 'Добавьте в спринт хотя бы одну незавершённую задачу.',
   'not-planning': 'Спринт уже идёт.',
+  'story-decision-pending': 'Сначала поговорите с Соней — она ждёт решения о проверке системы.',
 }
 
 function TaskProgress({ state }: { state: ProductTaskState }) {

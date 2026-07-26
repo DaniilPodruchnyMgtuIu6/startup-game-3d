@@ -46,6 +46,7 @@ import { initializeSecurityAuditIfReady } from './game/initializeSecurityAudit'
 import { reconcileRiskSignals } from './game/reconcileRiskSignals'
 import { reconcileAccessControlThreatAndProposal } from './game/reconcileAccessControl'
 import { reconcileServerIncidentThreatsAtStartup } from './game/reconcileServerIncidents'
+import { reconcileStoryDecisionsAtStartup } from './game/story/reconcileStoryDecisions'
 import { useServerIncidentStore } from './game/serverIncidentStore'
 import { useRiskStore } from './game/riskStore'
 import { RISK_DOMAINS } from './game/riskCatalog'
@@ -73,6 +74,9 @@ reconcileGameOutcomeAtStartup()
 // Feature 16 §6: drop invalid product-plan assignments from a corrupted save
 // that has no development team (keeps backlog + completed progress).
 reconcilePlanningWithoutTeam()
+// Feature 17A §9: create/repair the Level 1 story-decision records against a
+// pre-17 save (legacy staffing choice -> resolved baseline; never replayed).
+reconcileStoryDecisionsAtStartup()
 
 // The shared reset flag has now been consumed by every store's module-load
 // hydration; strip ?intro so a later manual reload keeps the new game's progress.

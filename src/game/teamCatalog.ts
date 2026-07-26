@@ -2,6 +2,8 @@
 // generation, no alternatives (Feature 03 / Feature 07). Pure data - only the
 // fact of a hire is persisted (see teamStore), never this catalog.
 
+import { TEAM_BALANCE } from './balance/teamBalance'
+
 export type EmployeeRole = 'backend-developer' | 'frontend-developer' | 'security-specialist'
 
 // The stable id of the one fixed security specialist (Feature 07).
@@ -25,7 +27,7 @@ export const TEAM_CATALOG: EmployeeDefinition[] = [
     name: 'Кирилл Морозов',
     role: 'backend-developer',
     roleLabel: 'Backend-разработчик',
-    dailySalary: 9_000,
+    dailySalary: TEAM_BALANCE.dailySalaryRubByEmployee['kirill-morozov'],
     shortDescription: 'Сильный backend-разработчик. Быстро находит практичные решения и не любит лишнюю бюрократию.',
     persona: 'Уверенный, технически сильный и прямолинейный. Любит быстрые решения и спорит с процессами, которые считает избыточными.',
     characterId: 'npc-kirill-morozov',
@@ -35,7 +37,7 @@ export const TEAM_CATALOG: EmployeeDefinition[] = [
     name: 'Алина Белова',
     role: 'frontend-developer',
     roleLabel: 'Frontend-разработчик',
-    dailySalary: 8_000,
+    dailySalary: TEAM_BALANCE.dailySalaryRubByEmployee['alina-belova'],
     shortDescription: 'Быстро создаёт понятные интерфейсы и внимательно относится к пользовательскому опыту.',
     persona: 'Общительная и ответственная. Не любит постоянную смену требований и бессмысленные переделки.',
     characterId: 'npc-alina-belova',
@@ -45,7 +47,7 @@ export const TEAM_CATALOG: EmployeeDefinition[] = [
     name: 'Илья Власов',
     role: 'security-specialist',
     roleLabel: 'Специалист по информационной безопасности',
-    dailySalary: 9_000,
+    dailySalary: TEAM_BALANCE.dailySalaryRubByEmployee['ilya-vlasov'],
     shortDescription:
       'Специалист по защите инфраструктуры и внутренних процессов. Помогает находить риски до того, как они превращаются в инциденты.',
     persona:

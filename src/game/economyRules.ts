@@ -5,6 +5,8 @@
 // `kind`.
 
 import { SPRINT_DAYS } from './sprintRules'
+import { ECONOMY_BALANCE } from './balance/economyBalance'
+import { SECURITY_BALANCE } from './balance/securityBalance'
 
 export type MoneyTransactionKind = 'income' | 'expense'
 export type MoneyTransactionCategory =
@@ -33,16 +35,17 @@ export interface MoneyTransaction {
   breakdown?: ExpenseBreakdownItem[]
 }
 
-// Starting funding for the OfficeFlow project.
-export const INITIAL_BUDGET = 2_500_000
+// Starting funding for the OfficeFlow project (value lives in economyBalance).
+export const INITIAL_BUDGET = ECONOMY_BALANCE.initialBudgetRub
 
 // Base cost of a single working day. BASE_DAILY_COST / BASE_SPRINT_COST are
-// derived from this list (never duplicated as loose numbers).
+// derived from this list (never duplicated as loose numbers); the amounts live
+// in economyBalance.
 export const BASE_DAILY_EXPENSES: readonly ExpenseBreakdownItem[] = [
-  { code: 'office-rent', title: 'Аренда офиса', amount: 8_000 },
-  { code: 'infrastructure', title: 'Серверы и сервисы', amount: 4_000 },
-  { code: 'project-manager', title: 'Проджект-менеджер', amount: 6_000 },
-  { code: 'administration', title: 'Административные расходы', amount: 2_000 },
+  { code: 'office-rent', title: 'Аренда офиса', amount: ECONOMY_BALANCE.baseDailyExpenses.officeRentRub },
+  { code: 'infrastructure', title: 'Серверы и сервисы', amount: ECONOMY_BALANCE.baseDailyExpenses.infrastructureRub },
+  { code: 'project-manager', title: 'Проджект-менеджер', amount: ECONOMY_BALANCE.baseDailyExpenses.projectManagerRub },
+  { code: 'administration', title: 'Административные расходы', amount: ECONOMY_BALANCE.baseDailyExpenses.administrationRub },
 ]
 
 export const BASE_DAILY_COST = BASE_DAILY_EXPENSES.reduce((sum, item) => sum + item.amount, 0)
@@ -133,7 +136,7 @@ export function createAuditFineTransaction(
 
 // --- Access-control investment & incident (Feature 10) ----------------------
 
-export const ACCESS_CONTROL_INVESTMENT_COST = 180_000
+export const ACCESS_CONTROL_INVESTMENT_COST = SECURITY_BALANCE.accessControl.investmentCostRub
 export const ACCESS_CONTROL_TRANSACTION_ID = 'security-investment:access-control'
 export const OFFICE_INTRUSION_TRANSACTION_ID = 'security-incident:office-intrusion'
 

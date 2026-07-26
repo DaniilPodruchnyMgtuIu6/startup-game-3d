@@ -1,5 +1,6 @@
 import type { MoneyTransaction } from './economyRules'
 import type { StoryMoment } from './securityStoryRules'
+import { TIMELINE_BALANCE } from './balance/timelineBalance'
 import { RISK_DOMAINS, type RiskDomain, type RiskLevel } from './riskCatalog'
 import { getCampaignSuccessTier } from './mvpReleaseRules'
 import type {
@@ -28,13 +29,13 @@ export type LeadershipReviewStatus = 'inactive' | 'grace-period' | 'recovered' |
 export type CampaignDeadlineStatus = 'active' | 'met' | 'missed'
 
 // The first campaign stage must prepare OfficeFlow for release by the end of
-// sprint 6. Not configurable through production UI.
-export const CAMPAIGN_DEADLINE_SPRINT = 6
+// sprint 6. Not configurable through production UI (value in timelineBalance).
+export const CAMPAIGN_DEADLINE_SPRINT = TIMELINE_BALANCE.campaignDeadlineSprint
 // Five future completed working days to close every finding after the third
 // failed audit before leadership suspends the project.
-export const LEADERSHIP_GRACE_PERIOD_DAYS = 5
+export const LEADERSHIP_GRACE_PERIOD_DAYS = TIMELINE_BALANCE.leadershipGraceWorkdays
 // A single unresolved server incident may stay down at most five paid days.
-export const MAX_SERVER_DOWNTIME_DAYS = 5
+export const MAX_SERVER_DOWNTIME_DAYS = TIMELINE_BALANCE.maxServerDowntimeDays
 
 const ALL_FAILURE_REASONS: GameFailureReason[] = [
   'budget-exhausted',

@@ -12,8 +12,10 @@ export interface SprintState {
   phase: SprintPhase
 }
 
-// One sprint = ten notional working days.
-export const SPRINT_DAYS = 10
+import { TIMELINE_BALANCE } from './balance/timelineBalance'
+
+// One sprint = ten notional working days (value lives in timelineBalance).
+export const SPRINT_DAYS = TIMELINE_BALANCE.sprintDays
 
 export const INITIAL_SPRINT_STATE: SprintState = { sprintNumber: 1, day: 1, phase: 'planning' }
 

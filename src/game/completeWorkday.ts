@@ -16,6 +16,7 @@ import {
 import { ensureMvpReleaseTask } from './releaseOfficeFlowMvp'
 import { getEmployeeSalaryExpenses, getHiredEmployeeIds, getHiredDeveloperIds, hasSecuritySpecialist } from './teamRules'
 import { isPostAuditConversationRequired } from './securityStoryRules'
+import { isStoryDecisionBlockingNow } from './story/storyDecisionSelectors'
 import { isOfficeIntrusionBlocking, canUnlockAccessControlProposal, shouldEscalateAccessControl } from './accessControlRules'
 import { accessControlNotImplementedSignals } from './riskSignals'
 import { riskMomentAt } from './riskContext'
@@ -34,7 +35,14 @@ import type { WorkdayProgressRecord } from './productRules'
 
 export interface CompleteWorkdayResult {
   completed: boolean
-  reason?: 'invalid-sprint-state' | 'required-story-conversation' | 'required-follow-up-audit' | 'required-office-intrusion' | 'required-server-incident' | 'game-outcome-pending'
+  reason?:
+    | 'invalid-sprint-state'
+    | 'required-story-conversation'
+    | 'required-story-decision'
+    | 'required-follow-up-audit'
+    | 'required-office-intrusion'
+    | 'required-server-incident'
+    | 'game-outcome-pending'
   economyApplied?: boolean
   chargedAmount?: number
   workday?: WorkdayProgressRecord
@@ -65,6 +73,11 @@ export function completeWorkday(): CompleteWorkdayResult {
   // A required post-audit conversation must be held before the day can end.
   if (isPostAuditConversationRequired(useSecurityStoryStore.getState().postAuditConversation)) {
     return { completed: false, reason: 'required-story-conversation' }
+  }
+  // A mandatory Level 1 story decision must be resolved before the day can end
+  // (Feature 17A §7).
+  if (isStoryDecisionBlockingNow()) {
+    return { completed: false, reason: 'required-story-decision' }
   }
   // A pending/running follow-up audit must be resolved before the next day.
   if (isFollowUpAuditBlocking(useSecurityAuditStore.getState().followUpAudit)) {

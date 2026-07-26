@@ -11,6 +11,7 @@ import { useGameStore } from './gameStore'
 import { useSprintStore } from './sprintStore'
 import { useSecurityStoryStore, HIRE_SECURITY_TASK, CLOSE_FINDINGS_TASK, DISCUSS_AUDIT_TASK } from './securityStoryStore'
 import { useCharacterStore, PLAYER_ID } from '../character/characterStore'
+import { useStoryDecisionStore } from './story/storyDecisionStore'
 import { INITIAL_SECURITY_BREACH, type SecurityBreachDecision } from './securityStoryRules'
 import { BOARD_TASKS } from './tasks'
 
@@ -67,6 +68,9 @@ beforeEach(() => {
     sceneOwned: new Set(),
     inputLocked: false,
   })
+  // Feature 17A: the legacy talk syncs the baseline story record - reset it so
+  // a record from one test never leaks into the next.
+  useStoryDecisionStore.getState().resetLevel1Story()
   window.localStorage.clear()
 })
 

@@ -6,6 +6,7 @@ import { useSecurityStoryStore, CLOSE_FINDINGS_TASK } from './securityStoryStore
 import { isEmployeeHired } from './teamRules'
 import { SECURITY_SPECIALIST_ID } from './teamCatalog'
 import { toWorkdayIndex } from './workdayIndex'
+import { SECURITY_BALANCE } from './balance/securityBalance'
 import { useRiskStore } from './riskStore'
 import { auditSignals, findingClosedSignals } from './riskSignals'
 import { riskMomentAt } from './riskContext'
@@ -263,7 +264,10 @@ export const useSecurityAuditStore = create<SecurityAuditStore>()((set, get) => 
 
     initializeCorrectiveActionPlan: ({ currentWorkdayIndex, overdue, staffingDecision }) => {
       if (get().initialized) return { initialized: false } // idempotent
-      const nextAuditWorkdayIndex = overdue ? currentWorkdayIndex : currentWorkdayIndex + 9
+      // The audit lands ON the interval's last day: anchor + (interval - 1).
+      const nextAuditWorkdayIndex = overdue
+        ? currentWorkdayIndex
+        : currentWorkdayIndex + SECURITY_BALANCE.followUpAudit.intervalWorkdays - 1
       set({
         initialized: true,
         findings: initializeSecurityFindings(),
@@ -372,7 +376,7 @@ export const useSecurityAuditStore = create<SecurityAuditStore>()((set, get) => 
         nextAuditWorkdayIndex = undefined
       } else {
         status = 'scheduled'
-        nextAuditWorkdayIndex = toWorkdayIndex(moment.sprintNumber, moment.day) + 10
+        nextAuditWorkdayIndex = toWorkdayIndex(moment.sprintNumber, moment.day) + SECURITY_BALANCE.followUpAudit.intervalWorkdays
       }
 
       set({

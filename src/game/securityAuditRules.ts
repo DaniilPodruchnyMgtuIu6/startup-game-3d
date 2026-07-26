@@ -1,4 +1,5 @@
 import { SECURITY_FINDING_CATALOG, getSecurityFinding, type SecurityFindingDefinition } from './securityFindingCatalog'
+import { SECURITY_BALANCE } from './balance/securityBalance'
 
 // Pure, deterministic rules for the corrective-action plan and follow-up audits
 // (Feature 08). No Zustand, no side effects, no real time - eligibility,
@@ -215,7 +216,7 @@ export function applySecurityWorkdayRules(
 
 // --- Follow-up audit evaluation ---------------------------------------------
 
-export const SECURITY_AUDIT_FINE_BY_NUMBER: Record<number, number> = { 1: 120_000, 2: 250_000, 3: 500_000 }
+export const SECURITY_AUDIT_FINE_BY_NUMBER: Record<number, number> = SECURITY_BALANCE.followUpAudit.fineRubByAuditNumber
 
 export function getSecurityAuditFine(auditNumber: number): number {
   return SECURITY_AUDIT_FINE_BY_NUMBER[auditNumber] ?? 0

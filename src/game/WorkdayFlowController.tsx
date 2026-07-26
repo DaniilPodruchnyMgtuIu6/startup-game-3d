@@ -15,6 +15,8 @@ import { useServerIncidentsStore } from './serverIncidentsStore'
 import { useCutsceneStore } from '../cutscenes/cutsceneStore'
 import { useCharacterStore } from '../character/characterStore'
 import { isPostAuditConversationRequired } from './securityStoryRules'
+import { useStoryDecisionStore } from './story/storyDecisionStore'
+import { isStoryDecisionBlockingNow } from './story/storyDecisionSelectors'
 import { completeWorkday, canCompleteCurrentWorkday } from './completeWorkday'
 import {
   canAutoAdvanceWorkday,
@@ -155,7 +157,10 @@ export function currentFlowContext(): WorkdayFlowContext {
     sprintPhase: useSprintStore.getState().phase,
     outcomeBlocking: useGameOutcomeStore.getState().status !== 'playing',
     busy,
-    requiredStoryPending: isPostAuditConversationRequired(useSecurityStoryStore.getState().postAuditConversation),
+    requiredStoryPending:
+      isPostAuditConversationRequired(useSecurityStoryStore.getState().postAuditConversation) ||
+      // Feature 17A §7: a pending mandatory story decision pauses the flow too.
+      isStoryDecisionBlockingNow(),
     followUpAuditBlocking: isFollowUpAuditBlocking(useSecurityAuditStore.getState().followUpAudit),
     officeIntrusionBlocking: isOfficeIntrusionBlocking(useAccessControlStore.getState().intrusion),
     serverIncidentBlocking: anyServerIncidentBlocking(Object.values(useServerIncidentStore.getState().incidents)),
@@ -194,6 +199,7 @@ export function WorkdayFlowController() {
   useTeamStore((s) => s.panelOpen)
   useGameOutcomeStore((s) => s.status)
   useSecurityStoryStore((s) => s.postAuditConversation.status)
+  useStoryDecisionStore((s) => s.activeDecisionId)
   useSecurityAuditStore((s) => s.followUpAudit)
   useAccessControlStore((s) => s.intrusion)
   useServerIncidentStore((s) => s.incidents)

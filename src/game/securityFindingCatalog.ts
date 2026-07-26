@@ -3,6 +3,8 @@
 // securityAuditStore), never this catalog. No physical-access / backup / SKUD
 // findings here: those belong to later stories.
 
+import { SECURITY_BALANCE } from './balance/securityBalance'
+
 export type SecurityFindingSeverity = 'medium' | 'high'
 export type SecurityFindingKind = 'process' | 'technical'
 
@@ -25,7 +27,7 @@ export const SECURITY_FINDING_CATALOG: SecurityFindingDefinition[] = [
     description: 'Провести обязательный инструктаж и зафиксировать правило блокировки компьютера при уходе с рабочего места.',
     severity: 'high',
     kind: 'process',
-    effortDays: 2,
+    effortDays: SECURITY_BALANCE.findingEffortDaysById['workstation-locking-training'],
     eligibleEmployeeIds: ['sonya-sokolova', 'ilya-vlasov'],
   },
   {
@@ -34,7 +36,7 @@ export const SECURITY_FINDING_CATALOG: SecurityFindingDefinition[] = [
     description: 'Проверить персональные учётные записи, удалить лишние права и исключить использование общих административных доступов.',
     severity: 'high',
     kind: 'technical',
-    effortDays: 3,
+    effortDays: SECURITY_BALANCE.findingEffortDaysById['account-access-review'],
     eligibleEmployeeIds: ['kirill-morozov', 'ilya-vlasov'],
   },
   {
@@ -43,7 +45,7 @@ export const SECURITY_FINDING_CATALOG: SecurityFindingDefinition[] = [
     description: 'Определить, кому сотрудники сообщают о нарушениях, кто фиксирует инцидент и кто принимает решение об эскалации.',
     severity: 'medium',
     kind: 'process',
-    effortDays: 2,
+    effortDays: SECURITY_BALANCE.findingEffortDaysById['incident-response-procedure'],
     eligibleEmployeeIds: ['sonya-sokolova', 'ilya-vlasov'],
   },
   {
@@ -52,7 +54,7 @@ export const SECURITY_FINDING_CATALOG: SecurityFindingDefinition[] = [
     description: 'Проверить, что пароли, токены и другие чувствительные данные не попадают в технические логи OfficeFlow.',
     severity: 'high',
     kind: 'technical',
-    effortDays: 3,
+    effortDays: SECURITY_BALANCE.findingEffortDaysById['sensitive-data-logging-review'],
     eligibleEmployeeIds: ['kirill-morozov', 'ilya-vlasov'],
   },
 ]

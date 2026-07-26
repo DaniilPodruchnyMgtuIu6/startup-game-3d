@@ -8,6 +8,7 @@ import { sprintPlanSignals } from './riskSignals'
 import { getActivePositiveRiskSignals } from './riskRules'
 import { riskMomentNow } from './riskContext'
 import { isGameOutcomeBlocking } from './registerGameFailure'
+import { isStoryDecisionBlockingNow } from './story/storyDecisionSelectors'
 
 // The single use-case that starts a sprint from the whiteboard plan. The
 // low-level sprintStore.startSprint must not be called by components directly -
@@ -17,7 +18,7 @@ export type StartSprintResult =
   | { started: true }
   | {
       started: false
-      reason: 'not-planning' | 'team-incomplete' | 'first-sprint-needs-both-roles' | 'no-planned-tasks'
+      reason: 'not-planning' | 'team-incomplete' | 'first-sprint-needs-both-roles' | 'no-planned-tasks' | 'story-decision-pending'
     }
 
 // Soft warnings the UI can surface (and let the player confirm) before starting.
@@ -35,6 +36,12 @@ export function canStartSprintWithPlan(): StartSprintResult {
 
   const hires = useTeamStore.getState().hires
   const states = useProductStore.getState().taskStates
+
+  // Feature 17A: the first sprint waits for the mandatory baseline decision -
+  // the backlog stays viewable, but start is blocked until Sonya is heard out.
+  if (sprint.sprintNumber === 1 && isStoryDecisionBlockingNow()) {
+    return { started: false, reason: 'story-decision-pending' }
+  }
 
   if (sprint.sprintNumber === 1) {
     if (!hasInitialDevelopmentTeam(hires)) return { started: false, reason: 'team-incomplete' }
