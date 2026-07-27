@@ -130,6 +130,14 @@ export function CharacterModel({ characterId, config, label }: CharacterModelPro
         if (!standard.isMeshStandardMaterial) continue
         standard.metalness = 0
         standard.roughness = /hair/i.test(standard.name) ? 0.45 : 0.85
+        // Meshy exports are FULLBRIGHT: the whole texture glows via emissive at
+        // 100% on top of the lit base color, with specularColor cranked to 2 -
+        // under the office light that reads as washed-out plastic and amplifies
+        // baked texture noise. Kill the self-glow, tame the specular.
+        standard.emissiveIntensity = 0
+        const physical = standard as MeshStandardMaterial & { specularColor?: { setScalar(v: number): void }; specularIntensity?: number }
+        physical.specularColor?.setScalar(1)
+        if (physical.specularIntensity !== undefined) physical.specularIntensity = 0.25
       }
     })
   }, [base])
