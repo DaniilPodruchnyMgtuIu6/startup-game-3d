@@ -64,6 +64,16 @@ function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivit
       )
       return () => clearTimeout(timer)
     }
+    // 18H Wave 3: 'performing' is not a settled state either - an ambient
+    // gesture activity (pull-up bar) holds for its planned stay, then ends
+    // itself and hands back to the settled-state branch below to re-plan.
+    if (stateKind === 'performing' && planRef.current?.kind === 'pull-up-bar') {
+      const timer = setTimeout(
+        () => useCharacterStore.getState().dispatchTo(id, { type: 'PERFORM_END' }),
+        planRef.current.stayMs,
+      )
+      return () => clearTimeout(timer)
+    }
     if (!stateKind || !SETTLED_STATES.has(stateKind)) return
     // 18C: arriving at a patrol point (idle again with a security-round plan)
     // plays the look-around once before the next activity is scheduled.
@@ -84,6 +94,7 @@ function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivit
           coffeeMachines: freeTargets('coffee', id),
           sofas: freeTargets('sofa', id),
           seats: freeTargets('seat', id),
+          pullUpBars: freeTargets('pull-up-bar', id),
           previousKind: planRef.current?.kind,
           previousTargetKey: planRef.current?.target ? targetKey(planRef.current.target) : undefined,
         })
@@ -103,6 +114,12 @@ function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivit
           return
         }
         claimTarget(id, plan.target)
+        // 18H Wave 3: pull-up-bar walks-then-performs a named gesture clip
+        // rather than sitting - a distinct event, not another ternary arm.
+        if (plan.kind === 'pull-up-bar') {
+          store.dispatchTo(id, { type: 'CLICK_PERFORM_ACTIVITY', target: plan.target, clip: 'pullUp' })
+          return
+        }
         const eventType =
           plan.kind === 'work'
             ? ('CLICK_WORKSTATION' as const)

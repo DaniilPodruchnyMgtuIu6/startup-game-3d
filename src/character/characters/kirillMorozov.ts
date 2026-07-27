@@ -28,6 +28,7 @@ export const kirillMorozov: CharacterDefinition = {
       agree: '/character/kirill_morozov/agree.glb',
       celebrate: '/character/kirill_morozov/celebrate.glb',
       explain: '/character/kirill_morozov/explain.glb',
+      pullUp: '/character/kirill_morozov/pullUp.glb',
     },
     walkPace: 1.77,
     walkLift: 0.015,

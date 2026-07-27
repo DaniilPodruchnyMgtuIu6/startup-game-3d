@@ -7,51 +7,61 @@ Meshy `3d_rigging` action-каталог через Higgsfield MCP (`animation_a
 `tools/art/retargetMeshyClip.mjs`, guard тот же
 `tools/art/characterIdentity.test.ts`.
 
-**Ничего из таблицы ниже ещё не выполнено** — `animation_actions` каталог не
-запрашивался для турника/пинг-понга. Это план поиска на следующий заход, не
-отчёт о готовых генерациях (см. `ambient-office-animation-library.md`,
-статус planned).
+## Турник (`pullUp`) — выполнено
 
-## Турник (`pullUp`)
+Каталог `animation_actions` не содержит буквального «pull up»/«chin up» —
+искали `pull up`, `chin up`, `bar`, `pullup`. Ближайшая по смыслу и телесной
+механике категория — `HangingfromLedge` (руки на перекладине, тело висит):
 
-Поиск в каталоге: `pull up`, `chin up`, `hang`, `bar`. Нужен один экшен,
-который реально даёт цикл подтягивания (руки на уровне ≈2.0 м —
-`PULL_UP_BAR_ANCHORS` в `src/interaction/interactionAnchors.ts`), а не общий
-«exercise» жест. Для персонажей ростом ~1.50 м (Соня/Алина —
-`docs/art/18h-character-environment-scale-audit.md`) отдельно проверить, не
-требует ли выбранный экшен viewport reach выше overhead reach этих моделей —
-если да, взять предпочтительно действие с выраженным подскоком/запрыгиванием
-к перекладине, а не вытягиванием руки от пола.
+- id 478 `Bar_Hang_Idle` — статичный вис;
+- id 485 **`Jump_and_Hang_on_Bar`** — прыжок + хват (выбран: даёт узнаваемое
+  начало активности, а не телепорт в вис);
+- id 491 `Fall_from_Bar` — рассматривался на dismount, отклонён (читается
+  как падение/авария, не контролируемое завершение).
 
-## Пинг-понг (`pingPongRally`)
+Источник: `business_man/idle.glb`, загружен как `media_upload` (type=file) →
+`https://d2ol7oe51mr4n9.cloudfront.net/.../fc081c94-b1c4-4163-b2a3-87e63b84d6a6.glb`.
+Job `664fdf80-0890-4c5c-b4ad-6b76ead705ea` (`3d_rigging`, height_meters=1.778,
+animation_action_id=485, 8 кредитов). Ретаргет на все 5 hero-ригов
+(`retargetMeshyClip.mjs`), guard `characterIdentity.test.ts` (0 scale-треков
+на всех 5) — прошёл.
 
-Поиск: `table tennis`, `ping pong`, `paddle swing`, `forehand`, `backhand`.
-Достаточно ОДНОГО экшена с чистым циклом замаха (единая rally-петля), не
-восьми гранулярных поз из §19 фичи — компромисс ради бюджета кредитов
-(баланс 320cr на момент проверки, `mcp__higgsfield__balance`), решение
-явно документируется здесь, а не молчаливое урезание. Serve/miss/celebrate
-как отдельные клипы — по остатку бюджета после проверки качества rally-клипа.
+**Найдено при контакт-проверке**: последний кадр клипа кладёт руки заметно
+ниже нашей реальной перекладины (`PullUpBar.tsx` `BAR_Y=2.0`) — от 0.18м
+(Кирилл/Илья) до 0.50м (Соня/Алина), т.к. исходная сцена action-каталога
+подразумевала бар другой высоты. Исправлено константным вертикальным
+сдвигом hips-трека на разницу для каждого персонажа отдельно
+(`tools/art/liftClipToHandHeight.mjs`, НЕ scale — см. §11/§27), закреплено
+`tools/art/ambientClipFurnitureAlignment.test.ts`. Подробности —
+`ambient-office-animation-library.md`.
 
-## Проп (ракетка)
+Для Сони/Алины (рост ~1.50м) итоговый подъём тела до уровня хвата заметно
+больше, чем у более высоких персонажей — физически корректно (тот же бар,
+меньший рост), визуально более «прыжковая» посадка. Зафиксировано как
+ожидаемое поведение, не баг.
 
-Реализуется как держащийся в руке проп той же техникой, что кофейная кружка
-(`CharacterModel.tsx` → `buildHeldMug`), а не отдельной геометрией/анимацией
-события attach/detach — ракетка не требует Higgsfield-генерации, только
-простую box/plane-геометрию, прикреплённую к `RightHand`/`LeftHand` бону на
-время `playingPingPong`.
+## Пинг-понг (`pingPongRally`) — решение: без Higgsfield-клипа
 
-## Порядок действий на следующем заходе
+Проверенные запросы каталога: `tennis` (0 результатов), `swing` (кухонные
+гири/канат/дэнс — не подходит), `wave` (приветствия — не подходит),
+категории `Punching`/`AttackingwithWeapon` (боксёрская стойка/джебы, сабли,
+лук — все читаются как «бой», тонально сломают офисную сцену). Каталог
+Meshy — action-game/паркур-ориентированный набор, ракеточного вида спорта в
+нём нет ни в одной категории (`categories` ответа `animation_actions` не
+содержит «Sports» вовсе).
 
-1. `animation_actions` с ключевыми словами выше → выбрать 1 экшен на
-   активность.
-2. `media_upload`/`media_confirm` референсной модели (или переиспользовать
-   уже загруженный media id, если такой остался с 18C/18D).
-3. `3d_rigging` → `job_status` до готовности.
-4. `retargetMeshyClip.mjs` на все 8 ригов, calibration теми же rest-pose
-   инструментами, что и в 18B/18C.
-5. Покадровая проверка hand/foot contact против anchors из
-   `interactionAnchors.ts`.
-6. `tools/art/stripScaleTracks.mjs` на новый клип (тот же класс бага, что
-   решался в Wave 1 — новый Meshy-экспорт не гарантированно чист).
-7. Обновить `ambient-office-animation-library.md` (statuses), включить
-   `ping-pong`/`pull-up-bar` в `AMBIENT_WEIGHTS`.
+Решение: не тянуть несовместимый combat-клип ради видимости прогресса —
+пинг-понг получит процедурный взмах руки (bone-pose техника, как
+`characterEmotion.ts`) + держащаяся в руке ракетка (техника `buildHeldMug`),
+без Higgsfield-генерации. Следующий шаг Wave 3, не asset-задача.
+
+## Дополнительные бытовые активности (§14 «минимум 3»)
+
+`window-look`/`phone-check`/`whiteboard-glance` — переиспользование
+существующего клипа `look` + опциональный held-prop, без Higgsfield.
+
+## Оставшийся порядок действий
+
+1. Процедурный arm-swing цикл для `playingPingPong` + ракетка-проп.
+2. Включить `ping-pong` в `AMBIENT_WEIGHTS`/`WEIGHTS` после визуальной проверки.
+3. Дополнительные бытовые активности (planner + look-clip + props).

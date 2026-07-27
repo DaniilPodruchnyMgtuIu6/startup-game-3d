@@ -9,6 +9,7 @@ const baseCtx: ActivityContext = {
   coffeeMachines: [desk(10)],
   sofas: [desk(20)],
   seats: [desk(30)],
+  pullUpBars: [desk(40)],
 }
 
 // rng stub yielding a fixed sequence (repeats the last value when exhausted)
@@ -42,6 +43,14 @@ describe('planNextActivity', () => {
       const plan = planNextActivity(seq(0.1, r, 0.5), { ...baseCtx, previousTargetKey: '2.00|0.00' })
       expect(plan.target?.point[0]).not.toBe(2)
     }
+  })
+
+  it('picks the pull-up bar and its target in the live WEIGHTS band (18H Wave 3)', () => {
+    // WEIGHTS bands: work[0,.47) coffee[.47,.62) meeting[.62,.74) sofa[.74,.85)
+    // pull-up-bar[.85,.90) wander[.90,1) - .87 lands squarely on pull-up-bar.
+    const plan = planNextActivity(seq(0.87, 0.5, 0.5), baseCtx)
+    expect(plan.kind).toBe('pull-up-bar')
+    expect(plan.target?.point[0]).toBe(40)
   })
 
   it('falls back to wandering when everything of the chosen kind is occupied', () => {

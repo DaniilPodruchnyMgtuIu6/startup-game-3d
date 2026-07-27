@@ -21,6 +21,7 @@ export const businessMan: CharacterDefinition = {
       celebrate: '/character/business_man/celebrate.glb',
       explain: '/character/business_man/explain.glb',
       facepalm: '/character/business_man/facepalm.glb',
+      pullUp: '/character/business_man/pullUp.glb',
     },
     walkPace: 1.33,
     walkLift: 0.011,

@@ -29,6 +29,7 @@ export const femalePm: CharacterDefinition = {
       celebrate: '/character/female_pm/celebrate.glb',
       explain: '/character/female_pm/explain.glb',
       facepalm: '/character/female_pm/facepalm.glb',
+      pullUp: '/character/female_pm/pullUp.glb',
     },
     walkPace: 0.99,
   },

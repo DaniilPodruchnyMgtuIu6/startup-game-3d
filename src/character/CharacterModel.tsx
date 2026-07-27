@@ -163,7 +163,10 @@ export function CharacterModel({ characterId, config, label }: CharacterModelPro
     // 18C §4: 'sit' is a one-shot transition - it must hold its last frame, not
     // loop back to standing. Loop mode is set every play because the mixer
     // caches one action per clip and a previous state may have changed it.
-    if (clipName === 'sit') {
+    // 18H Wave 3: 'pullUp' is likewise a one-shot mount (jump + grab the bar) -
+    // it holds the hang pose (already height-matched to the real bar by
+    // tools/art/liftClipToHandHeight.mjs) rather than looping the jump.
+    if (clipName === 'sit' || clipName === 'pullUp') {
       action.setLoop(LoopOnce, 1)
       action.clampWhenFinished = true
     } else {

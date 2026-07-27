@@ -48,6 +48,7 @@ interface CharactersStore {
   clickSeat: (target: Target) => void
   clickSofa: (target: Target) => void
   clickServer: (target: Target, role: ServerRole) => void
+  clickPullUpBar: (target: Target) => void
 }
 
 export const useCharacterStore = create<CharactersStore>()((set, get) => {
@@ -123,6 +124,14 @@ export const useCharacterStore = create<CharactersStore>()((set, get) => {
       if (!isTargetFree(target, PLAYER_ID)) return
       claimTarget(PLAYER_ID, target)
       get().dispatchTo(PLAYER_ID, { type: 'CLICK_SERVER', target: { point: target.point, facing: target.facing }, role })
+    },
+    // 18H Wave 3: like playerClick, but carries the fixed 'pullUp' gesture
+    // clip through to the machine (see CLICK_PERFORM_ACTIVITY).
+    clickPullUpBar: (target) => {
+      if (get().inputLocked) return
+      if (!isTargetFree(target, PLAYER_ID)) return
+      claimTarget(PLAYER_ID, target)
+      get().dispatchTo(PLAYER_ID, { type: 'CLICK_PERFORM_ACTIVITY', target, clip: 'pullUp' })
     },
   }
 })

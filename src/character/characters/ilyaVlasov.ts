@@ -30,6 +30,7 @@ export const ilyaVlasov: CharacterDefinition = {
       agree: '/character/cybersecurity/agree.glb',
       celebrate: '/character/cybersecurity/celebrate.glb',
       explain: '/character/cybersecurity/explain.glb',
+      pullUp: '/character/cybersecurity/pullUp.glb',
     },
     walkPace: 1.6,
     walkLift: 0.01,

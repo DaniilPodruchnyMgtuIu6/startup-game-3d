@@ -43,12 +43,17 @@ export type ActivityPlanner = (rng: () => number, ctx: ActivityContext) => Activ
 
 export type ActivityWeights = Array<[ActivityKind, number]>
 
-// Work dominates - it is an office - with breaks sprinkled in.
+// Work dominates - it is an office - with breaks sprinkled in. 'pull-up-bar'
+// joined 18H Wave 3 once its clip existed and its hand grip was verified
+// against the real bar (tools/art/liftClipToHandHeight.mjs,
+// ambientClipFurnitureAlignment.test.ts) - a small weight, it is a break, not
+// the default.
 const WEIGHTS: ActivityWeights = [
-  ['work', 0.5],
+  ['work', 0.47],
   ['coffee', 0.15],
-  ['meeting', 0.13],
-  ['sofa', 0.12],
+  ['meeting', 0.12],
+  ['sofa', 0.11],
+  ['pull-up-bar', 0.05],
   ['wander', 0.1],
 ]
 
@@ -56,9 +61,10 @@ const WEIGHTS: ActivityWeights = [
 // rest of the activities sharing 0.30. Feature 04 wires this in for hired devs.
 export const WORK_BIASED_WEIGHTS: ActivityWeights = [
   ['work', 0.7],
-  ['coffee', 0.1],
-  ['meeting', 0.08],
-  ['sofa', 0.07],
+  ['coffee', 0.09],
+  ['meeting', 0.07],
+  ['sofa', 0.06],
+  ['pull-up-bar', 0.03],
   ['wander', 0.05],
 ]
 
@@ -75,24 +81,21 @@ const STAY_RANGES_MS: Record<ActivityKind, [number, number]> = {
   'pull-up-bar': [8000, 18000],
 }
 
-// 18H Wave 3: the ambient-activity weights ping-pong/pull-up-bar WOULD use
-// once they have real motion (see CharacterModel.tsx's CLIP_FALLBACKS
-// comment - today both silently play 'idle', which is honest-but-invisible,
-// not "broken"). Deliberately NOT merged into WEIGHTS/WORK_BIASED_WEIGHTS -
-// wiring an ambient activity into the live picker before its clip exists
-// would send an NPC to stand at the bar/table doing nothing recognisable,
-// which reads as a bug rather than a feature. Flip this on (call
-// planNextActivity with these weights, or fold them into WEIGHTS) once
-// docs/art/ambient-office-animation-library.md has real entries for
-// pullUp/pingPongRally.
+// 18H Wave 3: the weights ping-pong would ALSO use once it has real motion.
+// pull-up-bar already graduated into WEIGHTS/WORK_BIASED_WEIGHTS above (real
+// clip, hand grip verified against the bar). ping-pong still silently plays
+// 'idle' (CharacterModel.tsx's CLIP_FALLBACKS - honest-but-invisible, not
+// "broken") because no catalog action fit a paddle swing convincingly (see
+// docs/art/higgsfield-ambient-motion-prompts.md) - it needs the procedural
+// arm-swing + paddle-prop pass before it can join the live picker the same way.
 export const AMBIENT_WEIGHTS: ActivityWeights = [
-  ['work', 0.45],
+  ['work', 0.44],
   ['coffee', 0.13],
   ['meeting', 0.11],
   ['sofa', 0.1],
   ['ping-pong', 0.08],
-  ['pull-up-bar', 0.06],
-  ['wander', 0.07],
+  ['pull-up-bar', 0.05],
+  ['wander', 0.09],
 ]
 
 function key(target: TriggerTarget): string {

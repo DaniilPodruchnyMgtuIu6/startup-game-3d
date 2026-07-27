@@ -103,4 +103,15 @@ describe('characterMachine', () => {
     const state = nextState(working, { type: 'CLICK_FLOOR', point: [5, 0, 5] }, [1, 0, 1])
     expect(state.kind).toBe('walking')
   })
+
+  it('CLICK_PERFORM_ACTIVITY walks then plays the named clip on arrival (18H Wave 3)', () => {
+    const target = { point: [4, 0, -6] as [number, number, number], facing: Math.PI }
+    const walking = nextState(IDLE, { type: 'CLICK_PERFORM_ACTIVITY', target, clip: 'pullUp' }, [3, 0, -6])
+    expect(walking.kind).toBe('walking')
+    if (walking.kind === 'walking') {
+      expect(walking.onArrive).toEqual({ kind: 'perform', target, clip: 'pullUp' })
+      const arrived = nextState({ ...walking, nextIndex: walking.path.length - 1 }, { type: 'WAYPOINT_REACHED' }, target.point)
+      expect(arrived).toEqual({ kind: 'performing', clip: 'pullUp' })
+    }
+  })
 })

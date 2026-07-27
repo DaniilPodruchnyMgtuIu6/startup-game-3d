@@ -13,6 +13,10 @@ type ArrivalGoal =
   | { kind: 'sitIdle'; target: Target }
   | { kind: 'sofaSit'; target: Target }
   | { kind: 'repair'; target: Target; role: string }
+  // 18H Wave 3: walk to an ambient-activity spot, then play a named gesture
+  // clip there (pull-up bar, ping-pong...) - reuses 'performing' rather than
+  // adding one arrival kind per activity.
+  | { kind: 'perform'; target: Target; clip: PerformClip }
 
 export type CharacterState =
   | { kind: 'idle' }
@@ -47,6 +51,7 @@ export type CharacterEvent =
   | { type: 'LOOK_END' }
   | { type: 'PERFORM_START'; clip: PerformClip }
   | { type: 'PERFORM_END' }
+  | { type: 'CLICK_PERFORM_ACTIVITY'; target: Target; clip: PerformClip }
 
 // While seated the character's rotation IS the seat's facing - reuse it so a
 // character stands up forward off the seat instead of through its backrest.
@@ -72,6 +77,8 @@ export function nextState(
       return startWalking(position, event.target.point, { kind: 'sofaSit', target: event.target }, { exitFacing, entryFacing: event.target.facing })
     case 'CLICK_SERVER':
       return startWalking(position, event.target.point, { kind: 'repair', target: event.target, role: event.role }, { exitFacing, entryFacing: event.target.facing })
+    case 'CLICK_PERFORM_ACTIVITY':
+      return startWalking(position, event.target.point, { kind: 'perform', target: event.target, clip: event.clip }, { exitFacing, entryFacing: event.target.facing })
     case 'REPAIR_DONE':
       return current.kind === 'repairing' ? { kind: 'idle' } : current
     case 'WAYPOINT_REACHED':
@@ -120,5 +127,7 @@ function arrive(goal: ArrivalGoal): CharacterState {
       return { kind: 'sofaSitting', target: goal.target }
     case 'repair':
       return { kind: 'repairing', target: goal.target, role: goal.role }
+    case 'perform':
+      return { kind: 'performing', clip: goal.clip }
   }
 }

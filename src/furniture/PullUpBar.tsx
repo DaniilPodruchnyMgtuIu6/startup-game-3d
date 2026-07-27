@@ -2,10 +2,13 @@ import { useRef } from 'react'
 import type { Group } from 'three'
 import { useMaterials } from '../materials/MaterialsContext'
 import { useObstacle } from '../character/useObstacle'
+import { InteractionTrigger } from '../interaction/InteractionTrigger'
+import type { TriggerTarget } from '../interaction/triggerPayload'
 
 export interface PullUpBarProps {
   position?: [number, number, number]
   rotation?: [number, number, number]
+  onSelect?: (target: TriggerTarget) => void
 }
 
 const WIDTH = 1.2
@@ -13,7 +16,7 @@ const HEIGHT = 2.2
 const BAR_Y = 2.0
 const POST_RADIUS = 0.035
 
-export function PullUpBar({ position = [0, 0, 0], rotation = [0, 0, 0] }: PullUpBarProps) {
+export function PullUpBar({ position = [0, 0, 0], rotation = [0, 0, 0], onSelect }: PullUpBarProps) {
   const materials = useMaterials()
   const group = useRef<Group>(null)
   useObstacle(group)
@@ -48,6 +51,14 @@ export function PullUpBar({ position = [0, 0, 0], rotation = [0, 0, 0] }: PullUp
           <meshStandardMaterial {...materials.metalFrame} />
         </mesh>
       ))}
+      {/* 18H Wave 3: matches PULL_UP_BAR_ANCHORS.approach (interactionAnchors.ts) -
+          0.9m in front of the posts, clear of the foot plates (z<=0.65). */}
+      <InteractionTrigger
+        position={[0, 0.9, 0.9]}
+        size={[1.0, 1.8, 0.6]}
+        onTrigger={onSelect}
+        kind={onSelect ? 'pull-up-bar' : undefined}
+      />
     </group>
   )
 }

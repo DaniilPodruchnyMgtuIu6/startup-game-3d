@@ -27,6 +27,7 @@ export const alinaBelova: CharacterDefinition = {
       agree: '/character/alina_belova/agree.glb',
       celebrate: '/character/alina_belova/celebrate.glb',
       explain: '/character/alina_belova/explain.glb',
+      pullUp: '/character/alina_belova/pullUp.glb',
     },
     walkPace: 1.68,
     walkLift: 0.003,

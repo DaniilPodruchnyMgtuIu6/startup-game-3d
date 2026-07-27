@@ -16,7 +16,11 @@ export function GameRoom() {
     <group position={center}>
       <GlassPartitionWithDoor axis="z" length={depth} position={[-width / 2, 0, 0]} />
       <PingPongTable position={[0, 0, -1]} />
-      <PullUpBar position={[width / 2 - 0.5, 0, 1.6]} rotation={[0, Math.PI / 2, 0]} />
+      <PullUpBar
+        position={[width / 2 - 0.5, 0, 1.6]}
+        rotation={[0, Math.PI / 2, 0]}
+        onSelect={(target) => useCharacterStore.getState().clickPullUpBar(target)}
+      />
       <Sofa
         position={[-1.8, 0, 2.15]}
         rotation={[0, 59.7, 0]}
