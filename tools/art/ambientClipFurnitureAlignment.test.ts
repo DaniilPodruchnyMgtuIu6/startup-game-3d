@@ -17,7 +17,7 @@ const TOLERANCE_M = 0.05
 interface GltfJson {
   nodes: { name?: string; children?: number[]; translation?: number[]; rotation?: number[]; scale?: number[] }[]
   animations: { channels: { sampler: number; target: { node: number; path: string } }[]; samplers: { output: number }[] }[]
-  accessors: { bufferView: number; count: number; type: string }[]
+  accessors: { bufferView: number; byteOffset?: number; count: number; type: string }[]
   bufferViews: { byteOffset?: number }[]
 }
 
@@ -32,7 +32,15 @@ function readGlb(file: string) {
 function readFloats(json: GltfJson, bin: Buffer, accessorIdx: number): number[][] | number[] {
   const acc = json.accessors[accessorIdx]
   const bv = json.bufferViews[acc.bufferView]
-  const start = bv.byteOffset ?? 0
+  // Both the bufferView AND the accessor itself carry a byteOffset - glTF
+  // packers (glTF-Transform in particular) interleave several accessors
+  // into one shared bufferView, so skipping the accessor's own offset reads
+  // whichever OTHER accessor happens to start at the bufferView's origin.
+  // pullUp.glb (the only file this file measures today) gives each channel
+  // its own bufferView, so this never showed up here - caught while reusing
+  // this exact helper for a 18H §10 furniture audit against sit.glb/
+  // sofaSit.glb, which DO pack multiple accessors per bufferView.
+  const start = (bv.byteOffset ?? 0) + (acc.byteOffset ?? 0)
   const compCount = { SCALAR: 1, VEC3: 3, VEC4: 4 }[acc.type]!
   const out: number[][] = []
   for (let i = 0; i < acc.count; i++) {
