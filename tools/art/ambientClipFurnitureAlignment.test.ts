@@ -189,6 +189,11 @@ describe('pullUp clip hand contact matches the real pull-up bar (18H Wave 3)', (
       expect(Math.abs(top.handY - TARGET_HAND_Y), `top hand y=${top.handY.toFixed(3)}`).toBeLessThan(REP_HAND_TOLERANCE_M)
       expect(Math.abs(bottom.handY - TARGET_HAND_Y), `bottom hand y=${bottom.handY.toFixed(3)}`).toBeLessThan(REP_HAND_TOLERANCE_M)
       expect(top.hipsY - bottom.hipsY, `rise=${(top.hipsY - bottom.hipsY).toFixed(3)}`).toBeGreaterThanOrEqual(REP_MIN_RISE_M)
+      // torso integrity in the hang: a mangled retarget collapses the neck
+      // ("шея пропадает") and the head sinks toward the hips - a stretched
+      // hanging body keeps a full torso worth of head-over-hips height
+      expect(top.headY - top.hipsY, `hang torso=${(top.headY - top.hipsY).toFixed(3)}`).toBeGreaterThanOrEqual(0.4)
+      expect(bottom.headY - bottom.hipsY, `hang torso=${(bottom.headY - bottom.hipsY).toFixed(3)}`).toBeGreaterThanOrEqual(0.4)
     })
   }
 })

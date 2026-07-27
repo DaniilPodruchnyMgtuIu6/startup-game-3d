@@ -35,11 +35,9 @@ export const femalePm: CharacterDefinition = {
     // Mixamo clip's). Travel speed follows the clip (walkSpeedFor) so her
     // short stride reads calm, not fast-forwarded.
     walkPace: 0.69,
-    // measured hips: sit 0.409 / sitIdle 0.458 / sofa 0.445 - the shortest
-    // rig sank into chairs («девочки ниже — другая высота посадки»). Sofa
-    // gets NO lift: normalizing everyone up made her float on the armrest -
-    // sinking into cushions is what sofas do.
-    seatLift: { sit: 0.115, sitIdle: 0.066 },
+    // visual calibration: bone-height normalization (0.115) overshot and she
+    // floated; moderate raise over her native depth instead («девочки ниже»)
+    seatLift: { sit: 0.08, sitIdle: 0.08, sofa: 0.06 },
   },
   npc: {
     spawn: [-2, 0, 6.3],

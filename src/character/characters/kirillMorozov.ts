@@ -33,8 +33,9 @@ export const kirillMorozov: CharacterDefinition = {
     // measured stride pace of his v2 walk clip (1.77 was the old Mixamo one)
     walkPace: 1.38,
     walkLift: 0.015,
-    // measured hips: sit 0.481 / sitIdle 0.512 (sofa keeps its native depth)
-    seatLift: { sit: 0.043, sitIdle: 0.012 },
+    // visual calibration: the reference look («нормально сидит только backend»)
+    // asked for a touch higher than the old global 0.05
+    seatLift: { sit: 0.065, sitIdle: 0.065, sofa: 0.06 },
   },
   npc: {
     spawn: [4, 0, 6.3],

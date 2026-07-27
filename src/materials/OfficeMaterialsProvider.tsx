@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { useMemo } from 'react'
 import { useTexture } from '@react-three/drei'
-import { SRGBColorSpace } from 'three'
+import { RepeatWrapping, SRGBColorSpace } from 'three'
 import { MaterialsContext } from './MaterialsContext'
 import type { OfficeMaterials } from './types'
 import * as procedural from './proceduralMaterials'
@@ -40,6 +40,7 @@ export function OfficeMaterialsProvider({ children }: { children: ReactNode }) {
   const surfaceTex = useTexture({
     oakDesk: '/textures/oak-desk/diffuse.jpg',
     chairWeave: '/textures/chair-weave/diffuse.jpg',
+    wallPlaster: '/textures/wall-plaster/diffuse.jpg',
   })
 
   const value = useMemo<OfficeMaterials>(() => {
@@ -52,11 +53,18 @@ export function OfficeMaterialsProvider({ children }: { children: ReactNode }) {
     artTex.posterLockScreen.colorSpace = SRGBColorSpace
     surfaceTex.oakDesk.colorSpace = SRGBColorSpace
     surfaceTex.chairWeave.colorSpace = SRGBColorSpace
+    surfaceTex.wallPlaster.colorSpace = SRGBColorSpace
+    // walls are metres long - tile the subtle plaster instead of stretching it
+    surfaceTex.wallPlaster.wrapS = RepeatWrapping
+    surfaceTex.wallPlaster.wrapT = RepeatWrapping
+    surfaceTex.wallPlaster.repeat.set(3, 1.5)
 
     return {
       floorWoodTextures: wood,
       floorConcreteTextures: concrete,
-      wallPaint: procedural.wallPaint,
+      // subtle plaster over the paint tint - the walls are the largest flat
+      // surfaces on screen and pure flat color read as "unfinished"
+      wallPaint: { color: '#f2efe7', map: surfaceTex.wallPlaster, roughness: 0.9, metalness: 0 },
       wallAccentBlue: procedural.wallAccentBlue,
       wallAccentGreen: procedural.wallAccentGreen,
       glass: procedural.glass,

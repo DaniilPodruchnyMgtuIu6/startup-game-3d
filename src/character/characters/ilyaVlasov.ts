@@ -35,8 +35,8 @@ export const ilyaVlasov: CharacterDefinition = {
     // measured stride pace of his v2 walk clip (1.6 was the old Mixamo one)
     walkPace: 1.4,
     walkLift: 0.01,
-    // measured hips: sit 0.493 / sitIdle 0.499 (sofa keeps its native depth)
-    seatLift: { sit: 0.031, sitIdle: 0.025 },
+    // visual calibration: the old global 0.05 level read fine for him
+    seatLift: { sit: 0.05, sitIdle: 0.05, sofa: 0.06 },
   },
   npc: {
     spawn: [5.5, 0, 6],

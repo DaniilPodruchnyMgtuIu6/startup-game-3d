@@ -39,6 +39,7 @@ Production-код ссылается только на approved/integrated. Се
 | poster-lock-screen-2k (job ec7046fc-8ecc-43ff-afea-49c35fd6b5b2) | Higgsfield MCP / upscale_image (bytedance, 2k) от исходника 768x1024 | — (upscale, промпта нет) | integrated | Higgsfield generation (проект) | public/posters/lock_screen.jpg (1536x2048) |
 | texture-oak-desk (job 3fb4842d-3ca9-49bb-ba6b-9e60b5be74a5) | Higgsfield MCP / nano_banana_pro (исп. nano_banana_2) | prompt в params job («seamless oak wood grain pattern…») | integrated | Higgsfield generation (проект) | public/textures/oak-desk/diffuse.jpg (1024², все столешницы) |
 | texture-chair-weave (job 17e0c89d-7734-47af-bc88-d63d75dfd0ca) | Higgsfield MCP / nano_banana_2 (flash) | prompt в params job («office chair mesh fabric weave…») | integrated | Higgsfield generation (проект) | public/textures/chair-weave/diffuse.jpg (512², тонируется цветом кресла) |
+| texture-wall-plaster (job 5b296497-204c-4e0f-9e8b-5122cdbbfbdd) | Higgsfield MCP / nano_banana_2 (flash) | prompt в params job («subtle white interior wall plaster…») | integrated | Higgsfield generation (проект) | public/textures/wall-plaster/diffuse.jpg (512², tiled 3x1.5, тонируется цветом стены) |
 
 Наследованные до-реестровые генерации (эталоны стиля, приняты ранее):
 `public/dialogue_pictures/prodact_manager/pm.jpeg`, `boss/*.jpeg`,

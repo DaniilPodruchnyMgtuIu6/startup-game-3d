@@ -32,8 +32,8 @@ export const alinaBelova: CharacterDefinition = {
     // measured stride pace of her v2 walk clip (1.68 was the old Mixamo one)
     walkPace: 1.15,
     walkLift: 0.003,
-    // measured hips: sit 0.455 / sitIdle 0.480 (sofa keeps its native depth)
-    seatLift: { sit: 0.069, sitIdle: 0.044 },
+    // visual calibration: moderate raise over her native depth
+    seatLift: { sit: 0.075, sitIdle: 0.075, sofa: 0.06 },
   },
   npc: {
     spawn: [-4, 0, 6.3],

@@ -29,9 +29,8 @@ export const businessMan: CharacterDefinition = {
     // keeping it after the v2 model swap made the feet skate visibly.
     walkPace: 1.07,
     walkLift: 0.011,
-    // measured hips (sit 0.474 / sitIdle 0.474) - the chair reference level
-    // every other rig is normalized to (see SeatLift in definition.ts);
-    // sofas keep each clip's native depth
-    seatLift: { sit: 0.05, sitIdle: 0.05 },
+    // visual calibration (live feedback iterations): native clip depth plus a
+    // small constant raise; sofa cushions swallowed everyone at native depth
+    seatLift: { sit: 0.05, sitIdle: 0.05, sofa: 0.06 },
   },
 }
