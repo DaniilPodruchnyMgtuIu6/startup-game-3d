@@ -13,6 +13,8 @@ interface PerformanceState {
   clearEmotion: (characterId: string) => void
   // A conversation pair looks at each other for its duration.
   setGazePair: (a: string, b: string) => void
+  // One-directional gaze (group scenes: listener -> current speaker).
+  setGaze: (from: string, to: string) => void
   clearGaze: (...characterIds: string[]) => void
   // §7: scene recovery - nothing survives a finished/failed scene.
   clearAllPerformance: () => void
@@ -30,6 +32,8 @@ export const usePerformanceStore = create<PerformanceState>((set) => ({
     }),
   setGazePair: (a, b) =>
     set((s) => ({ gazeTargets: { ...s.gazeTargets, [a]: b, [b]: a } })),
+  setGaze: (from, to) =>
+    set((s) => (s.gazeTargets[from] === to ? s : { gazeTargets: { ...s.gazeTargets, [from]: to } })),
   clearGaze: (...characterIds) =>
     set((s) => {
       const next = { ...s.gazeTargets }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useGameStore } from './gameStore'
 import { useSprintStore } from './sprintStore'
 import { useProductStore } from './productStore'
@@ -43,6 +43,7 @@ import { getCharacterById } from '../character/characters'
 import { femalePm } from '../character/characters/femalePm'
 import { ilyaVlasov } from '../character/characters/ilyaVlasov'
 import { beginConversationCinematic } from './cinematics/cinematicDirector'
+import { KICKOFF_SLOTS, gatherParticipants } from './cinematics/meetingSlots'
 import '../ui/ui.css'
 
 // Feature 16 §2: the kickoff/beat content is built from the LIVE sprint plan.
@@ -220,6 +221,8 @@ export function WorkdayFlowController() {
   const ambientActive = useNpcAmbientStore((s) => s.active)
 
   const [beat, setBeat] = useState<DailyBeat | null>(null)
+  // 18H: guards the async kickoff gather against re-entrant effect runs
+  const kickoffGatheringRef = useRef(false)
   const canAdvance = canAutoAdvanceWorkday(currentFlowContext())
 
   useEffect(() => {
@@ -227,18 +230,38 @@ export function WorkdayFlowController() {
       setBeat(null)
       return
     }
-    // Feature 16 §2: on the first day of a sprint the team holds a kickoff at the
-    // board — a short plan-aware dialogue, once per sprint. The "shown" marker is
-    // persisted (survives reload), so it never replays. It blocks (busy), so this
-    // effect re-runs once the player closes it and the day then proceeds.
-    if (shouldOpenSprintKickoff(day, sprintNumber, useSprintStore.getState().kickoffShownForSprint)) {
-      useSprintStore.getState().markSprintKickoffShown(sprintNumber)
-      useGameStore.getState().startDialogue(buildSprintKickoffDialogue(buildKickoffContext()))
-      // 18D: the kickoff is one of the three reference cinematic scenes - the
-      // camera cuts to whoever speaks at eye level (tracking their live pose)
-      // and returns on close; the speakers' brains pause for the duration.
-      const presentTeam = Object.keys(useCharacterStore.getState().characters).filter((id) => id.startsWith('npc-'))
-      beginConversationCinematic({ autoEndOnDialogueClose: true, ownIds: presentTeam })
+    // Feature 16 §2 + 18H: on the first day of a sprint the team PHYSICALLY
+    // gathers at the whiteboard, and only when every present participant has
+    // reached its meeting slot AND the camera has settled on the group does
+    // the first line open. The "shown" marker is set right before the
+    // dialogue, so a reload during the gather simply restarts the gather.
+    if (
+      shouldOpenSprintKickoff(day, sprintNumber, useSprintStore.getState().kickoffShownForSprint) &&
+      !kickoffGatheringRef.current
+    ) {
+      kickoffGatheringRef.current = true
+      const participants = KICKOFF_SLOTS.map((s) => s.characterId).filter(
+        (id) => useCharacterStore.getState().characters[id],
+      )
+      const cinematic = beginConversationCinematic({
+        autoEndOnDialogueClose: true,
+        ownIds: participants,
+        groupIds: participants,
+      })
+      void (async () => {
+        try {
+          const { timedOut } = await gatherParticipants(KICKOFF_SLOTS)
+          if (timedOut.length) console.warn('kickoff gather timeout (snapped to slots):', timedOut)
+          await cinematic.ready // §5: camera settled before the first line
+          useSprintStore.getState().markSprintKickoffShown(sprintNumber)
+          useGameStore.getState().startDialogue(buildSprintKickoffDialogue(buildKickoffContext()))
+        } catch (error) {
+          console.error('kickoff gather failed', error)
+          await cinematic.end()
+        } finally {
+          kickoffGatheringRef.current = false
+        }
+      })()
       return
     }
     // §8 priority: an ambient conversation must never play on top of a mandatory

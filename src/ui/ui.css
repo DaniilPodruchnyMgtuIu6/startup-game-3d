@@ -2355,3 +2355,24 @@ button.dialogue-choice {
 .cinematic-bars--active .cinematic-bar {
   transform: translateY(0);
 }
+
+/* 18H §8: cinematic subtitle safe area - the panel goes compact and hugs the
+   bottom letterbox band so it never rises into the character head zone.
+   Heights are viewport-relative: readable at 1366x768, unchanged composition
+   at 1920x1080 and 2560x1440. */
+.dialogue-panel--cinematic {
+  bottom: 1.2vh;
+  min-height: 0;
+  max-height: 24vh;
+  max-width: min(760px, 72vw);
+}
+.dialogue-panel--cinematic .card-picture {
+  width: 84px;
+  height: 84px;
+  align-self: flex-end;
+}
+.dialogue-panel--cinematic .dialogue-text {
+  font-size: 14px;
+  max-height: 10vh;
+  overflow-y: auto;
+}

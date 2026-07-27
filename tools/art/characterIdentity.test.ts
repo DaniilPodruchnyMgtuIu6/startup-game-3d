@@ -14,7 +14,7 @@ interface GltfJson {
   materials?: { name?: string }[]
   images?: unknown[]
   accessors?: { max?: number[] }[]
-  animations?: { name?: string; channels?: { target?: { node?: number } }[]; samplers?: { input: number }[] }[]
+  animations?: { name?: string; channels?: { target?: { node?: number; path?: string } }[]; samplers?: { input: number }[] }[]
 }
 
 function clipDurationSec(gltf: GltfJson): number {
@@ -107,6 +107,21 @@ describe('character model identity (18B §8)', () => {
         }
         const missing = [...targets].filter((bone) => !baseBones.has(bone))
         expect(missing, `${module}: ${url} animates bones missing from ${clips.idle}`).toEqual([])
+      }
+    }
+  })
+
+  it('no animation carries SCALE tracks - canonical scale is invariant (18H §9)', () => {
+    // A scale channel left in ANY clip re-creates the "model grows when the
+    // crossfade leaves idle" P1 bug: the mixer freezes bones at the last
+    // animated scale because other clips never write scale back.
+    for (const { module, clips } of DEFINITIONS) {
+      for (const [name, url] of Object.entries(clips)) {
+        const gltf = parseGlbJson(join(ROOT, 'public', url.slice(1)))
+        for (const anim of gltf.animations ?? []) {
+          const scaleChannels = (anim.channels ?? []).filter((ch) => ch.target?.path === 'scale')
+          expect(scaleChannels.length, `${module}: ${name} (${url}) carries scale tracks`).toBe(0)
+        }
       }
     }
   })

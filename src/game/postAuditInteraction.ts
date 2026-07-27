@@ -129,6 +129,7 @@ export async function runPostAuditConversation(): Promise<void> {
   useSecurityStoryStore.getState().markPostAuditConversationRunning(currentMoment())
 
   try {
+    await cinematic.ready // 18H §5: no line before the camera settles
     const branch = getPostAuditDialogueBranch(useSecurityStoryStore.getState().securityBreach.decision)
     await say(postAuditIntroLines(branch))
 

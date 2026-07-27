@@ -10,6 +10,7 @@ import { create } from 'zustand'
 import { useGameStore, type DialogueLine } from '../gameStore'
 import { useCharacterStore, PLAYER_ID } from '../../character/characterStore'
 import { CHARACTERS, DEVELOPER_CHARACTERS, SPECIALIST_CHARACTERS, PLAYER_CHARACTER } from '../../character/characters'
+import { usePerformanceStore } from '../../character/performance/performanceStore'
 import { enterCutsceneCamera, exitCutsceneCamera, flyTo, useCutsceneCameraStore } from '../../scene/camera/cameraController'
 import { computeShot, type CinematicShotType, type ShotFrame, type SubjectPose } from './cinematicShots'
 import { makeShotSafe } from './cinematicSafety'
@@ -76,6 +77,9 @@ export function attachPerLineShots(aim: (line: DialogueLine, index: number) => v
 
 export interface ConversationCinematicHandle {
   end: () => Promise<void>
+  // resolves once the OPENING shot has fully settled (§5: no line before the
+  // camera arrives) - callers await this before the first startDialogue
+  ready: Promise<void>
 }
 
 export interface ConversationCinematicOptions {
@@ -89,6 +93,10 @@ export interface ConversationCinematicOptions {
   // added to sceneOwned on start, released on end (ids a cutscene already
   // owns are left untouched).
   ownIds?: string[]
+  // 18H: a GROUP scene - all participants standing together. Enables the
+  // safe-wide-group opening/fallback shot and per-line group gaze (every
+  // listener looks at the current speaker).
+  groupIds?: string[]
 }
 
 // The camera re-aims the CURRENT shot a few times a second with a short
@@ -101,7 +109,7 @@ let activeCinematic: ConversationCinematicHandle | null = null
 export function beginConversationCinematic(options: ConversationCinematicOptions = {}): ConversationCinematicHandle {
   // §9: only one active cinematic - a second begin() is a safe no-op handle.
   if (activeCinematic || useCutsceneCameraStore.getState().active) {
-    return { end: async () => {} }
+    return { end: async () => {}, ready: Promise.resolve() }
   }
   useCinematicStore.setState({ active: true })
   enterCutsceneCamera()
@@ -120,10 +128,52 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
   // the currently held shot, re-aimed by the tracking loop with fresh poses
   let currentAim: (() => void) | null = null
 
+  const presentGroup = () => (options.groupIds ?? []).filter((id) => subjectOf(id))
+
+  // §6: the mandatory safe-wide-group shot - a two-shot spanning the first and
+  // last PRESENT participants of the gathered semicircle covers everyone.
+  const aimSafeWideGroup = (): Promise<void> => {
+    const group = presentGroup()
+    if (group.length >= 2) return playShot('two-shot', group[0], { partnerId: group[group.length - 1], side: 1, durationMs: 1100 })
+    if (group.length === 1) return playShot('medium', group[0], { side: 1, durationMs: 1000 })
+    return Promise.resolve()
+  }
+
+  // 18H §7: while a line is up, every listener in the group looks at the
+  // speaker; the speaker looks at the closest listener (never the camera).
+  const applyGroupGaze = (speakerId: string) => {
+    const group = presentGroup()
+    if (!group.length) return
+    const performance = usePerformanceStore.getState()
+    for (const id of group) {
+      if (id !== speakerId) performance.setGaze(id, speakerId)
+    }
+    const listener = group.find((id) => id !== speakerId)
+    if (listener) performance.setGaze(speakerId, listener)
+  }
+
   const aimAtLine = (line: DialogueLine, index: number) => {
     // off-cast speakers (guards, «Руководство») frame the player listening -
     // the camera never stares at an empty room (§5)
     const speakerId = characterIdForSpeaker(line) ?? options.pairA ?? PLAYER_ID
+    if (options.groupIds) {
+      if (!subjectOf(speakerId)) {
+        // §6: invalid target -> hold the safe group composition, never a void
+        currentAim = () => void aimSafeWideGroup()
+        currentAim()
+        return
+      }
+      applyGroupGaze(speakerId)
+      side = side === 1 ? -1 : 1
+      const shotSide = side
+      // group grammar: open wide, single the speaker, re-establish every 4th
+      const wide = index === 0 || index % 4 === 3
+      currentAim = wide
+        ? () => void aimSafeWideGroup()
+        : () => void playShot('medium-close', speakerId, { side: shotSide, durationMs: 850 })
+      currentAim()
+      return
+    }
     if (!subjectOf(speakerId)) return
     side = side === 1 ? -1 : 1 // alternate coverage sides every cut
     const shotSide = side
@@ -161,6 +211,7 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
     clearInterval(tracker)
     unsubscribe()
     activeCinematic = null
+    if (options.groupIds?.length) usePerformanceStore.getState().clearGaze(...options.groupIds)
     if (ownedByUs.length) {
       const next = new Set(useCharacterStore.getState().sceneOwned)
       for (const id of ownedByUs) next.delete(id)
@@ -170,13 +221,22 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
     useCinematicStore.setState({ active: false })
   }
 
-  const handle: ConversationCinematicHandle = { end }
-  activeCinematic = handle
-  // frame the opening line (or the pair) immediately
-  applyCurrent()
-  if (lastAppliedIndex === -1 && options.pairA && options.pairB) {
+  // §5: the opening shot is AWAITED - `ready` resolves only once the camera
+  // has settled on the establishing composition; callers hold the first line.
+  let ready: Promise<void>
+  activeCinematic = null // set below with the full handle
+  if (options.groupIds) {
+    ready = aimSafeWideGroup()
+    currentAim = () => void aimSafeWideGroup()
+  } else if (options.pairA && options.pairB) {
+    ready = playShot('two-shot', options.pairA, { partnerId: options.pairB, side, durationMs: 1100 })
     currentAim = () => void playShot('two-shot', options.pairA!, { partnerId: options.pairB, side, durationMs: 1100 })
-    currentAim()
+  } else {
+    ready = Promise.resolve()
   }
+  const handle: ConversationCinematicHandle = { end, ready }
+  activeCinematic = handle
+  // if a dialogue is already open, frame its current line immediately
+  applyCurrent()
   return handle
 }

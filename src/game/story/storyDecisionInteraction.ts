@@ -150,6 +150,7 @@ export async function runStoryDecisionConversation(decisionId: Level1StoryDecisi
   // the held frame; camera and HUD restore in the finally either way.
   const cinematic = beginConversationCinematic({ pairA: PLAYER_ID, pairB: characterId })
   try {
+    await cinematic.ready // 18H §5: no line before the camera settles
     const insert = DECISION_INSERT[decisionId]
     if (insert) await playInsert(insert, { side: 1, durationMs: 1300 })
 

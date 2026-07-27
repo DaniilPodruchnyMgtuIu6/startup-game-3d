@@ -288,6 +288,12 @@ Cinematic production сюжетных сцен
 
 18A–18F
 
+18H
+
+Синхронизация групповых сцен, живая офисная жизнь и калибровка масштаба
+
+18A–18G
+
 Правило перехода к следующей фиче
 
 Следующая фича не начинается, пока текущая не соответствует всем условиям:
@@ -308,7 +314,7 @@ production-сборка проходит;
 
 На текущем этапе Claude Code нужно передать только:
 
-18a-art-direction-and-higgsfield-workflow.md
+18h-group-scenes-ambient-office-life-and-scale-calibration.md
 
 Feature 17: обязательное дробление
 
@@ -339,5 +345,7 @@ Feature 18 выполняется строго последовательно:
 18f-story-scene-cinematic-production.md;
 
 18g-visual-optimization-qa-and-release.md.
+
+18h-group-scenes-ambient-office-life-and-scale-calibration.md.
 
 Каждая часть требует отдельного подтверждения пользователя. Claude Code не должен менять персонажей, анимации, офис и все сюжетные сцены в одной итерации.
