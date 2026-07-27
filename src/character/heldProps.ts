@@ -1,4 +1,4 @@
-import { Group, Mesh, CylinderGeometry, TorusGeometry, MeshStandardMaterial } from 'three'
+import { Group, Mesh, CylinderGeometry, TorusGeometry, BoxGeometry, MeshStandardMaterial } from 'three'
 
 // Props characters hold in their hands during activities. Built imperatively
 // (not JSX) because they get parented to skeleton hand bones at runtime.
@@ -32,6 +32,23 @@ export function buildHeldPaddle(): Group {
   handle.rotation.z = Math.PI / 2
 
   group.add(blade, handle)
+  return group
+}
+
+// 18H Wave 3: the phone-check prop - a slim dark rectangle with a lit screen
+// face, held roughly flat in the palm and tilted toward the character's own
+// (procedurally dipped) head, same "no Higgsfield needed" reasoning as the
+// mug and paddle.
+export function buildHeldPhone(): Group {
+  const group = new Group()
+  const body = new MeshStandardMaterial({ color: '#1b1c1f', roughness: 0.35, metalness: 0.1 })
+  const screen = new MeshStandardMaterial({ color: '#bfe3ff', roughness: 0.2, metalness: 0, emissive: '#3f8fd1', emissiveIntensity: 0.6 })
+
+  const shell = new Mesh(new BoxGeometry(0.035, 0.072, 0.006), body)
+  const face = new Mesh(new BoxGeometry(0.028, 0.062, 0.001), screen)
+  face.position.z = 0.0035
+
+  group.add(shell, face)
   return group
 }
 

@@ -9,11 +9,23 @@ import { developerPlanActivity } from '../game/developerPlanner'
 import { securitySpecialistPlanActivity } from '../game/securitySpecialistPlanner'
 import { useCharacterStore } from './characterStore'
 import { nearestWalkable } from './grid'
+import type { Target } from './characterMachine'
 import { planNextActivity, wanderPoint, createRng, type ActivityPlan, type ActivityPlanner } from './npcBehavior'
 import { getInteractions, isTargetFree, claimTarget, releaseClaims, targetKey } from '../interaction/interactionRegistry'
 import { useGameStore } from '../game/gameStore'
 import { useGameOutcomeStore } from '../game/gameOutcomeStore'
 import { usePingPongMatchmaker } from './pingPongMatchmaker'
+import { WINDOW_LOOK_TARGET, WHITEBOARD_GLANCE_TARGET } from './ambientLookSpots'
+import {
+  createAmbientHistory,
+  recordActivityStart,
+  isOnCooldown,
+  wasJustDone,
+  dailyLimitReached,
+  type AmbientActivityHistory,
+} from './ambientActivityHistory'
+import { AMBIENT_OFFICE_BALANCE } from '../game/balance'
+import { useSprintStore } from '../game/sprintStore'
 
 // States in which an NPC is "settled" and its brain may schedule the next
 // activity after the current plan's stay duration.
@@ -24,6 +36,24 @@ const SETTLED_STATES = new Set(['idle', 'working', 'sittingIdle', 'sofaSitting',
 // A security round now ends with the specialist actually LOOKING at the spot
 // he patrolled to, then his brain resumes normal scheduling.
 const LOOK_CLIP_MS = 4750
+
+// 18H Wave 3: activity kinds that walk (CLICK_PERFORM_ACTIVITY) then hold in
+// 'performing' for plan.stayMs before ending themselves.
+const PERFORM_HOLD_KINDS = new Set(['pull-up-bar', 'window-look', 'whiteboard-glance', 'phone-check'])
+
+// 18H §15/§16: an ambient pick that is on cooldown, was just done, or would
+// exceed the daily cap falls back to wander instead - core work/coffee/
+// meeting/sofa picks pass through untouched (never gated). Exported for its
+// own focused unit test (Npcs.test.ts) - everything else here needs a
+// mounted component to exercise.
+export function ambientGate(plan: ActivityPlan, history: AmbientActivityHistory, beat: number): ActivityPlan {
+  if (!PERFORM_HOLD_KINDS.has(plan.kind)) return plan
+  const blocked =
+    isOnCooldown(history, plan.kind, beat) ||
+    wasJustDone(history, plan.kind) ||
+    dailyLimitReached(history, AMBIENT_OFFICE_BALANCE.maxActivitiesPerNpcPerWorkday)
+  return blocked ? { kind: 'wander', stayMs: plan.stayMs } : plan
+}
 
 function freeTargets(kind: Parameters<typeof getInteractions>[0], ownerId: string) {
   return getInteractions(kind)
@@ -44,6 +74,11 @@ function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivit
   // 18C: whether the current security-round plan has already played its
   // arrival look-around (reset whenever a new plan is chosen).
   const lookPlayedRef = useRef(true)
+  // 18H §15/§16: per-NPC ambient-activity cooldown/daily-limit bookkeeping.
+  // "beat" here is one decision cycle for this character, not a wall-clock
+  // unit - see ambientActivityHistory.ts.
+  const historyRef = useRef<AmbientActivityHistory>(createAmbientHistory(id))
+  const beatRef = useRef(0)
   const rngRef = useRef<(() => number) | null>(null)
   if (!rngRef.current) {
     let seed = 0
@@ -65,10 +100,11 @@ function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivit
       )
       return () => clearTimeout(timer)
     }
-    // 18H Wave 3: 'performing' is not a settled state either - an ambient
-    // gesture activity (pull-up bar) holds for its planned stay, then ends
-    // itself and hands back to the settled-state branch below to re-plan.
-    if (stateKind === 'performing' && planRef.current?.kind === 'pull-up-bar') {
+    // 18H Wave 3: 'performing' is not a settled state either - a walk-then-
+    // perform ambient activity holds for its planned stay, then ends itself
+    // and hands back to the settled-state branch below to re-plan. Every
+    // CLICK_PERFORM_ACTIVITY-driven ambient kind shares this one timer.
+    if (stateKind === 'performing' && planRef.current && PERFORM_HOLD_KINDS.has(planRef.current.kind)) {
       const timer = setTimeout(
         () => useCharacterStore.getState().dispatchTo(id, { type: 'PERFORM_END' }),
         planRef.current.stayMs,
@@ -90,7 +126,7 @@ function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivit
 
     const timer = setTimeout(() => {
       void (async () => {
-        const plan = await planActivity(rng, {
+        const rawPlan = await planActivity(rng, {
           workstations: freeTargets('workstation', id),
           coffeeMachines: freeTargets('coffee', id),
           sofas: freeTargets('sofa', id),
@@ -100,6 +136,22 @@ function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivit
           previousTargetKey: planRef.current?.target ? targetKey(planRef.current.target) : undefined,
         })
         if (cancelled) return
+        // 18H §15/§16: cooldown + daily-limit gate for ambient activities
+        // only - core office life (work/coffee/meeting/sofa) is unaffected.
+        // A gated pick falls back to wander (needs no target) rather than
+        // 'work' (would need a resolved workstation this branch lacks).
+        const plan = ambientGate(rawPlan, historyRef.current, beatRef.current)
+        if (plan === rawPlan && PERFORM_HOLD_KINDS.has(plan.kind)) {
+          const sprint = useSprintStore.getState()
+          historyRef.current = recordActivityStart(
+            historyRef.current,
+            plan.kind,
+            beatRef.current,
+            AMBIENT_OFFICE_BALANCE.activityCooldownBeats,
+            `${sprint.sprintNumber}-${sprint.day}`,
+          )
+        }
+        beatRef.current += 1
         planRef.current = plan
         lookPlayedRef.current = plan.kind !== 'security-round'
         const store = useCharacterStore.getState()
@@ -108,6 +160,18 @@ function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivit
         // move, not a seat, so it claims nothing and touches no server state.
         if (plan.kind === 'security-round' && plan.target) {
           store.dispatchTo(id, { type: 'CLICK_FLOOR', point: nearestWalkable(plan.target.point) })
+          return
+        }
+        // 18H Wave 3 (§14): fixed-spot glances - public spots, no claim, same
+        // reasoning as security-round's patrol point.
+        if (plan.kind === 'window-look' || plan.kind === 'whiteboard-glance') {
+          const target = plan.kind === 'window-look' ? WINDOW_LOOK_TARGET : WHITEBOARD_GLANCE_TARGET
+          store.dispatchTo(id, { type: 'CLICK_PERFORM_ACTIVITY', target, clip: 'look' })
+          return
+        }
+        if (plan.kind === 'phone-check') {
+          const target: Target = { point: nearestWalkable(wanderPoint(rng)), facing: 0 }
+          store.dispatchTo(id, { type: 'CLICK_PERFORM_ACTIVITY', target, clip: 'checkPhone' })
           return
         }
         if (!plan.target) {

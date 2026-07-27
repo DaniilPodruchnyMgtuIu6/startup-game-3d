@@ -25,11 +25,18 @@ export const CLIP_NAMES = [
   // clips land, so requesting them today is inert, never broken-looking.
   'pullUp',
   'pingPongRally',
+  // 18H Wave 3: phone-check has no baked clip either - procedural head-dip
+  // + held phone prop, same treatment as pingPongRally.
+  'checkPhone',
 ] as const
 export type ClipName = (typeof CLIP_NAMES)[number]
 
-// Gesture clips a scene may play through the 'performing' state.
-export type PerformClip = 'agree' | 'celebrate' | 'explain' | 'angryTalk' | 'facepalm' | 'pullUp' | 'pingPongRally'
+// Gesture clips a scene may play through the 'performing' state. 'look' is
+// included here too (unlike pullUp/pingPongRally/checkPhone, it is a REAL
+// clip every character ships) - window-look/whiteboard-glance walk-then-
+// perform it so they get entryFacing (face the window/board on arrival),
+// which the older LOOK_START/'looking' state does not carry.
+export type PerformClip = 'agree' | 'celebrate' | 'explain' | 'angryTalk' | 'facepalm' | 'pullUp' | 'pingPongRally' | 'look' | 'checkPhone'
 
 export interface CharacterModelConfig {
   // URL per animation clip. 'idle' is required - it is also the base file

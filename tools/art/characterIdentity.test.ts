@@ -11,7 +11,7 @@ const CLIP_NAMES = [
   'idle', 'walk', 'sit', 'type', 'drink', 'sitIdle', 'sofaSit', 'talk', 'look',
   'agree', 'celebrate', 'explain', 'angryTalk', 'facepalm',
   // 18H Wave 3
-  'pullUp', 'pingPongRally',
+  'pullUp', 'pingPongRally', 'checkPhone',
 ]
 
 interface GltfJson {

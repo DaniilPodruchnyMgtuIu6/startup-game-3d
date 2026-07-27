@@ -57,13 +57,13 @@ Meshy — action-game/паркур-ориентированный набор, р
 без Higgsfield-генерации. **Выполнено** — см.
 `ambient-office-animation-library.md` и `pingPongMatchmaker.ts`.
 
-## Дополнительные бытовые активности (§14 «минимум 3»)
+## Дополнительные бытовые активности (§14 «минимум 3») — выполнено
 
-`window-look`/`phone-check`/`whiteboard-glance` — переиспользование
-существующего клипа `look` + опциональный held-prop, без Higgsfield. Ещё не
-реализовано.
+`window-look`/`whiteboard-glance` — реальный клип `look`, никакой новой
+генерации. `phone-check` — процедурная поза + `buildHeldPhone`, тот же
+подход, что пинг-понг. Подробности и все файлы —
+`ambient-office-animation-library.md`.
 
 ## Оставшийся порядок действий
 
-1. Дополнительные бытовые активности (§14, минимум 3 — planner + look-clip + props).
-2. Wave 4 (QA/performance/docs).
+Wave 4 (QA/performance/docs, §21–§26).

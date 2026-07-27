@@ -46,11 +46,20 @@ describe('planNextActivity', () => {
   })
 
   it('picks the pull-up bar and its target in the live WEIGHTS band (18H Wave 3)', () => {
-    // WEIGHTS bands: work[0,.47) coffee[.47,.62) meeting[.62,.74) sofa[.74,.85)
-    // pull-up-bar[.85,.90) wander[.90,1) - .87 lands squarely on pull-up-bar.
-    const plan = planNextActivity(seq(0.87, 0.5, 0.5), baseCtx)
+    // WEIGHTS bands: work[0,.44) coffee[.44,.58) meeting[.58,.69) sofa[.69,.79)
+    // pull-up-bar[.79,.84) window-look[.84,.88) whiteboard-glance[.88,.92)
+    // phone-check[.92,.96) wander[.96,1) - .80 lands squarely on pull-up-bar.
+    const plan = planNextActivity(seq(0.8, 0.5, 0.5), baseCtx)
     expect(plan.kind).toBe('pull-up-bar')
     expect(plan.target?.point[0]).toBe(40)
+  })
+
+  it('window-look/whiteboard-glance/phone-check carry no context target (resolved in Npcs.tsx)', () => {
+    expect(planNextActivity(seq(0.85, 0.5), baseCtx).kind).toBe('window-look')
+    expect(planNextActivity(seq(0.89, 0.5), baseCtx).kind).toBe('whiteboard-glance')
+    const phoneCheck = planNextActivity(seq(0.93, 0.5), baseCtx)
+    expect(phoneCheck.kind).toBe('phone-check')
+    expect(phoneCheck.target).toBeUndefined()
   })
 
   it('falls back to wandering when everything of the chosen kind is occupied', () => {

@@ -76,13 +76,35 @@ combat-клип ради видимости прогресса.
 не синхронизированной фазе) — соответствует явному §14 требованию «это не
 мини-игра и не спортивный симулятор».
 
-## Дополнительные бытовые активности (§14 «минимум 3»)
+## Дополнительные бытовые активности (§14 «минимум 3») — выполнено
 
-Решение не изменилось: `window-look`, `phone-check`, `whiteboard-glance` —
-переиспользование существующего клипа `look` + опциональный held-prop, без
-новой Higgsfield-генерации. Ещё не реализовано.
+Три активности, обе техники без новой Higgsfield-генерации, обе живые в
+`WEIGHTS`/`WORK_BIASED_WEIGHTS` (`npcBehavior.ts`):
+
+- **window-look** — реальный клип `look` (есть у каждого персонажа) через
+  `CLICK_PERFORM_ACTIVITY` с `clip:'look'`, а не старый `LOOK_START`/
+  `'looking'` — это событие несёт полный `Target{point,facing}`, поэтому
+  персонаж действительно поворачивается к окну (`entryFacing`), а не просто
+  идёт и останавливается лицом куда попало. Фиксированная точка —
+  `src/character/ambientLookSpots.ts` → `WINDOW_LOOK_TARGET`, у настоящей
+  южной стеклянной стены здания (`Building.tsx` `CurtainWall`, не декорация).
+- **whiteboard-glance** — тот же механизм, `WHITEBOARD_GLANCE_TARGET`,
+  facing вычислен той же формулой `atan2`, что и у meeting-slot'ов Wave 1
+  (`meetingSlots.ts`), но отдельная точка — не пересекается ни с
+  kickoff-слотами, ни с `WHITEBOARD_APPROACH_POINT` игрока.
+- **phone-check** — `PerformClip 'checkPhone'` (новый, деградирует на
+  `idle` как `pullUp`/`pingPongRally` до реального клипа) + процедурная
+  поза (`useCharacterPerformance.ts`: статичный, не колеблющийся подъём
+  руки той же проверенной -X осью, что взмах в пинг-понге, плюс наклон
+  головы вниз — `characterEmotion.ts`'s уже подтверждённая конвенция
+  «positive headPitch = вниз») + держащийся в руке телефон
+  (`heldProps.ts` → `buildHeldPhone`). Точка — случайная `wanderPoint`.
+
+Плюс новая инфраструктура, которой не было даже у `pullUp`/`pingPongRally`:
+cooldown/дневной лимит реально подключены (`ambientGate` в `Npcs.tsx`,
+использует `ambientActivityHistory.ts` + `AMBIENT_OFFICE_BALANCE`) — раньше
+эти примитивы существовали, но не вызывались ни для одной активности.
 
 ## Следующий шаг
 
-Дополнительные бытовые активности (§14, минимум 3 — window-look/phone-check/
-whiteboard-glance), затем Wave 4 (QA/performance/docs).
+Wave 4 (performance baseline, soak test, E2E, QA-документы, §21–§26).

@@ -16,7 +16,7 @@ import { useCharacterPerformance } from './performance/useCharacterPerformance'
 import { useCharacterStore, PLAYER_ID } from './characterStore'
 import { useCharacterTransform, WALK_SPEED } from './useCharacterTransform'
 import { useServerIncidentsStore, type ServerRole } from '../game/serverIncidentsStore'
-import { buildHeldMug, buildHeldPaddle, disposeHeldProp } from './heldProps'
+import { buildHeldMug, buildHeldPaddle, buildHeldPhone, disposeHeldProp } from './heldProps'
 import { useNpcAmbientStore } from '../game/npcAmbientStore'
 import { visibleLineFor } from '../game/npcAmbientConversation'
 import { NPC_CHARACTER_ID, type NpcId } from '../game/npcChatTypes'
@@ -70,6 +70,7 @@ const CLIP_FALLBACKS: Record<ClipName, ClipName[]> = {
   // 18H Wave 3: no rig ships these yet - always idle until real clips land.
   pullUp: ['idle'],
   pingPongRally: ['idle'],
+  checkPhone: ['idle'],
 }
 
 export function resolveClip(stateKind: string, available: ReadonlySet<string>, performClip?: ClipName): ClipName {
@@ -218,6 +219,28 @@ export function CharacterModel({ characterId, config, label }: CharacterModelPro
     return () => {
       hand?.remove(paddle)
       disposeHeldProp(paddle)
+    }
+  }, [stateKind, performClip, base])
+
+  // 18H Wave 3: phone in hand during the phone-check ambient activity - the
+  // head-dip-and-glance is procedural (useCharacterPerformance), the base
+  // pose is plain idle (no baked clip exists for this one either).
+  useEffect(() => {
+    if (stateKind !== 'performing' || performClip !== 'checkPhone') return
+    let hand: Object3D | undefined
+    base.scene.traverse((object) => {
+      if (!hand && /RightHand$/.test(object.name)) hand = object
+    })
+    if (!hand) return
+    const phone = buildHeldPhone()
+    const scale = hand.getWorldScale(new Vector3()).x || 1
+    phone.scale.setScalar(1 / scale)
+    phone.position.set(0, 0.07 / scale, 0.03 / scale)
+    phone.rotation.x = -0.5
+    hand.add(phone)
+    return () => {
+      hand?.remove(phone)
+      disposeHeldProp(phone)
     }
   }, [stateKind, performClip, base])
 

@@ -27,6 +27,14 @@ const NOD_PITCH = 0.03
 const PADDLE_SWING_HZ = 2.4
 const PADDLE_SWING_SHOULDER_RAD = 0.55
 const PADDLE_SWING_ELBOW_RAD = 0.4
+// 18H Wave 3: procedural phone-check pose - a held, mostly-still raise of the
+// forearm (same verified -X axis as the paddle swing, static amplitude - no
+// oscillation) plus a downward head pitch (headPitch's own established
+// "positive = forward/down" sign, characterEmotion.ts) so the character
+// visibly looks at the phone rather than just holding it at their side.
+const PHONE_ARM_RAD = 0.75
+const PHONE_FOREARM_RAD = 0.95
+const PHONE_HEAD_PITCH = 0.16
 
 const NPC_ID_FOR_CHARACTER: Record<string, NpcId> = Object.fromEntries(
   (Object.entries(NPC_CHARACTER_ID) as [NpcId, string][]).map(([npcId, charId]) => [charId, npcId]),
@@ -112,8 +120,9 @@ export function useCharacterPerformance(characterId: string, root: Object3D) {
     const emotion = usePerformanceStore.getState().emotions[characterId] ?? 'neutral'
     const pose = EMOTION_POSES[emotion]
 
-    // --- 18H Wave 3: procedural ping-pong swing while performing that clip ---
+    // --- 18H Wave 3: procedural ambient-activity poses layered on 'idle' ---
     const playingPingPong = me.state.kind === 'performing' && me.state.clip === 'pingPongRally'
+    const checkingPhone = me.state.kind === 'performing' && me.state.clip === 'checkPhone'
 
     const a = applied.current
     a.yaw += (targetYaw - a.yaw) * k
@@ -142,6 +151,12 @@ export function useCharacterPerformance(characterId: string, root: Object3D) {
       const swing = Math.sin(t * Math.PI * 2 * PADDLE_SWING_HZ + phase)
       if (bones.rightArm) bones.rightArm.rotation.x -= 0.3 + swing * PADDLE_SWING_SHOULDER_RAD
       if (bones.rightForeArm) bones.rightForeArm.rotation.x -= 0.2 + Math.max(0, swing) * PADDLE_SWING_ELBOW_RAD
+    }
+
+    if (checkingPhone) {
+      if (bones.rightArm) bones.rightArm.rotation.x -= PHONE_ARM_RAD
+      if (bones.rightForeArm) bones.rightForeArm.rotation.x -= PHONE_FOREARM_RAD
+      if (bones.head) bones.head.rotation.x += PHONE_HEAD_PITCH
     }
   })
 }

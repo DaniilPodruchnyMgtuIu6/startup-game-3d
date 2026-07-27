@@ -13,7 +13,22 @@ import type { Point } from './navigation'
 // two-person activity doesn't fit a per-character solo picker, so it is its
 // own small coordinator (pingPongMatchmaker.ts) that dispatches the same
 // CLICK_PERFORM_ACTIVITY event directly, bypassing planNextActivity.
-export type ActivityKind = 'work' | 'coffee' | 'sofa' | 'meeting' | 'wander' | 'security-round' | 'pull-up-bar'
+//
+// 'window-look'/'whiteboard-glance' walk to one fixed spot each
+// (ambientLookSpots.ts, resolved in Npcs.tsx like security-round's patrol
+// point - not a context-provided pool). 'phone-check' walks to a random
+// wanderPoint. All three carry no context target here, same as 'wander'.
+export type ActivityKind =
+  | 'work'
+  | 'coffee'
+  | 'sofa'
+  | 'meeting'
+  | 'wander'
+  | 'security-round'
+  | 'pull-up-bar'
+  | 'window-look'
+  | 'whiteboard-glance'
+  | 'phone-check'
 
 export interface ActivityPlan {
   kind: ActivityKind
@@ -48,27 +63,37 @@ export type ActivityWeights = Array<[ActivityKind, number]>
 // ambientClipFurnitureAlignment.test.ts) - a small weight, it is a break, not
 // the default.
 const WEIGHTS: ActivityWeights = [
-  ['work', 0.47],
-  ['coffee', 0.15],
-  ['meeting', 0.12],
-  ['sofa', 0.11],
+  ['work', 0.44],
+  ['coffee', 0.14],
+  ['meeting', 0.11],
+  ['sofa', 0.1],
   ['pull-up-bar', 0.05],
-  ['wander', 0.1],
+  ['window-look', 0.04],
+  ['whiteboard-glance', 0.04],
+  ['phone-check', 0.04],
+  ['wander', 0.04],
 ]
 
 // A developer with an unfinished sprint task strongly favours work (0.70), the
 // rest of the activities sharing 0.30. Feature 04 wires this in for hired devs.
 export const WORK_BIASED_WEIGHTS: ActivityWeights = [
   ['work', 0.7],
-  ['coffee', 0.09],
-  ['meeting', 0.07],
-  ['sofa', 0.06],
+  ['coffee', 0.08],
+  ['meeting', 0.06],
+  ['sofa', 0.05],
   ['pull-up-bar', 0.03],
-  ['wander', 0.05],
+  ['window-look', 0.02],
+  ['whiteboard-glance', 0.02],
+  ['phone-check', 0.02],
+  ['wander', 0.02],
 ]
 
-// 18H §16 shortActivityDurationSeconds [8,20] for a pull-up burst. Ping-pong's
-// hold duration lives in AMBIENT_OFFICE_BALANCE.socialActivityDurationSeconds
+// 18H §16 shortActivityDurationSeconds [8,20] for a pull-up burst or a phone
+// check. window-look/whiteboard-glance use the SAME real 'look' clip (fixed
+// ~4.75s, tools/art/characterIdentity.test.ts) - their stayMs is the
+// lingering pause AFTER the glance, before the next decision, not the
+// animation length itself (mirrors security-round's own look-around). Ping-
+// pong's hold duration lives in AMBIENT_OFFICE_BALANCE.socialActivityDurationSeconds
 // instead (pingPongMatchmaker.ts) - it is not picked through this table.
 const STAY_RANGES_MS: Record<ActivityKind, [number, number]> = {
   work: [20000, 45000],
@@ -78,6 +103,9 @@ const STAY_RANGES_MS: Record<ActivityKind, [number, number]> = {
   wander: [3000, 8000],
   'security-round': [8000, 16000],
   'pull-up-bar': [8000, 18000],
+  'window-look': [3000, 7000],
+  'whiteboard-glance': [2000, 5000],
+  'phone-check': [6000, 12000],
 }
 
 function key(target: TriggerTarget): string {
@@ -114,22 +142,36 @@ function stayFor(rng: () => number, kind: ActivityKind): number {
   return Math.round(min + rng() * (max - min))
 }
 
+type NoTargetKind = 'wander' | 'security-round' | 'window-look' | 'whiteboard-glance' | 'phone-check'
+const NO_TARGET_KIND_SET: ReadonlySet<string> = new Set<NoTargetKind>([
+  'wander',
+  'security-round',
+  'window-look',
+  'whiteboard-glance',
+  'phone-check',
+])
+function isNoTargetKind(kind: ActivityKind): kind is NoTargetKind {
+  return NO_TARGET_KIND_SET.has(kind)
+}
+
 export function planNextActivity(
   rng: () => number,
   ctx: ActivityContext,
   weights: ActivityWeights = WEIGHTS,
 ): ActivityPlan {
   const kind = pickKind(rng, ctx.previousKind, weights)
-  const candidates: Record<Exclude<ActivityKind, 'wander' | 'security-round'>, TriggerTarget[]> = {
+  const candidates: Record<Exclude<ActivityKind, NoTargetKind>, TriggerTarget[]> = {
     work: ctx.workstations,
     coffee: ctx.coffeeMachines,
     sofa: ctx.sofas,
     meeting: ctx.seats,
     'pull-up-bar': ctx.pullUpBars ?? [],
   }
-  // wander and security-round have no context target; security-round's patrol
-  // destination is supplied by the specialist's own planner wrapper.
-  if (kind === 'wander' || kind === 'security-round') return { kind, stayMs: stayFor(rng, kind) }
+  // No-target kinds resolve their actual destination elsewhere: wander picks
+  // a random point right here, security-round's patrol point comes from the
+  // specialist's own planner wrapper, and window-look/whiteboard-glance/
+  // phone-check are resolved in Npcs.tsx (a fixed spot or a random point).
+  if (isNoTargetKind(kind)) return { kind, stayMs: stayFor(rng, kind) }
   const target = pickTarget(rng, candidates[kind], ctx.previousTargetKey)
   // everything of that kind is taken - stretch legs instead of idling in place
   if (!target) return { kind: 'wander', stayMs: stayFor(rng, 'wander') }
