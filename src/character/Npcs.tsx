@@ -13,6 +13,7 @@ import { planNextActivity, wanderPoint, createRng, type ActivityPlan, type Activ
 import { getInteractions, isTargetFree, claimTarget, releaseClaims, targetKey } from '../interaction/interactionRegistry'
 import { useGameStore } from '../game/gameStore'
 import { useGameOutcomeStore } from '../game/gameOutcomeStore'
+import { usePingPongMatchmaker } from './pingPongMatchmaker'
 
 // States in which an NPC is "settled" and its brain may schedule the next
 // activity after the current plan's stay duration.
@@ -180,6 +181,11 @@ export function Npcs() {
       return { definition, planActivity }
     })
     .filter((d): d is { definition: CharacterDefinition; planActivity: ActivityPlanner } => d !== null)
+
+  // 18H Wave 3: one matchmaker for the whole office, not one per NPC - a
+  // rally is a fact about a PAIR, not something each character's own brain
+  // can decide alone.
+  usePingPongMatchmaker()
 
   return (
     <>

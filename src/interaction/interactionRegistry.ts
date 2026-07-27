@@ -9,9 +9,12 @@ import type { TriggerTarget } from './triggerPayload'
 // 'exec-seat' is the manager's chair — the player can click it, but NPC brains
 // never sample it (Feature 16 §7: the CEO chair is player-only). NPCs pool only
 // 'workstation' | 'coffee' | 'seat' | 'sofa' (see Npcs.tsx).
-// 18H Wave 3: 'pull-up-bar' is an ambient office activity, sampled by NPC
-// brains the same way 'coffee'/'sofa' already are (see Npcs.tsx).
-export type InteractionKind = 'workstation' | 'coffee' | 'seat' | 'sofa' | 'server' | 'exec-seat' | 'pull-up-bar'
+// 18H Wave 3: 'pull-up-bar' is a solo ambient activity, sampled by NPC brains
+// the same way 'coffee'/'sofa' already are (see Npcs.tsx). 'ping-pong' is a
+// PAIRED activity - PingPongTable registers exactly two targets (one per
+// side) and the matchmaker (pingPongMatchmaker.ts) reserves both together,
+// bypassing the solo per-character planner entirely.
+export type InteractionKind = 'workstation' | 'coffee' | 'seat' | 'sofa' | 'server' | 'exec-seat' | 'pull-up-bar' | 'ping-pong'
 
 export interface RegisteredInteraction {
   kind: InteractionKind

@@ -8,11 +8,12 @@ import type { Point } from './navigation'
 // it carries no context target - its destination is chosen by the security
 // specialist's own planner from a fixed set of patrol points.
 //
-// 'ping-pong' and 'pull-up-bar' are 18H Wave 3 ambient activities (§13/§14).
-// They exist here as data (kind, stay range, target pool) so the planner
-// stays a single source of truth, but neither is in AMBIENT_WEIGHTS yet - see
-// that constant's comment for why activation is deliberately held back.
-export type ActivityKind = 'work' | 'coffee' | 'sofa' | 'meeting' | 'wander' | 'security-round' | 'ping-pong' | 'pull-up-bar'
+// 'pull-up-bar' is an 18H Wave 3 solo ambient activity (§14), picked here
+// like any other. Its paired sibling, ping-pong, does NOT live here - a
+// two-person activity doesn't fit a per-character solo picker, so it is its
+// own small coordinator (pingPongMatchmaker.ts) that dispatches the same
+// CLICK_PERFORM_ACTIVITY event directly, bypassing planNextActivity.
+export type ActivityKind = 'work' | 'coffee' | 'sofa' | 'meeting' | 'wander' | 'security-round' | 'pull-up-bar'
 
 export interface ActivityPlan {
   kind: ActivityKind
@@ -26,11 +27,9 @@ export interface ActivityContext {
   coffeeMachines: TriggerTarget[]
   sofas: TriggerTarget[]
   seats: TriggerTarget[]
-  // 18H Wave 3: optional so the existing Npcs.tsx call site needs no change
-  // while ping-pong/pull-up-bar stay unactivated (see AMBIENT_WEIGHTS).
+  // 18H Wave 3: optional so callers that predate pull-up-bar need no change.
   // Missing/empty is safe - planNextActivity treats "no free target of this
   // kind" as a fallback to 'wander', same as any other activity today.
-  pingPongTables?: TriggerTarget[]
   pullUpBars?: TriggerTarget[]
   previousKind?: ActivityKind
   previousTargetKey?: string
@@ -68,8 +67,9 @@ export const WORK_BIASED_WEIGHTS: ActivityWeights = [
   ['wander', 0.05],
 ]
 
-// 18H §16 shortActivityDurationSeconds [8,20] for pull-ups (a short burst);
-// ping-pong runs a little longer to fit AMBIENT_OFFICE_BALANCE.pingPongMaxRallies.
+// 18H §16 shortActivityDurationSeconds [8,20] for a pull-up burst. Ping-pong's
+// hold duration lives in AMBIENT_OFFICE_BALANCE.socialActivityDurationSeconds
+// instead (pingPongMatchmaker.ts) - it is not picked through this table.
 const STAY_RANGES_MS: Record<ActivityKind, [number, number]> = {
   work: [20000, 45000],
   coffee: [8000, 15000],
@@ -77,26 +77,8 @@ const STAY_RANGES_MS: Record<ActivityKind, [number, number]> = {
   sofa: [12000, 28000],
   wander: [3000, 8000],
   'security-round': [8000, 16000],
-  'ping-pong': [15000, 30000],
   'pull-up-bar': [8000, 18000],
 }
-
-// 18H Wave 3: the weights ping-pong would ALSO use once it has real motion.
-// pull-up-bar already graduated into WEIGHTS/WORK_BIASED_WEIGHTS above (real
-// clip, hand grip verified against the bar). ping-pong still silently plays
-// 'idle' (CharacterModel.tsx's CLIP_FALLBACKS - honest-but-invisible, not
-// "broken") because no catalog action fit a paddle swing convincingly (see
-// docs/art/higgsfield-ambient-motion-prompts.md) - it needs the procedural
-// arm-swing + paddle-prop pass before it can join the live picker the same way.
-export const AMBIENT_WEIGHTS: ActivityWeights = [
-  ['work', 0.44],
-  ['coffee', 0.13],
-  ['meeting', 0.11],
-  ['sofa', 0.1],
-  ['ping-pong', 0.08],
-  ['pull-up-bar', 0.05],
-  ['wander', 0.09],
-]
 
 function key(target: TriggerTarget): string {
   return `${target.point[0].toFixed(2)}|${target.point[2].toFixed(2)}`
@@ -143,7 +125,6 @@ export function planNextActivity(
     coffee: ctx.coffeeMachines,
     sofa: ctx.sofas,
     meeting: ctx.seats,
-    'ping-pong': ctx.pingPongTables ?? [],
     'pull-up-bar': ctx.pullUpBars ?? [],
   }
   // wander and security-round have no context target; security-round's patrol

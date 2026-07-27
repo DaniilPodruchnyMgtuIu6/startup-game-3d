@@ -2,6 +2,8 @@ import { useRef } from 'react'
 import type { Group } from 'three'
 import { useMaterials } from '../materials/MaterialsContext'
 import { useObstacle } from '../character/useObstacle'
+import { InteractionTrigger } from '../interaction/InteractionTrigger'
+import { PING_PONG_TABLE_ANCHORS } from '../interaction/interactionAnchors'
 
 export interface PingPongTableProps {
   position?: [number, number, number]
@@ -53,6 +55,19 @@ export function PingPongTable({ position = [0, 0, 0], rotation = [0, 0, 0] }: Pi
           <meshStandardMaterial {...materials.metalFrame} />
         </mesh>
       ))}
+      {/* 18H Wave 3: two 'ping-pong' targets (one per short end), matching
+          PING_PONG_TABLE_ANCHORS - the matchmaker reserves both together, not
+          a click-to-play trigger, so onTrigger is intentionally omitted. */}
+      <InteractionTrigger
+        position={[PING_PONG_TABLE_ANCHORS.sideA.root.position[0], 0.9, 0]}
+        size={[0.8, 1.8, WIDTH]}
+        kind="ping-pong"
+      />
+      <InteractionTrigger
+        position={[PING_PONG_TABLE_ANCHORS.sideB.root.position[0], 0.9, 0]}
+        size={[0.8, 1.8, WIDTH]}
+        kind="ping-pong"
+      />
     </group>
   )
 }

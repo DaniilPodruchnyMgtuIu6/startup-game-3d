@@ -51,17 +51,19 @@ Meshy — action-game/паркур-ориентированный набор, р
 содержит «Sports» вовсе).
 
 Решение: не тянуть несовместимый combat-клип ради видимости прогресса —
-пинг-понг получит процедурный взмах руки (bone-pose техника, как
-`characterEmotion.ts`) + держащаяся в руке ракетка (техника `buildHeldMug`),
-без Higgsfield-генерации. Следующий шаг Wave 3, не asset-задача.
+пинг-понг получил процедурный взмах руки (bone-pose техника, как
+`characterEmotion.ts`, direction проверено FK-расчётом на rest-pose
+скелета, не на глаз) + держащаяся в руке ракетка (техника `buildHeldMug`),
+без Higgsfield-генерации. **Выполнено** — см.
+`ambient-office-animation-library.md` и `pingPongMatchmaker.ts`.
 
 ## Дополнительные бытовые активности (§14 «минимум 3»)
 
 `window-look`/`phone-check`/`whiteboard-glance` — переиспользование
-существующего клипа `look` + опциональный held-prop, без Higgsfield.
+существующего клипа `look` + опциональный held-prop, без Higgsfield. Ещё не
+реализовано.
 
 ## Оставшийся порядок действий
 
-1. Процедурный arm-swing цикл для `playingPingPong` + ракетка-проп.
-2. Включить `ping-pong` в `AMBIENT_WEIGHTS`/`WEIGHTS` после визуальной проверки.
-3. Дополнительные бытовые активности (planner + look-clip + props).
+1. Дополнительные бытовые активности (§14, минимум 3 — planner + look-clip + props).
+2. Wave 4 (QA/performance/docs).

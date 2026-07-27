@@ -16,7 +16,7 @@ import { useCharacterPerformance } from './performance/useCharacterPerformance'
 import { useCharacterStore, PLAYER_ID } from './characterStore'
 import { useCharacterTransform, WALK_SPEED } from './useCharacterTransform'
 import { useServerIncidentsStore, type ServerRole } from '../game/serverIncidentsStore'
-import { buildHeldMug, disposeHeldProp } from './heldProps'
+import { buildHeldMug, buildHeldPaddle, disposeHeldProp } from './heldProps'
 import { useNpcAmbientStore } from '../game/npcAmbientStore'
 import { visibleLineFor } from '../game/npcAmbientConversation'
 import { NPC_CHARACTER_ID, type NpcId } from '../game/npcChatTypes'
@@ -200,6 +200,26 @@ export function CharacterModel({ characterId, config, label }: CharacterModelPro
       disposeHeldProp(mug)
     }
   }, [stateKind, base])
+
+  // 18H Wave 3: a paddle in the right hand while playing ping-pong - the
+  // swing itself is procedural (useCharacterPerformance), not a baked clip.
+  useEffect(() => {
+    if (stateKind !== 'performing' || performClip !== 'pingPongRally') return
+    let hand: Object3D | undefined
+    base.scene.traverse((object) => {
+      if (!hand && /RightHand$/.test(object.name)) hand = object
+    })
+    if (!hand) return
+    const paddle = buildHeldPaddle()
+    const scale = hand.getWorldScale(new Vector3()).x || 1
+    paddle.scale.setScalar(1 / scale)
+    paddle.position.set(0, 0.08 / scale, 0.02 / scale)
+    hand.add(paddle)
+    return () => {
+      hand?.remove(paddle)
+      disposeHeldProp(paddle)
+    }
+  }, [stateKind, performClip, base])
 
   useEffect(() => {
     if (stateKind === 'sittingDown') {

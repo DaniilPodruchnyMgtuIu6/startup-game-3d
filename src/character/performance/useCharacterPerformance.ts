@@ -21,6 +21,12 @@ import { gazeAnglesToward, EYE_HEIGHT_SEATED, EYE_HEIGHT_STANDING } from './gaze
 const SEATED_KINDS = new Set(['sittingDown', 'working', 'sittingIdle', 'sofaSitting'])
 const BREATH_PITCH = 0.008
 const NOD_PITCH = 0.03
+// 18H Wave 3: procedural ping-pong forehand swing (no baked clip exists - see
+// docs/art/higgsfield-ambient-motion-prompts.md). Same additive-on-idle
+// technique as breathing/emotion, just on the arm chain instead of the torso.
+const PADDLE_SWING_HZ = 2.4
+const PADDLE_SWING_SHOULDER_RAD = 0.55
+const PADDLE_SWING_ELBOW_RAD = 0.4
 
 const NPC_ID_FOR_CHARACTER: Record<string, NpcId> = Object.fromEntries(
   (Object.entries(NPC_CHARACTER_ID) as [NpcId, string][]).map(([npcId, charId]) => [charId, npcId]),
@@ -44,6 +50,8 @@ export function useCharacterPerformance(characterId: string, root: Object3D) {
       head: findBone(root, /Head$/),
       spine: findBone(root, /Spine$/),
       chest: findBone(root, /Spine2$/),
+      rightArm: findBone(root, /RightArm$/),
+      rightForeArm: findBone(root, /RightForeArm$/),
     }),
     [root],
   )
@@ -104,6 +112,9 @@ export function useCharacterPerformance(characterId: string, root: Object3D) {
     const emotion = usePerformanceStore.getState().emotions[characterId] ?? 'neutral'
     const pose = EMOTION_POSES[emotion]
 
+    // --- 18H Wave 3: procedural ping-pong swing while performing that clip ---
+    const playingPingPong = me.state.kind === 'performing' && me.state.clip === 'pingPongRally'
+
     const a = applied.current
     a.yaw += (targetYaw - a.yaw) * k
     a.pitch += (targetPitch - a.pitch) * k
@@ -121,5 +132,16 @@ export function useCharacterPerformance(characterId: string, root: Object3D) {
     }
     if (bones.spine) bones.spine.rotation.x += a.spinePitch
     if (bones.chest) bones.chest.rotation.x += a.chestPitch + breath
+
+    if (playingPingPong) {
+      // A back-and-forth forehand: shoulder raises/swings forward, elbow
+      // follows with a shorter lag so the paddle leads the motion. Sign
+      // verified empirically against the rest-pose FK (negative local X on
+      // both RightArm and RightForeArm moves the hand forward-and-up here,
+      // not backward through the torso) - see checkArmAxis in session notes.
+      const swing = Math.sin(t * Math.PI * 2 * PADDLE_SWING_HZ + phase)
+      if (bones.rightArm) bones.rightArm.rotation.x -= 0.3 + swing * PADDLE_SWING_SHOULDER_RAD
+      if (bones.rightForeArm) bones.rightForeArm.rotation.x -= 0.2 + Math.max(0, swing) * PADDLE_SWING_ELBOW_RAD
+    }
   })
 }
