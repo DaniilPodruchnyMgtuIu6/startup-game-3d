@@ -32,6 +32,7 @@ Production-код ссылается только на approved/integrated. Се
 | storyboard-office-intrusion | Higgsfield MCP / nano_banana_2 | docs/art/cinematics/office-intrusion/higgsfield-prompts.md | approved (reference-only) | Higgsfield generation (проект) | — docs/art/cinematics/office-intrusion/ |
 | storyboard-project-data-loss | Higgsfield MCP / nano_banana_2 | docs/art/cinematics/project-data-loss/higgsfield-prompts.md | approved (reference-only) | Higgsfield generation (проект) | — docs/art/cinematics/project-data-loss/ |
 | storyboard-mvp-release | Higgsfield MCP / nano_banana_2 | docs/art/cinematics/mvp-release/higgsfield-prompts.md | approved (reference-only) | Higgsfield generation (проект) | — docs/art/cinematics/mvp-release/ |
+| storyboards-wave2 ×4 листа (7 сцен решений) | Higgsfield MCP / nano_banana_2 | docs/art/cinematics/<decision>/higgsfield-prompts.md | approved (reference-only) | Higgsfield generation (проект) | — docs/art/cinematics/{developer-admin-access,frontend-test-data,security-first-priority,backup-and-restore-strategy,architecture-boundary,suspicious-activity-disclosure,release-risk-decision}/ |
 
 Наследованные до-реестровые генерации (эталоны стиля, приняты ранее):
 `public/dialogue_pictures/prodact_manager/pm.jpeg`, `boss/*.jpeg`,

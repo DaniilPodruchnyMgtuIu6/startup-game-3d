@@ -3,6 +3,8 @@ import { useSprintStore } from '../sprintStore'
 import { useTeamStore } from '../teamStore'
 import { useCharacterStore, PLAYER_ID } from '../../character/characterStore'
 import { usePerformanceStore } from '../../character/performance/performanceStore'
+import { beginConversationCinematic, playInsert } from '../cinematics/cinematicDirector'
+import { WHITEBOARD_POSITION } from '../../scene/whiteboardSpot'
 import { nearestWalkable } from '../../character/grid'
 import { releaseClaims } from '../../interaction/interactionRegistry'
 import { approachPoint, facingBetween } from '../meetingGeometry'
@@ -120,6 +122,18 @@ function choose(options: ChoiceOption[]): Promise<string> {
   })
 }
 
+// 18F Wave 2: the signature INSERT each decision opens on - the prop the
+// conversation is actually about (§ «important insert»). Decisions without a
+// natural prop open straight on the two-shot.
+const DECISION_INSERT: Partial<Record<Level1StoryDecisionId, [number, number, number]>> = {
+  'developer-admin-access': [-1.9, 0.75, 4.75], // a team workstation screen
+  'frontend-test-data': [-1.9, 0.75, 4.75],
+  'security-first-priority': [-9.5, 1.1, 6.3], // the server racks
+  'backup-and-restore-strategy': [-9.5, 1.1, 6.3],
+  'architecture-boundary': [WHITEBOARD_POSITION[0], 1.4, WHITEBOARD_POSITION[2]],
+  'release-risk-decision': [WHITEBOARD_POSITION[0], 1.4, WHITEBOARD_POSITION[2]],
+}
+
 // The full scripted decision talk. A choice already saved before an
 // interrupted run is reused - the player is never asked twice and effects
 // never re-apply (the store guarantees both).
@@ -131,21 +145,31 @@ export async function runStoryDecisionConversation(decisionId: Level1StoryDecisi
   const story = useStoryDecisionStore.getState()
   story.startDecision(decisionId, currentMoment())
 
-  const script = buildStorySceneScript(decisionId, { ilyaHired: hasSecuritySpecialist(useTeamStore.getState().hires) })
-  await say(script.lines)
+  // 18F Wave 2: every decision scene plays under the conversation cinematic -
+  // OTS/reverse coverage between the player and the scene lead, the choice on
+  // the held frame; camera and HUD restore in the finally either way.
+  const cinematic = beginConversationCinematic({ pairA: PLAYER_ID, pairB: characterId })
+  try {
+    const insert = DECISION_INSERT[decisionId]
+    if (insert) await playInsert(insert, { side: 1, durationMs: 1300 })
 
-  let choiceId = useStoryDecisionStore.getState().decisions[decisionId].selectedChoiceId
-  if (!choiceId) {
-    choiceId = await choose(script.choices)
+    const script = buildStorySceneScript(decisionId, { ilyaHired: hasSecuritySpecialist(useTeamStore.getState().hires) })
+    await say(script.lines)
+
+    let choiceId = useStoryDecisionStore.getState().decisions[decisionId].selectedChoiceId
+    if (!choiceId) {
+      choiceId = await choose(script.choices)
+    }
+    const resolution = useStoryDecisionStore.getState().resolveDecision(decisionId, choiceId, currentMoment())
+
+    // The reaction is shown BEFORE the scene closes (17B §9).
+    await say(script.reaction(resolution.choiceId))
+  } finally {
+    await cinematic.end()
+    endTalking(characterId)
+    resumePlanner(characterId)
+    useCharacterStore.getState().setInputLocked(false)
   }
-  const resolution = useStoryDecisionStore.getState().resolveDecision(decisionId, choiceId, currentMoment())
-
-  // The reaction is shown BEFORE the scene closes (17B §9).
-  await say(script.reaction(resolution.choiceId))
-
-  endTalking(characterId)
-  resumePlanner(characterId)
-  useCharacterStore.getState().setInputLocked(false)
 
   // A resolved decision may immediately make the next one eligible.
   evaluateStoryUnlocks()
