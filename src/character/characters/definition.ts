@@ -38,6 +38,21 @@ export type ClipName = (typeof CLIP_NAMES)[number]
 // which the older LOOK_START/'looking' state does not carry.
 export type PerformClip = 'agree' | 'celebrate' | 'explain' | 'angryTalk' | 'facepalm' | 'pullUp' | 'pingPongRally' | 'look' | 'checkPhone'
 
+// 18H §11: vertical correction while seated, one value per pose family.
+// Measured per rig (FK Hips height at the seated clip's final frame, see
+// docs/qa/18h-known-issues.md): on the SAME furniture the five rigs' hips
+// land 8-12cm apart - shorter characters sink into cushions, taller ones
+// hover. The lift puts every body on the same seat plane; the reference
+// level is the accepted business_man look (sit 0.474+0.05, sofa 0.540).
+export interface SeatLift {
+  // sittingDown/working (workstation chair, clips sit/type)
+  sit?: number
+  // sittingIdle (meeting/bar chairs, clip sitIdle)
+  sitIdle?: number
+  // sofaSitting (clip sofaSit)
+  sofa?: number
+}
+
 export interface CharacterModelConfig {
   // URL per animation clip. 'idle' is required - it is also the base file
   // carrying the skinned mesh. Missing clips fall back at runtime to the
@@ -52,6 +67,7 @@ export interface CharacterModelConfig {
   // level (idle min foot Y - walk min foot Y, when positive). The model is
   // raised by this while walking so soles don't sink through the floor.
   walkLift?: number
+  seatLift?: SeatLift
 }
 
 // Personality sheet. Today it is optional and unused by gameplay; it is the

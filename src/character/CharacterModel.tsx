@@ -330,7 +330,7 @@ export function CharacterModel({ characterId, config, label }: CharacterModelPro
     }
   }, [stateKind, characterId])
 
-  useCharacterTransform(characterId, group, config.walkLift ?? 0)
+  useCharacterTransform(characterId, group, { walkLift: config.walkLift, seatLift: config.seatLift })
 
   // Feature 18C §5/§6: breathing, clamped head look-at, listener nods and
   // emotion bone poses. Registered AFTER useAnimations, so its useFrame runs

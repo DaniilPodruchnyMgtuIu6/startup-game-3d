@@ -90,7 +90,7 @@ export const useCharacterStore = create<CharactersStore>()((set, get) => {
         const entity = s.characters[id]
         if (!entity) return s
         const state = nextState(entity.state, event, entity.position, entity.rotationY)
-        const rotationY = 'target' in state ? state.target.facing : entity.rotationY
+        const rotationY = 'target' in state && state.target ? state.target.facing : entity.rotationY
         return { characters: { ...s.characters, [id]: { ...entity, state, rotationY } } }
       }),
     setTransform: (id, position, rotationY) =>

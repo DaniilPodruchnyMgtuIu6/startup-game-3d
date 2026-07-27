@@ -32,7 +32,9 @@ export type CharacterState =
   | { kind: 'looking' }
   // 18C: playing a named gesture clip (agree/celebrate/explain) - used by
   // scenes and conversations the same way talking/looking are.
-  | { kind: 'performing'; clip: PerformClip }
+  // target is present when the perform was a walk-to-spot activity (arrive())
+  // and absent for in-place scene gestures (PERFORM_START).
+  | { kind: 'performing'; clip: PerformClip; target?: Target }
 
 export type CharacterEvent =
   | { type: 'CLICK_FLOOR'; point: Point }
@@ -128,6 +130,10 @@ function arrive(goal: ArrivalGoal): CharacterState {
     case 'repair':
       return { kind: 'repairing', target: goal.target, role: goal.role }
     case 'perform':
-      return { kind: 'performing', clip: goal.clip }
+      // Carry the target through: dispatchTo derives the settled rotation from
+      // `state.target.facing`, and without it the character kept its LAST WALK
+      // HEADING on arrival - ping-pong players faced the sideline, the pull-up
+      // mount jumped off sideways (the "повернут от стола" live report).
+      return { kind: 'performing', clip: goal.clip, target: goal.target }
   }
 }

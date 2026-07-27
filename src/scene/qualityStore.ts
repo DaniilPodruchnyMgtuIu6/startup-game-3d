@@ -35,7 +35,15 @@ export const useQualityStore = create<QualityState>()(
       tier: 'high',
       setTier: (tier) => set({ tier }),
     }),
-    { name: 'startup-office-quality' },
+    {
+      name: 'startup-office-quality',
+      // v1: a short-lived FPS auto-downgrade (removed after live feedback -
+      // it PERSISTED lowered tiers and the game "went ugly" permanently).
+      // Migrating resets every pre-v1 save back to the beautiful default;
+      // from here the tier only changes through the visible in-game switch.
+      version: 1,
+      migrate: () => ({ tier: 'high' as QualityTier }),
+    },
   ),
 )
 

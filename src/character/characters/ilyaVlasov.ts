@@ -34,6 +34,9 @@ export const ilyaVlasov: CharacterDefinition = {
     },
     walkPace: 1.6,
     walkLift: 0.01,
+    // measured hips: sit 0.493 / sitIdle 0.499 / sofa 0.561 - the tallest
+    // rig hovered above the seat plane; small negative sofa correction
+    seatLift: { sit: 0.031, sitIdle: 0.025, sofa: -0.021 },
   },
   npc: {
     spawn: [5.5, 0, 6],

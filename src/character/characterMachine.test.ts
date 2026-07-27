@@ -45,6 +45,21 @@ describe('characterMachine', () => {
     expect(state).toEqual({ kind: 'sittingDown', target })
   })
 
+  it('WAYPOINT_REACHED on the final waypoint keeps the perform TARGET (settled facing)', () => {
+    // Regression: arrive('perform') used to drop the target, so dispatchTo
+    // had no facing to apply and the character kept its last WALK heading -
+    // ping-pong players faced the sideline, the pull-up mount jumped sideways.
+    const target = { point: [1, 0, 1] as [number, number, number], facing: Math.PI / 2 }
+    const walking: CharacterState = {
+      kind: 'walking',
+      path: [[1, 0, 1]],
+      nextIndex: 0,
+      onArrive: { kind: 'perform', target, clip: 'pingPongRally' },
+    }
+    const state = nextState(walking, { type: 'WAYPOINT_REACHED' }, [1, 0, 1])
+    expect(state).toEqual({ kind: 'performing', clip: 'pingPongRally', target })
+  })
+
   it('SETTLE_ELAPSED moves sittingDown to working', () => {
     const target = { point: [1, 0, 1] as [number, number, number], facing: 0 }
     const state = nextState({ kind: 'sittingDown', target }, { type: 'SETTLE_ELAPSED' }, [1, 0, 1])
@@ -111,7 +126,7 @@ describe('characterMachine', () => {
     if (walking.kind === 'walking') {
       expect(walking.onArrive).toEqual({ kind: 'perform', target, clip: 'pullUp' })
       const arrived = nextState({ ...walking, nextIndex: walking.path.length - 1 }, { type: 'WAYPOINT_REACHED' }, target.point)
-      expect(arrived).toEqual({ kind: 'performing', clip: 'pullUp' })
+      expect(arrived).toEqual({ kind: 'performing', clip: 'pullUp', target })
     }
   })
 })

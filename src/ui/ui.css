@@ -518,6 +518,43 @@ button.dialogue-choice {
   }
 }
 
+/* Graphics quality switch (top-right) - the player-visible counterpart of the
+   dev-only leva tier selector; same glass style as the sprint HUD. */
+.quality-menu {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.quality-menu-toggle,
+.quality-menu-option {
+  font-family: inherit;
+  font-size: 13px;
+  color: #dbe4f0;
+  background: rgba(22, 31, 42, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.quality-menu-toggle:hover,
+.quality-menu-option:hover {
+  background: rgba(34, 46, 62, 0.92);
+}
+.quality-menu-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.quality-menu-option--active {
+  border-color: #4c8ef7;
+  color: #ffffff;
+}
+
 /* Sprint clock HUD (top-left) */
 .sprint-hud {
   position: fixed;

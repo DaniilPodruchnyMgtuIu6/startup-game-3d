@@ -23,6 +23,8 @@ import { useQualityStore, QUALITY_PRESETS } from '../../scene/qualityStore'
 import { EMOTION_POSES } from './characterEmotion'
 import { REACTION_EMOTION } from './dialoguePerformanceCue'
 import { gazeAnglesToward, EYE_HEIGHT_SEATED, EYE_HEIGHT_STANDING } from './gaze'
+import { usePingPongRallyStore } from '../pingPongRallyStore'
+import { swingEnvelope } from '../pingPongRhythm'
 
 const SEATED_KINDS = new Set(['sittingDown', 'working', 'sittingIdle', 'sofaSitting'])
 const BREATH_PITCH = 0.008
@@ -184,14 +186,28 @@ export function useCharacterPerformance(characterId: string, root: Object3D) {
     if (bones.chest) bones.chest.rotation.x += a.chestPitch + breath
 
     if (playingPingPong) {
-      // A back-and-forth forehand: shoulder raises/swings forward, elbow
-      // follows with a shorter lag so the paddle leads the motion. Sign
-      // verified empirically against the rest-pose FK (negative local X on
-      // both RightArm and RightForeArm moves the hand forward-and-up here,
-      // not backward through the torso) - see checkArmAxis in session notes.
-      const swing = Math.sin(t * Math.PI * 2 * PADDLE_SWING_HZ + phase)
-      if (bones.rightArm) bones.rightArm.rotation.x -= 0.3 + swing * PADDLE_SWING_SHOULDER_RAD
-      if (bones.rightForeArm) bones.rightForeArm.rotation.x -= 0.2 + Math.max(0, swing) * PADDLE_SWING_ELBOW_RAD
+      // A REAL exchange, not a metronome arm (live feedback «анимации игры в
+      // тенис нет»): the swing shares its phase clock with the ball
+      // (pingPongRhythm) - the WINDUP coils shortly before the ball arrives
+      // at THIS player, the STRIKE drives through exactly as it leaves. Arm
+      // axis signs as before (negative local X = forward/up, verified by
+      // rest-pose FK); the torso coils with the windup and releases through
+      // the strike so the whole body plays, not just the wrist.
+      const rally = usePingPongRallyStore.getState().participants
+      const side = rally ? (rally.indexOf(characterId) as -1 | 0 | 1) : -1
+      if (side === -1) {
+        // solo practice (no opponent found): keep a light ready sway
+        const sway = Math.sin(t * Math.PI * 2 * PADDLE_SWING_HZ + phase)
+        if (bones.rightArm) bones.rightArm.rotation.x -= 0.3 + sway * 0.15
+        if (bones.rightForeArm) bones.rightForeArm.rotation.x -= 0.25
+      } else {
+        const { windup, strike } = swingEnvelope(t, side)
+        if (bones.rightArm) bones.rightArm.rotation.x -= 0.3 - windup * 0.3 + strike * PADDLE_SWING_SHOULDER_RAD
+        if (bones.rightForeArm) bones.rightForeArm.rotation.x -= 0.2 + strike * PADDLE_SWING_ELBOW_RAD - windup * 0.15
+        if (bones.spine) bones.spine.rotation.y += windup * 0.28 - strike * 0.18
+        // ready stance between exchanges: slight forward lean
+        if (bones.chest) bones.chest.rotation.x += 0.06
+      }
     }
 
     if (checkingPhone) {

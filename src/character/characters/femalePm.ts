@@ -32,6 +32,9 @@ export const femalePm: CharacterDefinition = {
       pullUp: '/character/female_pm/pullUp.glb',
     },
     walkPace: 0.99,
+    // measured hips: sit 0.409 / sitIdle 0.458 / sofa 0.445 - the shortest
+    // rig sank 6-10cm into every seat («девочки ниже — другая высота посадки»)
+    seatLift: { sit: 0.115, sitIdle: 0.066, sofa: 0.095 },
   },
   npc: {
     spawn: [-2, 0, 6.3],

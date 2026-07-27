@@ -31,6 +31,8 @@ export const alinaBelova: CharacterDefinition = {
     },
     walkPace: 1.68,
     walkLift: 0.003,
+    // measured hips: sit 0.455 / sitIdle 0.480 / sofa 0.471
+    seatLift: { sit: 0.069, sitIdle: 0.044, sofa: 0.069 },
   },
   npc: {
     spawn: [-4, 0, 6.3],

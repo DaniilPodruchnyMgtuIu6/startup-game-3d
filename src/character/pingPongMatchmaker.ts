@@ -11,6 +11,7 @@ import { useGameOutcomeStore } from '../game/gameOutcomeStore'
 import { getInteractions, isTargetFree, claimTarget, targetKey } from '../interaction/interactionRegistry'
 import { tryReservePairActivity, releasePairActivity } from '../interaction/pairActivityReservation'
 import { usePingPongRallyStore } from './pingPongRallyStore'
+import { usePerformanceStore } from './performance/performanceStore'
 import { AMBIENT_OFFICE_BALANCE } from '../game/balance'
 
 const CHECK_INTERVAL_MS = 5000
@@ -54,6 +55,7 @@ export function usePingPongMatchmaker(rng: () => number = Math.random): void {
         if (latest.characters[a]?.state.kind === 'performing') latest.dispatchTo(a, { type: 'PERFORM_END' })
         if (latest.characters[b]?.state.kind === 'performing') latest.dispatchTo(b, { type: 'PERFORM_END' })
         releasePairActivity(a, b)
+        usePerformanceStore.getState().clearGaze(a, b)
         usePingPongRallyStore.getState().end()
         activeRef.current = false
       }
@@ -72,6 +74,9 @@ export function usePingPongMatchmaker(rng: () => number = Math.random): void {
         if (!performing(a) || !performing(b)) return
         unsubscribeArrival()
         clearTimeout(arrivalTimeout)
+        // heads track the opponent for the whole exchange (§7 gaze layer) -
+        // "смотрят на игру", not off into the office
+        usePerformanceStore.getState().setGazePair(a, b)
         usePingPongRallyStore.getState().begin(a, b)
         const [minS, maxS] = AMBIENT_OFFICE_BALANCE.socialActivityDurationSeconds
         const durationTimer = setTimeout(finish, (minS + rng() * (maxS - minS)) * 1000)

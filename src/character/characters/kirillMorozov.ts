@@ -32,6 +32,8 @@ export const kirillMorozov: CharacterDefinition = {
     },
     walkPace: 1.77,
     walkLift: 0.015,
+    // measured hips: sit 0.481 / sitIdle 0.512 / sofa 0.547
+    seatLift: { sit: 0.043, sitIdle: 0.012, sofa: 0 },
   },
   npc: {
     spawn: [4, 0, 6.3],
