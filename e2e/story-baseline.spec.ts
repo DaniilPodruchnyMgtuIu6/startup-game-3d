@@ -26,17 +26,20 @@ test('the baseline decision scene runs end-to-end after both hires', async ({ pa
   }
   await page.getByRole('button', { name: 'Закрыть' }).click()
 
-  // the mandatory story marker appears over Sonya; re-nudge the click until the
-  // dialogue opens (the walk takes a few seconds under software rendering)
+  // the mandatory story marker appears over Sonya; ONE click starts the walk
+  // (Level1StoryDecisionController's `approaching` ref then ignores further
+  // clicks until arrival - see StorySceneMarker.beginApproach). Re-clicking
+  // in a loop here is exactly what made this spec flaky: the marker is an
+  // in-world <Html> overlay that moves every frame while Sonya (and the
+  // approaching player) are mid-walk, so a repeated force-click can land on
+  // a stale screen position and misfire. A single click, then a single
+  // generous wait, is both simpler and was the version proven to work in
+  // isolation.
   const marker = page.locator('.npc-marker--story').first()
   await marker.waitFor({ state: 'visible', timeout: 30_000 })
+  await marker.click({ force: true })
   const dialogue = page.locator('.dialogue-panel')
-  for (let i = 0; i < 20; i++) {
-    if (await dialogue.isVisible().catch(() => false)) break
-    await marker.click({ force: true }).catch(() => {})
-    await page.waitForTimeout(2000)
-  }
-  await expect(dialogue).toBeVisible({ timeout: 30_000 })
+  await expect(dialogue).toBeVisible({ timeout: 60_000 })
 
   // advance Sonya's lines until the fork, order the external audit
   for (let i = 0; i < 20; i++) {

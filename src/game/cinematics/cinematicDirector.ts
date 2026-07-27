@@ -104,6 +104,36 @@ export interface ConversationCinematicOptions {
 // instead of leaving a one-shot camera looking at empty floor.
 const TRACK_INTERVAL_MS = 450
 
+// 18H §4/§5: `ready`'s underlying camera-controls tween resolves once the rig
+// reports itself converged, which needs several real animation frames - under
+// a throttled/low-framerate tab that can take far longer than the shot's own
+// durationMs (observed ~8s for a nominal 1100ms two-shot under headless
+// software rendering) even though nothing has actually failed. Bounding the
+// wait is the same "reasonable timeout only as a failure guard" principle
+// already used for gatherParticipants/pairActivityReservation - the scene
+// proceeds once the camera is CLOSE ENOUGH rather than blocking the first
+// line indefinitely on a frame-rate-dependent convergence check.
+const READY_TIMEOUT_MS = 3500
+
+// Exported for its own focused unit test (cinematicDirector.test.ts) - the
+// real call sites below are hard to force into a "never resolves" state
+// without a live camera-controls rig, which jsdom doesn't have.
+export function withReadyTimeout(promise: Promise<void>): Promise<void> {
+  return new Promise((resolve) => {
+    let settled = false
+    const settle = () => {
+      if (settled) return
+      settled = true
+      resolve()
+    }
+    const timer = setTimeout(settle, READY_TIMEOUT_MS)
+    promise.then(() => {
+      clearTimeout(timer)
+      settle()
+    })
+  })
+}
+
 let activeCinematic: ConversationCinematicHandle | null = null
 
 export function beginConversationCinematic(options: ConversationCinematicOptions = {}): ConversationCinematicHandle {
@@ -221,15 +251,17 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
     useCinematicStore.setState({ active: false })
   }
 
-  // §5: the opening shot is AWAITED - `ready` resolves only once the camera
-  // has settled on the establishing composition; callers hold the first line.
+  // §5: the opening shot is AWAITED - `ready` resolves once the camera has
+  // settled on the establishing composition (or READY_TIMEOUT_MS elapses,
+  // whichever comes first - see withReadyTimeout above); callers hold the
+  // first line until then.
   let ready: Promise<void>
   activeCinematic = null // set below with the full handle
   if (options.groupIds) {
-    ready = aimSafeWideGroup()
+    ready = withReadyTimeout(aimSafeWideGroup())
     currentAim = () => void aimSafeWideGroup()
   } else if (options.pairA && options.pairB) {
-    ready = playShot('two-shot', options.pairA, { partnerId: options.pairB, side, durationMs: 1100 })
+    ready = withReadyTimeout(playShot('two-shot', options.pairA, { partnerId: options.pairB, side, durationMs: 1100 }))
     currentAim = () => void playShot('two-shot', options.pairA!, { partnerId: options.pairB, side, durationMs: 1100 })
   } else {
     ready = Promise.resolve()

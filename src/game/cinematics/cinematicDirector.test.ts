@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useGameStore } from '../gameStore'
 import { useCharacterStore, PLAYER_ID } from '../../character/characterStore'
 import { useCutsceneCameraStore } from '../../scene/camera/cameraController'
-import { beginConversationCinematic, characterIdForSpeaker, useCinematicStore } from './cinematicDirector'
+import { beginConversationCinematic, characterIdForSpeaker, useCinematicStore, withReadyTimeout } from './cinematicDirector'
 
 const SONYA = 'npc-female-pm'
 
@@ -67,5 +67,61 @@ describe('cinematic director runtime (18D §6/§9)', () => {
     const next = beginConversationCinematic({})
     expect(useCinematicStore.getState().active).toBe(true)
     await next.end()
+  })
+})
+
+describe('withReadyTimeout (18H §4/§5 - bounded camera-settle wait)', () => {
+  it('resolves as soon as the underlying promise resolves, well under the cap', async () => {
+    vi.useFakeTimers()
+    try {
+      let resolveInner: () => void
+      const inner = new Promise<void>((resolve) => {
+        resolveInner = resolve
+      })
+      let settled = false
+      withReadyTimeout(inner).then(() => {
+        settled = true
+      })
+      await vi.advanceTimersByTimeAsync(100)
+      expect(settled).toBe(false)
+      resolveInner!()
+      await vi.advanceTimersByTimeAsync(0)
+      expect(settled).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('resolves on its own after READY_TIMEOUT_MS even if the camera tween never settles', async () => {
+    vi.useFakeTimers()
+    try {
+      const neverResolves = new Promise<void>(() => {})
+      let settled = false
+      withReadyTimeout(neverResolves).then(() => {
+        settled = true
+      })
+      await vi.advanceTimersByTimeAsync(3000)
+      expect(settled).toBe(false)
+      await vi.advanceTimersByTimeAsync(1000) // past READY_TIMEOUT_MS=3500
+      expect(settled).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('a late resolution after the timeout cap does not throw or double-settle', async () => {
+    vi.useFakeTimers()
+    try {
+      let resolveInner: () => void
+      const inner = new Promise<void>((resolve) => {
+        resolveInner = resolve
+      })
+      const p = withReadyTimeout(inner)
+      await vi.advanceTimersByTimeAsync(4000) // past the cap - already settled
+      resolveInner!() // arrives late; must be a harmless no-op
+      await expect(p).resolves.toBeUndefined()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

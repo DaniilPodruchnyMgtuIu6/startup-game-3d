@@ -63,8 +63,10 @@ function freeTargets(kind: Parameters<typeof getInteractions>[0], ownerId: strin
 
 // The default brain is the seeded random office-life planner; a character
 // definition may override npc.planActivity (e.g. a DeepSeek agent fed with
-// the character's persona) - planners may be async.
-function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivity) {
+// the character's persona) - planners may be async. Exported for its own
+// integration test (Npcs.test.ts) - the walk-then-perform ambient cycle
+// needs a real mounted hook, unlike ambientGate's pure-function slice.
+export function useNpcBrain(id: string, planActivity: ActivityPlanner = planNextActivity) {
   const stateKind = useCharacterStore((s) => s.characters[id]?.state.kind)
   const gamePhase = useGameStore((s) => s.phase)
   const sceneOwned = useCharacterStore((s) => s.sceneOwned.has(id))
