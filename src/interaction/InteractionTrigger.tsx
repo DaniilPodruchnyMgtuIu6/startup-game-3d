@@ -58,6 +58,7 @@ export function InteractionTrigger({
       ref={mesh}
       position={position}
       rotation={rotation}
+      userData={{ noMerge: true }} // StaticMerge: pointer target, never bake
       onClick={handleClick}
       onPointerOver={() => {
         document.body.style.cursor = 'pointer'

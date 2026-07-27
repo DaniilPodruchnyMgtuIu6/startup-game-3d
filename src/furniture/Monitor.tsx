@@ -39,7 +39,9 @@ export function Monitor({ position = [0, 0, 0], rotation = [0, 0, 0], on = false
         <boxGeometry args={[SCREEN_WIDTH, SCREEN_HEIGHT, BODY_THICKNESS]} />
         <meshStandardMaterial {...materials.plasticBlack} />
       </mesh>
-      <mesh position={[0, screenY, BODY_THICKNESS / 2 + 0.002]}>
+      {/* StaticMerge: the screen material swaps live (occupied/outcome) -
+          baking it would freeze every monitor dark forever */}
+      <mesh position={[0, screenY, BODY_THICKNESS / 2 + 0.002]} userData={{ noMerge: true }}>
         <boxGeometry args={[SCREEN_WIDTH - 0.03, SCREEN_HEIGHT - 0.03, 0.002]} />
         <meshStandardMaterial {...(lit ? materials.screenDashboard : materials.screenOff)} />
       </mesh>

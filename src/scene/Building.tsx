@@ -1,6 +1,7 @@
 import { useMaterials } from '../materials/MaterialsContext'
 import { cloneRepeated } from '../materials/cloneRepeated'
 import { BUILDING } from './layout'
+import { StaticMerge } from './StaticMerge'
 
 const MULLION_SPACING = 1.5
 const MULLION_WIDTH = 0.08
@@ -71,7 +72,8 @@ export function Building() {
   }
 
   return (
-    <group>
+    // fully static shell - the curtain-wall mullions alone are ~40 meshes
+    <StaticMerge>
       <mesh position={[0, -BUILDING.floorThickness / 2, 0]} receiveShadow>
         <boxGeometry args={[width, BUILDING.floorThickness, depth]} />
         <meshStandardMaterial {...floorTexture} roughness={1} metalness={0} />
@@ -81,6 +83,6 @@ export function Building() {
       <CurtainWall axis="z" length={depth} center={[BUILDING.minX, 0, 0]} />
       <CutawaySill axis="x" length={width} center={[0, 0, BUILDING.maxZ]} />
       <CutawaySill axis="z" length={depth} center={[BUILDING.maxX, 0, 0]} />
-    </group>
+    </StaticMerge>
   )
 }

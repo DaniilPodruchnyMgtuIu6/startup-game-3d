@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { Canvas, useThree } from '@react-three/fiber'
+import { useEffect, useRef } from 'react'
+import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import { EffectComposer, N8AO, Bloom, Vignette } from '@react-three/postprocessing'
 import { ACESFilmicToneMapping } from 'three'
 import { useControls, Leva } from 'leva'
@@ -198,6 +198,37 @@ function ExposureControl({ exposure }: { exposure: number }) {
   return null
 }
 
+// One-shot render diagnostics (§21): average draw calls / triangles over 60
+// frames once the office has settled. info.autoReset wipes the counters at
+// the end of every render, so the probe accumulates with autoReset off and
+// divides - the number optimization work is judged against.
+function RenderStatsProbe() {
+  const gl = useThree((state) => state.gl)
+  const phase = useRef<'idle' | 'counting' | 'done'>('idle')
+  const frames = useRef(0)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      gl.info.autoReset = false
+      gl.info.reset()
+      frames.current = 0
+      phase.current = 'counting'
+    }, 12_000)
+    return () => clearTimeout(timer)
+  }, [gl])
+  useFrame(() => {
+    if (phase.current !== 'counting') return
+    frames.current += 1
+    if (frames.current < 20) return
+    phase.current = 'done'
+    const r = gl.info.render
+    console.info(
+      `[render-stats] avg over 20f: calls=${Math.round(r.calls / 20)} triangles=${Math.round(r.triangles / 20)} geometries=${gl.info.memory.geometries} textures=${gl.info.memory.textures}`,
+    )
+    gl.info.autoReset = true
+  })
+  return null
+}
+
 export function App() {
   const { exposure, aoIntensity, bloomIntensity } = useControls('Render', {
     exposure: { value: 1.1, min: 0.5, max: 2, step: 0.05 },
@@ -242,6 +273,7 @@ export function App() {
         }}
       >
         <ExposureControl exposure={exposure} />
+        <RenderStatsProbe />
         <SceneBackground />
         <Office />
         {quality.ao ? (

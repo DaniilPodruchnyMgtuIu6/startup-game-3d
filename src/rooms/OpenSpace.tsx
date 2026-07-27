@@ -19,6 +19,7 @@ import { useProductStore } from '../game/productStore'
 import { isWithinMeetDistance } from '../game/meetingGeometry'
 import { WHITEBOARD_POSITION, WHITEBOARD_ROTATION_Y, WHITEBOARD_APPROACH_POINT } from '../scene/whiteboardSpot'
 import { ROOMS, roomCenter } from '../scene/layout'
+import { StaticMerge } from '../scene/StaticMerge'
 
 const CLUSTER_CENTERS: [number, number][] = [
   [-3, -4],
@@ -120,34 +121,38 @@ export function OpenSpace() {
   )
   return (
     <group position={center}>
-      {CLUSTER_CENTERS.map((c, i) => (
-        <WorkstationCluster key={i} center={c} />
-      ))}
+      {/* 18H §21: the open space alone was ~500 meshes (22 workstations x
+          13-mesh chairs + desks + monitors + decor) - the dominant share of
+          the 2690 draw calls. Everything static bakes into a handful of
+          merged meshes; triggers and live monitor screens are exempted via
+          userData.noMerge, dynamic/conditional pieces stay outside. */}
+      <StaticMerge>
+        {CLUSTER_CENTERS.map((c, i) => (
+          <WorkstationCluster key={i} center={c} />
+        ))}
+        <CoffeeTable position={[0.1, 0, 0]} rotation={[0, Math.PI / 2, 0]} />
+        <WallPoster position={[-5.85, 1.55, 6.35]} rotation={[0, Math.PI / 2, 0]} variant="officeFlow" />
+        {PLANT_POSITIONS.map(([x, z], i) => (
+          <Plant key={i} position={[x, 0, z]} />
+        ))}
+        <TrackLight position={[-3, 2.7, -4]} withSpot />
+        <TrackLight position={[3, 2.7, -4]} />
+        <TrackLight position={[-3, 2.7, 4]} />
+        <TrackLight position={[3, 2.7, 4]} />
+        <AcousticCeilingPanel position={[-1.5, 2.65, -1.5]} />
+        <AcousticCeilingPanel position={[1.5, 2.65, 1.5]} />
+        <AcousticCeilingPanel position={[-1.5, 2.65, 1.5]} rotation={[0, Math.PI / 2, 0]} />
+      </StaticMerge>
       <Sofa
         position={[-1, 0, 0]}
         rotation={[0, Math.PI / 2, 0]}
         onSelect={(target) => useCharacterStore.getState().clickSofa(target)}
       />
-      <CoffeeTable position={[0.1, 0, 0]} rotation={[0, Math.PI / 2, 0]} />
       <OpenSpaceWhiteboard />
-      {/* Printed posters on the open-space face of the server-room wall, north
-          of its door - same wall and 0.15 offset convention as the whiteboard
-          (see scene/whiteboardSpot.ts), so they face the isometric camera. */}
-      <WallPoster position={[-5.85, 1.55, 6.35]} rotation={[0, Math.PI / 2, 0]} variant="officeFlow" />
       {trainingIntroduced ? (
         <WallPoster position={[-5.85, 1.55, 7.25]} rotation={[0, Math.PI / 2, 0]} variant="lockScreen" />
       ) : null}
       {auditPlanOpen ? <AuditPapers position={[-1.55, 0.7, 4.55]} rotation={[0, 0.35, 0]} /> : null}
-      {PLANT_POSITIONS.map(([x, z], i) => (
-        <Plant key={i} position={[x, 0, z]} />
-      ))}
-      <TrackLight position={[-3, 2.7, -4]} withSpot />
-      <TrackLight position={[3, 2.7, -4]} />
-      <TrackLight position={[-3, 2.7, 4]} />
-      <TrackLight position={[3, 2.7, 4]} />
-      <AcousticCeilingPanel position={[-1.5, 2.65, -1.5]} />
-      <AcousticCeilingPanel position={[1.5, 2.65, 1.5]} />
-      <AcousticCeilingPanel position={[-1.5, 2.65, 1.5]} rotation={[0, Math.PI / 2, 0]} />
     </group>
   )
 }
