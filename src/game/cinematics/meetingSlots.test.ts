@@ -94,6 +94,15 @@ describe('readiness barrier (18H §4)', () => {
     expect(timedOut).toEqual([])
   })
 
+  it('gather never creates or duplicates an actor - a slot only walks EXISTING characters (§3/§4)', async () => {
+    const sonyaSlot = KICKOFF_SLOTS.find((s) => s.characterId === SONYA)!
+    const ilyaSlot = KICKOFF_SLOTS.find((s) => s.characterId === ILYA)!
+    useCharacterStore.getState().spawnCharacter(SONYA, sonyaSlot.position, 0)
+    const before = Object.keys(useCharacterStore.getState().characters).sort()
+    await gatherParticipants([sonyaSlot, ilyaSlot])
+    expect(Object.keys(useCharacterStore.getState().characters).sort()).toEqual(before)
+  })
+
   it('a required participant that never spawns resolves via the timeout guard with a diagnostic', async () => {
     vi.useFakeTimers()
     try {

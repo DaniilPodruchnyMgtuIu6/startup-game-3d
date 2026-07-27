@@ -248,6 +248,11 @@ export function WorkdayFlowController() {
       // spawns (§4) and the director's presentGroup() filters at aim time,
       // so an unhired Ilya still never appears in a shot.
       const participants = KICKOFF_SLOTS.map((s) => s.characterId)
+      // §5: the player is a kickoff participant too - floor clicks during the
+      // gather/scene would walk them out of their slot mid-cinematic (every
+      // other blocking conversation already locks input; the kickoff was the
+      // one exception). «Далее» is a DOM button, so advancing lines still works.
+      useCharacterStore.getState().setInputLocked(true)
       const cinematic = beginConversationCinematic({
         autoEndOnDialogueClose: true,
         ownIds: participants,
@@ -264,8 +269,16 @@ export function WorkdayFlowController() {
           await cinematic.resettle()
           useSprintStore.getState().markSprintKickoffShown(sprintNumber)
           useGameStore.getState().startDialogue(buildSprintKickoffDialogue(buildKickoffContext()))
+          // unlock when the kickoff dialogue closes (the cinematic auto-ends
+          // there too) - same store-subscription pattern as the other talks
+          const unsubscribe = useGameStore.subscribe(() => {
+            if (useGameStore.getState().activeDialogue !== null) return
+            unsubscribe()
+            useCharacterStore.getState().setInputLocked(false)
+          })
         } catch (error) {
           console.error('kickoff gather failed', error)
+          useCharacterStore.getState().setInputLocked(false)
           await cinematic.end()
         } finally {
           kickoffGatheringRef.current = false

@@ -1,5 +1,56 @@
 # 18H — Known issues (факт 2026-07-27)
 
+## §4 — barrier готовности участников (перепроверен после §3-переписывания gather; API-адаптация зафиксирована)
+
+Ядро барьера переписано в §3 (живое присутствие). Сверка восьми критериев
+готовности §4 с фактическим кодом (`isParticipantReady` + `gatherParticipants`):
+
+| Критерий §4 | Статус |
+|---|---|
+| существует | ✓ живое присутствие, спавн после старта gather подхватывается |
+| не в другой blocking scene | адаптация: гарантируется уровнем вызова — kickoff стартует только при `canAutoAdvanceWorkday` (нет катсцены/миниигры/диалога/blocking overlay) + §9-гард «один cinematic». Сам барьер чужой `sceneOwned` не проверяет; ambient-claims снимаются `releaseClaims` — сюжет вытесняет ambient (§13-приоритет), это желаемое поведение |
+| position tolerance | ✓ 0.55м |
+| rotation tolerance | адаптация: поворот не ожидается, а детерминированно выставляется в `finish()` (`setTransform` с `facingY` слота) — нет ожидания и нет дрожания |
+| locomotion завершена | ✓ READY_STATES не включает walking |
+| animation state cinematic-ready | ✓ эквивалент — READY_STATES (idle/talking/performing/looking) |
+| canonical scale сохранён | ✓ by construction: в characterStore нет поля scale, масштаб применяется один раз в корневом model-компоненте (§9) — дрейфовать нечему |
+| look-at назначен | адаптация: gaze назначает director (`applyGroupGaze`) синхронно с первой репликой (§7); в окне settle→реплика участники стоят с body-facing на доску |
+
+Timeout-политика §4: диагностика есть (`timedOut`-список + console.warn),
+safe fallback — snap на слот, камера не целится в отсутствующих
+(`presentGroup`), duplicate actor не создаётся (закреплено тестом «gather
+never creates or duplicates an actor»), бесконечного зависания нет
+(закреплено fake-timers-тестом таймаута).
+
+API-адаптация относительно спеки: вместо
+`awaitParticipantsReady(sceneId, participantIds)` — `gatherParticipants(slots)`;
+slots уже несут characterId, а `sceneId` не нужен, пока §9 гарантирует один
+активный cinematic.
+
+## §5 — синхронизация камеры и реплик (перепроверено; найден и закрыт разрыв: игрок мог уйти из кадра)
+
+Машина состояний кадра из §5 (`requested→validating→transitioning→settled→
+speaking→reaction→completed`) реализована адаптацией: не enum, а awaited
+promise-цепочка kickoff (`gather → ready → resettle → startDialogue →
+per-line aims → end`) с bounded settle (`withReadyTimeout`). Требование
+«реплика начинается только в settled» закреплено компонентным тестом
+`WorkdayFlowController.test.tsx` (первая реплика после gather+settle,
+маркер shown — прямо перед репликой).
+
+«Персонаж не покидает slot во время реплики»: для NPC выполняется через
+`sceneOwned` (автономный мозг на паузе, `useNpcBrain` его проверяет), но
+ИГРОК — тоже участник сцены, а kickoff был ЕДИНСТВЕННЫМ блокирующим
+разговором без `setInputLocked(true)` (postAudit, storyDecision,
+SecuritySpecialist, FreeNpcChat — все лочат): клик в пол во время киносцены
+уводил игрока из его слота. Исправлено: input лочится перед gather и
+отпускается при закрытии диалога (та же store-подписка, что в остальных
+разговорах) и в catch-ветке. «Далее» — DOM-кнопка, продвижение реплик
+работает под локом. Закреплено компонентным тестом.
+
+«Камера не догоняет NPC, вернувшегося в planner»: ✓ — `end()` снимает
+tracking-interval ДО освобождения ownership, а до `end()` участники не
+могут вернуться в planner.
+
 ## §3 — meeting slots (были в Wave 1; перепроверка нашла ДВА слота внутри мебели — исправлено)
 
 Существующие тесты §3 проверяли уникальность, separation, границы комнаты и
