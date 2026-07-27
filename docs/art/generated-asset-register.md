@@ -34,6 +34,7 @@ Production-код ссылается только на approved/integrated. Се
 | storyboard-mvp-release | Higgsfield MCP / nano_banana_2 | docs/art/cinematics/mvp-release/higgsfield-prompts.md | approved (reference-only) | Higgsfield generation (проект) | — docs/art/cinematics/mvp-release/ |
 | storyboards-wave2 ×4 листа (7 сцен решений) | Higgsfield MCP / nano_banana_2 | docs/art/cinematics/<decision>/higgsfield-prompts.md | approved (reference-only) | Higgsfield generation (проект) | — docs/art/cinematics/{developer-admin-access,frontend-test-data,security-first-priority,backup-and-restore-strategy,architecture-boundary,suspicious-activity-disclosure,release-risk-decision}/ |
 | ambient-clip-pullUp (×5 ригов, job 664fdf80-0890-4c5c-b4ad-6b76ead705ea) | Higgsfield MCP / 3d_rigging (Meshy, action 485 Jump_and_Hang_on_Bar) + retargetMeshyClip + liftClipToHandHeight | docs/art/higgsfield-ambient-motion-prompts.md | integrated | Higgsfield generation (проект) | public/character/{business_man,female_pm,kirill_morozov,alina_belova,cybersecurity}/pullUp.glb |
+| kickoff-safe-wide-composition-ref (job 94dfcfb5-c079-40d3-ba39-4cb636d77d29) | Higgsfield MCP / nano_banana_2 (nano_banana_flash) | docs/art/cinematics/sprint-kickoff/higgsfield-prompts.md | reference-only (не игровой ассет) | Higgsfield generation (проект) | docs/art/cinematics/sprint-kickoff/live-captures-18h/reference-safe-wide-composition.png |
 
 Наследованные до-реестровые генерации (эталоны стиля, приняты ранее):
 `public/dialogue_pictures/prodact_manager/pm.jpeg`, `boss/*.jpeg`,

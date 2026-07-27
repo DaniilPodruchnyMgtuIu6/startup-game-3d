@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { KICKOFF_SLOTS, slotSeparationViolations, isParticipantReady, gatherParticipants, ARRIVAL_TOLERANCE_M } from './meetingSlots'
 import { useCharacterStore, PLAYER_ID } from '../../character/characterStore'
 import { ROOMS } from '../../scene/layout'
@@ -74,5 +74,40 @@ describe('readiness barrier (18H §4)', () => {
     useCharacterStore.getState().spawnCharacter(KIRILL, slot.position, 2.7)
     await gatherParticipants([slot])
     expect(useCharacterStore.getState().characters[KIRILL].rotationY).toBeCloseTo(slot.facingY)
+  })
+
+  it('a required participant spawning AFTER the gather starts is still gathered (day-1 reload)', async () => {
+    // On a day-1 reload the kickoff effect runs before the NPC controllers
+    // spawn the cast - the gather must keep waiting and pick the character up
+    // on spawn, not resolve vacuously over an empty office.
+    const slot = KICKOFF_SLOTS.find((s) => s.characterId === KIRILL)!
+    let resolved = false
+    const gather = gatherParticipants([slot]).then((result) => {
+      resolved = true
+      return result
+    })
+    await Promise.resolve()
+    expect(resolved).toBe(false) // required + not spawned -> still waiting
+    useCharacterStore.getState().spawnCharacter(KIRILL, slot.position, 0)
+    const { gathered, timedOut } = await gather
+    expect(gathered).toEqual([KIRILL])
+    expect(timedOut).toEqual([])
+  })
+
+  it('a required participant that never spawns resolves via the timeout guard with a diagnostic', async () => {
+    vi.useFakeTimers()
+    try {
+      const slot = KICKOFF_SLOTS.find((s) => s.characterId === ALINA)!
+      let result: { gathered: string[]; timedOut: string[] } | null = null
+      void gatherParticipants([slot]).then((r) => {
+        result = r
+      })
+      await vi.advanceTimersByTimeAsync(8_999)
+      expect(result).toBeNull()
+      await vi.advanceTimersByTimeAsync(1)
+      expect(result).toEqual({ gathered: [], timedOut: [ALINA] })
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

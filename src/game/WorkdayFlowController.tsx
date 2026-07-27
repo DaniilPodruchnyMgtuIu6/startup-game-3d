@@ -240,9 +240,14 @@ export function WorkdayFlowController() {
       !kickoffGatheringRef.current
     ) {
       kickoffGatheringRef.current = true
-      const participants = KICKOFF_SLOTS.map((s) => s.characterId).filter(
-        (id) => useCharacterStore.getState().characters[id],
-      )
+      // ALL slot characters, deliberately unfiltered: on a day-1 reload this
+      // effect runs before the NPC controllers spawn the cast, so filtering
+      // against the character store here produced an empty scene (no
+      // ownership, vacuous gather, first line over people still walking in).
+      // Presence resolves live downstream - gather waits for required
+      // spawns (§4) and the director's presentGroup() filters at aim time,
+      // so an unhired Ilya still never appears in a shot.
+      const participants = KICKOFF_SLOTS.map((s) => s.characterId)
       const cinematic = beginConversationCinematic({
         autoEndOnDialogueClose: true,
         ownIds: participants,

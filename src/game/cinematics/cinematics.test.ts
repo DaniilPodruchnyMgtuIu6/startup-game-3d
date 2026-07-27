@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { computeShot, eyePoint, type SubjectPose, type CinematicShotType } from './cinematicShots'
-import { makeShotSafe, roomOf } from './cinematicSafety'
+import { makeShotSafe, pickSafeShotSide, roomOf } from './cinematicSafety'
+import { KICKOFF_SLOTS } from './meetingSlots'
 import { BUILDING, ROOMS } from '../../scene/layout'
 
 const ALL_SHOTS: CinematicShotType[] = [
@@ -102,5 +103,26 @@ describe('camera safety (18D §5/§9)', () => {
         for (const v of [...safe.position, ...safe.target]) expect(Number.isFinite(v)).toBe(true)
       }
     }
+  })
+
+  it('picks the two-shot side that backs into open floor, not the whiteboard wall (18H §3/§6)', () => {
+    // The REAL kickoff geometry: Sonya and Alina flank the whiteboard, their
+    // axis runs almost parallel to the wall - the side=1 perpendicular dives
+    // into the wall and its clamped frame stares at plaster from 0.45m (the
+    // empty beige frame caught on the first live kickoff capture).
+    const sonyaSlot = KICKOFF_SLOTS.find((s) => s.characterId === 'npc-female-pm')!
+    const alinaSlot = KICKOFF_SLOTS.find((s) => s.characterId === 'npc-alina-belova')!
+    const sonya: SubjectPose = { position: sonyaSlot.position, rotationY: sonyaSlot.facingY }
+    const alina: SubjectPose = { position: alinaSlot.position, rotationY: alinaSlot.facingY }
+    const side = pickSafeShotSide('two-shot', sonya, { partner: alina, durationMs: 1100 })
+    const safe = makeShotSafe(computeShot('two-shot', sonya, { partner: alina, side, durationMs: 1100 }))
+    expect(safe.usedFallback).toBe(false)
+    const distance = Math.hypot(safe.position[0] - safe.target[0], safe.position[2] - safe.target[2])
+    expect(distance).toBeGreaterThanOrEqual(2) // a real composition, not a wall-hug
+    // and the rejected side is the one the wall crushes: its clamp cannot keep
+    // a workable distance, so it degrades to the raised-corner fallback - the
+    // picker must prefer the real eye-level composition over that cutaway
+    const rejected = makeShotSafe(computeShot('two-shot', sonya, { partner: alina, side: (side * -1) as 1 | -1, durationMs: 1100 }))
+    expect(rejected.usedFallback).toBe(true)
   })
 })

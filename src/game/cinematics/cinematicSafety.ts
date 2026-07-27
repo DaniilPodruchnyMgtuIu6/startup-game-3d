@@ -5,7 +5,7 @@
 // clamping falls back to a higher over-the-cutaway shot that always works.
 // Pure math - unit-testable, never produces NaN for finite inputs.
 import { BUILDING, ROOMS, type RoomBounds } from '../../scene/layout'
-import type { Point, ShotFrame } from './cinematicShots'
+import { computeShot, type CinematicShotType, type Point, type ShotFrame, type ShotOptions, type SubjectPose } from './cinematicShots'
 
 const WALL_MARGIN = 0.45 // keep the lens out of wall/glass geometry
 const MIN_CAMERA_DISTANCE = 0.9 // never enter a character's head (§5)
@@ -68,4 +68,26 @@ export function makeShotSafe(frame: ShotFrame): SafeShot {
     frame.target[2] + (best[2] - frame.target[2]) * t,
   ]
   return { ...frame, position, usedFallback: true }
+}
+
+// 18H §3/§6: pick the shot side (+1/-1) whose SAFE frame keeps the most
+// camera-to-target distance after wall clamping. A group standing against a
+// wall (the kickoff semicircle at the whiteboard) makes one perpendicular
+// dive INTO the wall - the clamp then parks the lens 0.45m from the plaster
+// staring at it, a technically-in-bounds but empty frame. The other side
+// backs into open floor. Deterministic: ties keep side +1.
+export function pickSafeShotSide(type: CinematicShotType, subject: SubjectPose, opts: Omit<ShotOptions, 'side'> = {}): 1 | -1 {
+  let side: 1 | -1 = 1
+  let bestDistance = -1
+  for (const candidate of [1, -1] as const) {
+    const frame = makeShotSafe(computeShot(type, subject, { ...opts, side: candidate }))
+    const distance = frame.usedFallback
+      ? 0 // the raised corner fallback is safe but a last resort - prefer any non-fallback side
+      : Math.hypot(frame.position[0] - frame.target[0], frame.position[2] - frame.target[2])
+    if (distance > bestDistance) {
+      bestDistance = distance
+      side = candidate
+    }
+  }
+  return side
 }

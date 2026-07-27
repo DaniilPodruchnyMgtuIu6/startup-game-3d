@@ -27,8 +27,15 @@ const faceBoard = (x: number, z: number) => Math.atan2(BOARD_X - x, BOARD_Z - z)
 export const KICKOFF_SLOTS: CinematicMeetingSlot[] = [
   { id: 'meeting-slot-sonya', characterId: 'npc-female-pm', position: [BOARD_X + 0.8, 0, BOARD_Z - 0.9], facingY: Math.PI * 0.15, required: true, minSeparationMeters: 0.9 },
   { id: 'meeting-slot-player', characterId: PLAYER_ID, position: [BOARD_X + 2.6, 0, BOARD_Z + 0.5], facingY: faceBoard(BOARD_X + 2.6, BOARD_Z + 0.5), required: false, minSeparationMeters: 0.9 },
-  { id: 'meeting-slot-kirill', characterId: 'npc-kirill-morozov', position: [BOARD_X + 2.2, 0, BOARD_Z - 0.6], facingY: faceBoard(BOARD_X + 2.2, BOARD_Z - 0.6), required: true, minSeparationMeters: 0.9 },
-  { id: 'meeting-slot-alina', characterId: 'npc-alina-belova', position: [BOARD_X + 2.0, 0, BOARD_Z + 1.5], facingY: faceBoard(BOARD_X + 2.0, BOARD_Z + 1.5), required: true, minSeparationMeters: 0.9 },
+  // NB x+2.9/z-0.9 (was x+2.2/z-0.6): the original mark sat inside the
+  // [-3,4]-cluster desk footprint+margin - found by the walkability test,
+  // gather was silently diverting Kirill via nearestWalkable every kickoff.
+  { id: 'meeting-slot-kirill', characterId: 'npc-kirill-morozov', position: [BOARD_X + 2.9, 0, BOARD_Z - 0.9], facingY: faceBoard(BOARD_X + 2.9, BOARD_Z - 0.9), required: true, minSeparationMeters: 0.9 },
+  // NB x+1.0/z+0.4 (was x+2.0/z+1.5): the original mark sat inside the other
+  // [-3,4]-cluster desk - same walkability finding as Kirill's slot above.
+  // Now in the wall-side walkable strip (same strip as the board approach
+  // point), north of the board mirroring Sonya presenting on its south side.
+  { id: 'meeting-slot-alina', characterId: 'npc-alina-belova', position: [BOARD_X + 1.0, 0, BOARD_Z + 0.4], facingY: faceBoard(BOARD_X + 1.0, BOARD_Z + 0.4), required: true, minSeparationMeters: 0.9 },
   { id: 'meeting-slot-ilya', characterId: 'npc-ilya-vlasov', position: [BOARD_X + 3.1, 0, BOARD_Z + 1.7], facingY: faceBoard(BOARD_X + 3.1, BOARD_Z + 1.7), required: false, minSeparationMeters: 0.9 },
 ]
 
@@ -60,21 +67,35 @@ export function isParticipantReady(characterId: string, slot: CinematicMeetingSl
   return distance <= ARRIVAL_TOLERANCE_M && READY_STATES.has(entity.state.kind)
 }
 
-// Walk every PRESENT participant to its slot and resolve when the required
-// ones are ready (present optional ones count too once they exist). Missing
-// optional participants (Ilya without a hire) are simply skipped; a missing
-// REQUIRED participant resolves with a diagnostic rather than hanging (§4).
+// Walk every participant to its slot and resolve when the required ones are
+// ready. Presence is evaluated LIVE, not snapshotted at call time: on a day-1
+// reload the kickoff effect runs before the NPC controllers mount and spawn
+// the cast, and a start-time snapshot saw an EMPTY office - the gather
+// resolved vacuously and the first line opened over people still walking in.
+// A missing OPTIONAL participant (Ilya without a hire) is skippable; a
+// missing REQUIRED one keeps the gather open until the timeout guard, then
+// resolves with a diagnostic rather than hanging or silently dropping (§4).
 export function gatherParticipants(slots: CinematicMeetingSlot[]): Promise<{ gathered: string[]; timedOut: string[] }> {
-  const store = useCharacterStore.getState()
-  const present = slots.filter((slot) => store.characters[slot.characterId])
-  for (const slot of present) {
-    // Already standing on the slot in a settled state: skip the walk order.
-    // Re-issuing CLICK_FLOOR here would still bounce idle->walking->idle once
-    // the per-frame loop ticks WAYPOINT_REACHED - harmless but pointless churn.
-    if (isParticipantReady(slot.characterId, slot)) continue
-    releaseClaims(slot.characterId)
-    store.dispatchTo(slot.characterId, { type: 'CLICK_FLOOR', point: nearestWalkable(slot.position) })
+  const ordered = new Set<string>()
+  const orderWalks = () => {
+    const store = useCharacterStore.getState()
+    for (const slot of slots) {
+      if (ordered.has(slot.characterId)) continue
+      if (!store.characters[slot.characterId]) continue // not spawned yet - re-checked on every store change
+      ordered.add(slot.characterId)
+      // Already standing on the slot in a settled state: skip the walk order.
+      // Re-issuing CLICK_FLOOR here would still bounce idle->walking->idle once
+      // the per-frame loop ticks WAYPOINT_REACHED - harmless but pointless churn.
+      if (isParticipantReady(slot.characterId, slot)) continue
+      releaseClaims(slot.characterId)
+      store.dispatchTo(slot.characterId, { type: 'CLICK_FLOOR', point: nearestWalkable(slot.position) })
+    }
   }
+  const settledOrSkippable = (slot: CinematicMeetingSlot) => {
+    if (!useCharacterStore.getState().characters[slot.characterId]) return !slot.required
+    return isParticipantReady(slot.characterId, slot)
+  }
+  orderWalks()
   return new Promise((resolve) => {
     const finish = (timedOut: string[]) => {
       // Unsubscribe first: the setTransform calls below notify this same
@@ -85,7 +106,7 @@ export function gatherParticipants(slots: CinematicMeetingSlot[]): Promise<{ gat
       // snap stragglers onto their slot (never start a scene on an empty mark)
       // and align everyone's facing toward the board/group
       const chars = useCharacterStore.getState()
-      for (const slot of present) {
+      for (const slot of slots) {
         const entity = chars.characters[slot.characterId]
         if (!entity) continue
         if (!isParticipantReady(slot.characterId, slot)) {
@@ -95,16 +116,17 @@ export function gatherParticipants(slots: CinematicMeetingSlot[]): Promise<{ gat
           chars.setTransform(slot.characterId, entity.position, slot.facingY)
         }
       }
-      resolve({ gathered: present.map((s) => s.characterId), timedOut })
+      resolve({
+        gathered: slots.filter((s) => chars.characters[s.characterId]).map((s) => s.characterId),
+        timedOut,
+      })
     }
     const check = () => {
-      if (present.every((slot) => isParticipantReady(slot.characterId, slot))) finish([])
+      orderWalks() // late spawners get their walk order the moment they appear
+      if (slots.every(settledOrSkippable)) finish([])
     }
     const unsubscribe = useCharacterStore.subscribe(check)
-    const timer = setTimeout(
-      () => finish(present.filter((slot) => !isParticipantReady(slot.characterId, slot)).map((s) => s.characterId)),
-      GATHER_TIMEOUT_MS,
-    )
+    const timer = setTimeout(() => finish(slots.filter((slot) => !settledOrSkippable(slot)).map((s) => s.characterId)), GATHER_TIMEOUT_MS)
     const cleanup = () => {
       unsubscribe()
       clearTimeout(timer)

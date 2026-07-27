@@ -6,3 +6,21 @@
   speaker-follow вместо блокинга; полный блокинг у whiteboard — кандидат 18F.
 - In-game проверка: скриншоты e2e-прогона (см. отчёт 18D), HUD скрыт,
   подписи NPC скрыты, камера на уровне глаз.
+
+## 18H §3 — live-приёмка группового kickoff (2026-07-27)
+
+Первая фактически живая киносцена kickoff: до 18H §3 conversation cinematic
+самоуничтожался при создании (см. 18h-known-issues.md, §2-коррекция) и все
+планёрки шли на геймплейной изометрии. Кадры из реального прогона
+(production build, headless SwiftShader) — `live-captures-18h/`:
+
+- `line0-cinematic-panel.png` — первая реплика: letterbox, HUD скрыт,
+  компактная §8-панель, головы чистые, камера на уровне глаз;
+- `group-at-board.png` — групповой план у доски (Алина у whiteboard,
+  слушатели в кадре);
+- `gathered-slots.png` — группа на §3 meeting slots после gather.
+
+Ограничение среды: под SwiftShader камерные твины растягиваются в
+десятки раз (рендер ~2fps), поэтому settled-композиция подтверждена
+юнит-тестом `picks the two-shot side...` (cinematics.test.ts), а не
+скриншотом неподвижной камеры.

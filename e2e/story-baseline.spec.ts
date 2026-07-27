@@ -28,18 +28,32 @@ test('the baseline decision scene runs end-to-end after both hires', async ({ pa
 
   // the mandatory story marker appears over Sonya; ONE click starts the walk
   // (Level1StoryDecisionController's `approaching` ref then ignores further
-  // clicks until arrival - see StorySceneMarker.beginApproach). Re-clicking
-  // in a loop here is exactly what made this spec flaky: the marker is an
-  // in-world <Html> overlay that moves every frame while Sonya (and the
-  // approaching player) are mid-walk, so a repeated force-click can land on
-  // a stale screen position and misfire. A single click, then a single
-  // generous wait, is both simpler and was the version proven to work in
-  // isolation.
+  // clicks until arrival - see StorySceneMarker.beginApproach). The marker is
+  // an in-world <Html> overlay repositioned every frame, so a click can land
+  // on a stale screen position and misfire (seen once in a full-suite run) -
+  // hence the slow retry. But a click that DID land can also take >20s to
+  // produce the dialogue under SwiftShader (walk across the office + group
+  // gather + camera settle), and the marker UNMOUNTS the moment the scene
+  // starts (StorySceneMarker returns null once status leaves 'available').
+  // So each retry must (a) skip the click when the marker is already gone -
+  // that means the scene is coming, just keep waiting - and (b) bound the
+  // click itself: with no actionTimeout configured, click() on an unmounted
+  // locator would otherwise wait forever and eat the whole test budget
+  // (exactly the 180s-timeout failure this replaced a single click for).
   const marker = page.locator('.npc-marker--story').first()
   await marker.waitFor({ state: 'visible', timeout: 30_000 })
-  await marker.click({ force: true })
   const dialogue = page.locator('.dialogue-panel')
-  await expect(dialogue).toBeVisible({ timeout: 60_000 })
+  let dialogueOpen = false
+  for (let attempt = 0; attempt < 3 && !dialogueOpen; attempt++) {
+    if (await marker.isVisible().catch(() => false)) {
+      await marker.click({ force: true, timeout: 2_000 }).catch(() => {})
+    }
+    dialogueOpen = await dialogue
+      .waitFor({ state: 'visible', timeout: 20_000 })
+      .then(() => true)
+      .catch(() => false)
+  }
+  await expect(dialogue).toBeVisible({ timeout: 1_000 })
 
   // advance Sonya's lines until the fork, order the external audit
   for (let i = 0; i < 20; i++) {

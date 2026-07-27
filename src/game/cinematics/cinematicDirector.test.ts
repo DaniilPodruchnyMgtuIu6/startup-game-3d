@@ -65,6 +65,24 @@ describe('cinematic director runtime (18D §6/§9)', () => {
     expect(useCinematicStore.getState().active).toBe(false)
   })
 
+  it('does NOT auto-end before the dialogue has ever opened (kickoff begins pre-dialogue, §2)', async () => {
+    // The kickoff begins the cinematic FIRST (gather + settle), startDialogue
+    // comes seconds later - begin() itself runs applyCurrent() with no
+    // dialogue open, which used to hit the auto-end branch and kill the scene
+    // at birth (every kickoff played on the gameplay camera).
+    const handle = beginConversationCinematic({ groupIds: [SONYA, KIRILL, ALINA], autoEndOnDialogueClose: true })
+    expect(useCinematicStore.getState().active).toBe(true) // survived begin()
+    // unrelated gameStore churn during the gather must not end it either
+    useGameStore.setState({ activeChoice: null })
+    expect(useCinematicStore.getState().active).toBe(true)
+    // ...but a real open -> close still auto-ends
+    useGameStore.setState({ activeDialogue: { lines: [{ speaker: 'Соня Соколова', text: 'Планёрка.' }], index: 0 } })
+    useGameStore.setState({ activeDialogue: null })
+    await Promise.resolve()
+    expect(useCinematicStore.getState().active).toBe(false)
+    await handle.end()
+  })
+
   it('ending twice is idempotent', async () => {
     const handle = beginConversationCinematic({ pairA: PLAYER_ID, pairB: SONYA })
     await handle.end()

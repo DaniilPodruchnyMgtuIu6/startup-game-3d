@@ -13,7 +13,7 @@ import { CHARACTERS, DEVELOPER_CHARACTERS, SPECIALIST_CHARACTERS, PLAYER_CHARACT
 import { usePerformanceStore } from '../../character/performance/performanceStore'
 import { enterCutsceneCamera, exitCutsceneCamera, flyTo, useCutsceneCameraStore } from '../../scene/camera/cameraController'
 import { computeShot, eyePoint, type CinematicShotType, type ShotFrame, type SubjectPose } from './cinematicShots'
-import { makeShotSafe } from './cinematicSafety'
+import { makeShotSafe, pickSafeShotSide } from './cinematicSafety'
 import { WHITEBOARD_POSITION } from '../../scene/whiteboardSpot'
 import { pickDialoguePanelSide, projectHeadsForShot, type DialoguePanelSide } from './dialogueSafeArea'
 
@@ -208,11 +208,18 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
 
   // §6: the mandatory safe-wide-group shot - a two-shot spanning the first and
   // last PRESENT participants of the gathered semicircle covers everyone.
+  // The side is CHOSEN per §3/§6 sightline safety, not fixed: the semicircle
+  // stands against the whiteboard wall, and the fixed side=1 perpendicular
+  // dove into that wall - the clamped camera settled 0.45m from the plaster
+  // showing an empty beige frame (found on the first live kickoff capture).
   const aimSafeWideGroup = (): Promise<void> => {
     const group = presentGroup()
     if (group.length >= 2) {
-      applySafeArea('two-shot', group[0], { partnerId: group[group.length - 1], side: 1, durationMs: 1100 }, group)
-      return playShot('two-shot', group[0], { partnerId: group[group.length - 1], side: 1, durationMs: 1100 })
+      const a = subjectOf(group[0])!
+      const b = subjectOf(group[group.length - 1])
+      const side = pickSafeShotSide('two-shot', a, { partner: b, durationMs: 1100 })
+      applySafeArea('two-shot', group[0], { partnerId: group[group.length - 1], side, durationMs: 1100 }, group)
+      return playShot('two-shot', group[0], { partnerId: group[group.length - 1], side, durationMs: 1100 })
     }
     if (group.length === 1) {
       applySafeArea('medium', group[0], { side: 1, durationMs: 1000 }, group)
@@ -312,12 +319,21 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
     void currentAim()
   }
 
+  // auto-end means "end when the dialogue CLOSES", so a dialogue must have
+  // OPENED first: kickoff-style scenes begin the cinematic before any dialogue
+  // exists (gather + camera settle come first, startDialogue after) - and
+  // begin() runs applyCurrent() synchronously below, so without this guard
+  // the no-dialogue branch would end the scene at birth. That exact bug made
+  // every kickoff and Ilya-intro play on the gameplay camera with the
+  // full-size panel while the handle was already a zombie.
+  let dialogueSeen = false
   const applyCurrent = () => {
     const dialogue = useGameStore.getState().activeDialogue
     if (!dialogue) {
-      if (options.autoEndOnDialogueClose) void end()
+      if (dialogueSeen && options.autoEndOnDialogueClose) void end()
       return
     }
+    dialogueSeen = true
     if (dialogue.index === lastAppliedIndex) return
     lastAppliedIndex = dialogue.index
     const line = dialogue.lines[dialogue.index]
