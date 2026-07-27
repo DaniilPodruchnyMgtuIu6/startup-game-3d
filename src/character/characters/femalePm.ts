@@ -31,10 +31,15 @@ export const femalePm: CharacterDefinition = {
       facepalm: '/character/female_pm/facepalm.glb',
       pullUp: '/character/female_pm/pullUp.glb',
     },
-    walkPace: 0.99,
+    // measured stride pace of HER v2 walk clip (the pre-swap 0.99 was the old
+    // Mixamo clip's). Travel speed follows the clip (walkSpeedFor) so her
+    // short stride reads calm, not fast-forwarded.
+    walkPace: 0.69,
     // measured hips: sit 0.409 / sitIdle 0.458 / sofa 0.445 - the shortest
-    // rig sank 6-10cm into every seat («девочки ниже — другая высота посадки»)
-    seatLift: { sit: 0.115, sitIdle: 0.066, sofa: 0.095 },
+    // rig sank into chairs («девочки ниже — другая высота посадки»). Sofa
+    // gets NO lift: normalizing everyone up made her float on the armrest -
+    // sinking into cushions is what sofas do.
+    seatLift: { sit: 0.115, sitIdle: 0.066 },
   },
   npc: {
     spawn: [-2, 0, 6.3],

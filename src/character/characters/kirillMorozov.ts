@@ -30,10 +30,11 @@ export const kirillMorozov: CharacterDefinition = {
       explain: '/character/kirill_morozov/explain.glb',
       pullUp: '/character/kirill_morozov/pullUp.glb',
     },
-    walkPace: 1.77,
+    // measured stride pace of his v2 walk clip (1.77 was the old Mixamo one)
+    walkPace: 1.38,
     walkLift: 0.015,
-    // measured hips: sit 0.481 / sitIdle 0.512 / sofa 0.547
-    seatLift: { sit: 0.043, sitIdle: 0.012, sofa: 0 },
+    // measured hips: sit 0.481 / sitIdle 0.512 (sofa keeps its native depth)
+    seatLift: { sit: 0.043, sitIdle: 0.012 },
   },
   npc: {
     spawn: [4, 0, 6.3],

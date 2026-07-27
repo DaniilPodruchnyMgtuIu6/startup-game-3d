@@ -224,14 +224,19 @@ export function App() {
       <Leva hidden={!import.meta.env.DEV} />
       <Canvas
         key={tier} // shadows/dpr changes need a clean renderer
-        shadows={quality.shadows}
+        // 'soft' = PCFSoftShadowMap: the hard 1-texel shadow edges read as
+        // dirty stripes across the floor; soft filtering costs almost nothing
+        // and looks like a real interior.
+        shadows={quality.shadows ? 'soft' : false}
         // Cap the pixel ratio so high-DPI screens don't render at 4× the
         // pixels — a big GPU-load reduction on integrated GPUs. No
         // preserveDrawingBuffer (nothing reads the buffer back) — it only added
         // memory pressure. A prevented contextlost lets the browser restore the
         // context instead of leaving the office permanently blank.
+        // powerPreference: dual-GPU Windows laptops otherwise often hand the
+        // page the INTEGRATED gpu - the single biggest real-world fps lever.
         dpr={[1, quality.dprMax]}
-        gl={{ antialias: true, toneMapping: ACESFilmicToneMapping }}
+        gl={{ antialias: true, toneMapping: ACESFilmicToneMapping, powerPreference: 'high-performance' }}
         onCreated={({ gl }) => {
           gl.domElement.addEventListener('webglcontextlost', (e) => e.preventDefault(), false)
         }}

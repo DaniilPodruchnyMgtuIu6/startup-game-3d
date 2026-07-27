@@ -64,7 +64,11 @@ export function SceneLights() {
         position={[-14, 16, -10]}
         intensity={preset.keyIntensity}
         castShadow
-        shadow-mapSize={[1024, 1024]}
+        // 2048 over the 32m building = ~1.5cm/texel; with the soft shadow
+        // filter (App.tsx) the old dirty hard stripes become soft contact
+        // shading. radius widens the PCFSoft kernel a touch further.
+        shadow-mapSize={[2048, 2048]}
+        shadow-radius={4}
         shadow-camera-left={-16}
         shadow-camera-right={16}
         shadow-camera-top={16}

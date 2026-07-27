@@ -5,17 +5,28 @@ import { useCharacterStore } from './characterStore'
 import { stepTowards } from './movement'
 import type { SeatLift } from './characters/definition'
 
-// Real walking pace. The walk animations play at WALK_SPEED / walkPace of the
-// character (see CharacterModel), keeping planted feet pinned to the floor -
-// but the further this drifts from the clips' natural ~1.0-1.6 m/s, the more
-// hurried/slowed the stride itself looks.
+// Fallback travel speed for bodies without a measured clip pace (placeholder
+// cutscene actors). Real characters travel at walkSpeedFor(walkPace) instead.
 export const WALK_SPEED = 1.4
+
+// 18H (live feedback «дёрганная»): a character TRAVELS at (close to) its walk
+// clip's own authored pace, so the clip plays near timeScale 1 and the stride
+// looks calm and natural. The old single global speed fast-forwarded every
+// clip (up to 2x for the slowest rig) - hurried, jittery legs. The clamp
+// keeps gameplay pacing reasonable for outlier clips; the residual ratio is
+// still applied as timeScale in CharacterModel so feet never skate.
+export function walkSpeedFor(walkPace: number): number {
+  return Math.min(1.45, Math.max(0.8, walkPace))
+}
 // Fallback for rigs without a measured per-character seat lift: the
 // downloaded sit/type clips reach for a lower surface than our desks.
 const DEFAULT_CHAIR_LIFT = 0.05
 
 export interface CharacterTransformOptions {
   walkLift?: number
+  // the walk clip's own authored pace (m/s) - drives the travel speed, see
+  // walkSpeedFor above
+  walkPace?: number
   // 18H §11 (live feedback «девочки ниже - другая высота посадки»): the five
   // rigs' seated Hips land 8-12cm apart on the SAME furniture. Per-character
   // lifts (measured per pose family, see each character definition) put every
@@ -42,10 +53,25 @@ export function useCharacterTransform(
     if (!entity) return
     if (entity.state.kind === 'walking') {
       const target = entity.state.path[entity.state.nextIndex]
-      const speed = WALK_SPEED * (entity.speedMultiplier ?? 1)
+      const base = options.walkPace !== undefined ? walkSpeedFor(options.walkPace) : WALK_SPEED
+      const speed = base * (entity.speedMultiplier ?? 1)
       const result = stepTowards(entity.position, target, speed, delta, entity.rotationY)
-      store.setTransform(characterId, result.position, result.rotationY)
-      if (result.reachedTarget) store.dispatchTo(characterId, { type: 'WAYPOINT_REACHED' })
+      if (result.reachedTarget) {
+        // settle exactly on the waypoint and notify (state transition follows)
+        store.setTransform(characterId, result.position, result.rotationY)
+        store.dispatchTo(characterId, { type: 'WAYPOINT_REACHED' })
+      } else {
+        // HOT PATH (fps): mutate the entity in place - a per-frame immutable
+        // store update for every walking body allocated a fresh characters
+        // record each frame and woke every store selector; nothing reads
+        // positions reactively (arrival/story checks all run on STATE-change
+        // notifications, renders read via refs/useFrame), so plain mutation
+        // is safe and removes the per-frame GC churn.
+        entity.position[0] = result.position[0]
+        entity.position[1] = result.position[1]
+        entity.position[2] = result.position[2]
+        entity.rotationY = result.rotationY
+      }
     }
     if (group.current) {
       const kind = entity.state.kind

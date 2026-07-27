@@ -32,11 +32,11 @@ export const ilyaVlasov: CharacterDefinition = {
       explain: '/character/cybersecurity/explain.glb',
       pullUp: '/character/cybersecurity/pullUp.glb',
     },
-    walkPace: 1.6,
+    // measured stride pace of his v2 walk clip (1.6 was the old Mixamo one)
+    walkPace: 1.4,
     walkLift: 0.01,
-    // measured hips: sit 0.493 / sitIdle 0.499 / sofa 0.561 - the tallest
-    // rig hovered above the seat plane; small negative sofa correction
-    seatLift: { sit: 0.031, sitIdle: 0.025, sofa: -0.021 },
+    // measured hips: sit 0.493 / sitIdle 0.499 (sofa keeps its native depth)
+    seatLift: { sit: 0.031, sitIdle: 0.025 },
   },
   npc: {
     spawn: [5.5, 0, 6],

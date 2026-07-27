@@ -14,7 +14,7 @@ import {
 import { useCutsceneCameraStore } from '../scene/camera/cameraController'
 import { useCharacterPerformance } from './performance/useCharacterPerformance'
 import { useCharacterStore, PLAYER_ID } from './characterStore'
-import { useCharacterTransform, WALK_SPEED } from './useCharacterTransform'
+import { useCharacterTransform, walkSpeedFor } from './useCharacterTransform'
 import { useServerIncidentsStore, type ServerRole } from '../game/serverIncidentsStore'
 import { buildHeldMug, buildHeldPaddle, buildHeldPhone, disposeHeldProp } from './heldProps'
 import { useNpcAmbientStore } from '../game/npcAmbientStore'
@@ -170,9 +170,11 @@ export function CharacterModel({ characterId, config, label }: CharacterModelPro
     const clipName = resolveClip(stateKind, availableClips, performClip)
     const action = actions[clipName]
     if (!action) return
-    // The walk clip plays at the ratio of actual travel speed to the clip's
-    // own stance pace, so planted feet stay pinned instead of skating.
-    action.setEffectiveTimeScale(clipName === 'walk' ? WALK_SPEED / config.walkPace : 1)
+    // The walk clip plays at the ratio of ACTUAL travel speed to the clip's
+    // own stance pace, so planted feet stay pinned instead of skating. The
+    // travel speed itself follows the clip's pace (walkSpeedFor), so this
+    // ratio stays near 1 and the stride looks natural, not fast-forwarded.
+    action.setEffectiveTimeScale(clipName === 'walk' ? walkSpeedFor(config.walkPace) / config.walkPace : 1)
     // 18C §4: 'sit' is a one-shot transition - it must hold its last frame, not
     // loop back to standing. Loop mode is set every play because the mixer
     // caches one action per clip and a previous state may have changed it.
@@ -330,7 +332,7 @@ export function CharacterModel({ characterId, config, label }: CharacterModelPro
     }
   }, [stateKind, characterId])
 
-  useCharacterTransform(characterId, group, { walkLift: config.walkLift, seatLift: config.seatLift })
+  useCharacterTransform(characterId, group, { walkLift: config.walkLift, seatLift: config.seatLift, walkPace: config.walkPace })
 
   // Feature 18C §5/§6: breathing, clamped head look-at, listener nods and
   // emotion bone poses. Registered AFTER useAnimations, so its useFrame runs
