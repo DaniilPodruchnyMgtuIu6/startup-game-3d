@@ -30,6 +30,7 @@ import { CampaignSuccessOverlay } from './ui/CampaignSuccessOverlay'
 import { NpcConversationPanel } from './ui/NpcConversationPanel'
 import { CinematicBars } from './ui/CinematicBars'
 import { useQualityStore, currentQuality, type QualityTier } from './scene/qualityStore'
+import { AdaptiveQuality } from './scene/adaptiveQuality'
 import { useCutsceneStore } from './cutscenes/cutsceneStore'
 import { isIntroReset } from './game/gameStore'
 import { useGameOutcomeStore } from './game/gameOutcomeStore'
@@ -236,6 +237,7 @@ export function App() {
         }}
       >
         <ExposureControl exposure={exposure} />
+        <AdaptiveQuality />
         <SceneBackground />
         <Office />
         {quality.ao ? (

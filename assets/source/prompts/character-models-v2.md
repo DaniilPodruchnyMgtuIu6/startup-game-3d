@@ -14,6 +14,7 @@
 | Алина (alina_belova) | 884704c8-ba55-444a-97b9-6daa0668da7a | integrated 2026-07-27 |
 | Кирилл (kirill_morozov) | 6c16983d-0a50-4367-973a-8f58a53386d7 | integrated 2026-07-27 |
 | Илья (cybersecurity) | db63d60f-4555-4fcd-b27a-e6e98abfcadb | integrated 2026-07-27; texture-дефект левого предплечья — регенерация job 1191ad44-c949-47c3-ac2b-cc7424680051 |
+| Игрок (business_man) | 557d5fb9-5ef9-4f7b-b844-ae50c71a94d9 | integrated 2026-07-27 (по живому отзыву «я единственный на старой модели»): 46.6k tris, 24 кости, текстуры ужаты 7.2→2.3МБ (`optimizeGlbTextures`), scale-треки idle сняты (`stripScaleTracks`), pullUp ретаргетнут отдельно + lift 2.0 + normalize 0.9 (все art-guard тесты зелёные); live-кадр — kickoff-cinematic e2e |
 
 QA: покадровые рендеры idle/walk/talk/sitIdle во вьюере + кадры в игре
 (kickoff-кинематика). Ограничение нового рига: 24 кости, без пальцев и morph
