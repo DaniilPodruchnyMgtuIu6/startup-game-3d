@@ -12,6 +12,7 @@ import { hasSecuritySpecialist } from '../game/teamRules'
 import { finalizeMvpReleaseSuccess } from '../game/releaseOfficeFlowMvp'
 import type { DialogueLine } from '../game/gameStore'
 import { WHITEBOARD_POSITION } from '../scene/whiteboardSpot'
+import { playShot, attachPerLineShots, characterIdForSpeaker } from '../game/cinematics/cinematicDirector'
 import type { CutsceneDirector, CutsceneScript, Point } from './types'
 
 // Feature 13 final scene: the team presents OfficeFlow at the whiteboard (now in
@@ -70,6 +71,16 @@ export const officeFlowMvpReleaseScene: CutsceneScript = async (director: Cutsce
     // show the built product to the room
     useProductStore.getState().openPrototype()
 
+    // 18F: eye-level coverage - the camera cuts to each presenter; the
+    // leadership message lands on a group shot of the team hearing it.
+    let side: 1 | -1 = 1
+    const detach = attachPerLineShots((line) => {
+      side = side === 1 ? -1 : 1
+      const speakerId = characterIdForSpeaker(line)
+      if (speakerId) void playShot('medium-close', speakerId, { side, durationMs: 850 })
+      else void playShot('two-shot', femalePm.id, { partnerId: kirillMorozov.id, side, durationMs: 1000 })
+    })
+
     director.talk(femalePm.id, true)
     await director.say([
       asSonya('Все задачи первого этапа завершены. Команда подготовила OfficeFlow к выпуску.'),
@@ -111,13 +122,17 @@ export const officeFlowMvpReleaseScene: CutsceneScript = async (director: Cutsce
       asLeadership('Первый этап OfficeFlow принят. MVP разрешён к внутреннему запуску.'),
     ])
 
+    detach()
     // 18C: the release moment - the whole team cheers (retargeted Higgsfield
-    // celebrate clip) before the success screen takes over.
+    // celebrate clip); 18F frames it wide, then pulls slowly back over the
+    // bright office for the closing image.
     director.perform(femalePm.id, 'celebrate')
     director.perform(kirillMorozov.id, 'celebrate')
     director.perform(alinaBelova.id, 'celebrate')
     if (hasIlya) director.perform(ilyaVlasov.id, 'celebrate')
-    await director.wait(3200)
+    await playShot('wide', femalePm.id, { side: -1, durationMs: 1200 })
+    await director.wait(2000)
+    await playShot('establishing', femalePm.id, { side: -1, durationMs: 2600 })
     director.perform(femalePm.id, null)
     director.perform(kirillMorozov.id, null)
     director.perform(alinaBelova.id, null)

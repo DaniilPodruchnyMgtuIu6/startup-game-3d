@@ -121,8 +121,10 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
   let currentAim: (() => void) | null = null
 
   const aimAtLine = (line: DialogueLine, index: number) => {
-    const speakerId = characterIdForSpeaker(line) ?? (options.pairA === PLAYER_ID ? PLAYER_ID : undefined)
-    if (!speakerId) return
+    // off-cast speakers (guards, «Руководство») frame the player listening -
+    // the camera never stares at an empty room (§5)
+    const speakerId = characterIdForSpeaker(line) ?? options.pairA ?? PLAYER_ID
+    if (!subjectOf(speakerId)) return
     side = side === 1 ? -1 : 1 // alternate coverage sides every cut
     const shotSide = side
     const partnerId =

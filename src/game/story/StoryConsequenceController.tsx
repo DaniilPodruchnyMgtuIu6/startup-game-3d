@@ -13,6 +13,8 @@ import { useCharacterStore } from '../../character/characterStore'
 import { useStoryConsequenceStore } from './storyConsequenceStore'
 import { buildConsequenceScript, applyConsequenceEffects } from './storyConsequences'
 import type { StoryConsequenceId } from './level1Checkpoints'
+import { beginConversationCinematic, playInsert, playShot } from '../cinematics/cinematicDirector'
+import { femalePm } from '../../character/characters/femalePm'
 
 // Feature 17C: plays the queued mandatory consequence scenes. Respects the
 // общий event priority (§13): the scene opens only when the daily report,
@@ -69,6 +71,10 @@ function choose(options: NonNullable<ReturnType<typeof buildConsequenceScript>['
   })
 }
 
+// The workstation screen the «утро без проекта» insert frames (Sonya's desk
+// cluster in the open space - the same prop the audit paperwork sits on).
+const TEAM_SCREEN_POINT: [number, number, number] = [-1.9, 0.75, 4.75]
+
 async function runConsequenceScene(id: StoryConsequenceId): Promise<void> {
   const store = useStoryConsequenceStore.getState()
   store.startConsequence(id)
@@ -76,14 +82,30 @@ async function runConsequenceScene(id: StoryConsequenceId): Promise<void> {
   const moment = { sprintNumber: sprint.sprintNumber, day: sprint.day }
   const script = buildConsequenceScript(id)
 
-  await say(script.lines)
-  let choiceId: string | undefined
-  if (script.choices && script.choices.length > 0) {
-    choiceId = await choose(script.choices)
-  }
-  applyConsequenceEffects(id, moment, choiceId)
-  if (choiceId && script.reaction) {
-    await say(script.reaction(choiceId))
+  // 18F: every mandatory consequence scene plays under the conversation
+  // cinematic - the camera follows whoever speaks at eye level; choices land
+  // on the held frame. Camera and HUD restore in the finally either way.
+  const cinematic = beginConversationCinematic({})
+  try {
+    if (id === 'project-files-destroyed') {
+      // «Утро без проекта»: the dead workstation is the fact of the scene
+      await playInsert(TEAM_SCREEN_POINT, { side: -1, durationMs: 1500 })
+    }
+    await say(script.lines)
+    let choiceId: string | undefined
+    if (script.choices && script.choices.length > 0) {
+      choiceId = await choose(script.choices)
+    }
+    applyConsequenceEffects(id, moment, choiceId)
+    if (choiceId && script.reaction) {
+      await say(script.reaction(choiceId))
+    }
+    if (id === 'project-files-destroyed') {
+      // slow pull-back over the office - negative space, no words (§18F)
+      await playShot('dolly-out', femalePm.id, { side: 1, durationMs: 3000 })
+    }
+  } finally {
+    await cinematic.end()
   }
   useStoryConsequenceStore.getState().completeConsequence(id)
 }

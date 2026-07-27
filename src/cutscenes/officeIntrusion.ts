@@ -6,7 +6,20 @@ import { useSprintStore } from '../game/sprintStore'
 import { useTeamStore } from '../game/teamStore'
 import { useAccessControlStore } from '../game/accessControlStore'
 import { hasSecuritySpecialist } from '../game/teamRules'
+import { playShot, attachPerLineShots } from '../game/cinematics/cinematicDirector'
 import type { CutsceneScript, Point } from './types'
+
+// 18F: while the outsider walks in, the camera keeps a medium shot glued to
+// him - the threat visibly APPROACHES instead of crawling across a top-down
+// map (§ office-intrusion: «понятное приближение угрозы, не top-down»).
+async function trackIntruderWalk(walk: Promise<void>): Promise<void> {
+  const tracker = setInterval(() => void playShot('medium', 'intruder', { side: -1, durationMs: 470 }), 450)
+  try {
+    await walk
+  } finally {
+    clearInterval(tracker)
+  }
+}
 
 // Preload the intruder model in the combined form the CharacterModel looks up,
 // so spawnModeledActor never suspends mid-scene.
@@ -43,36 +56,54 @@ export const officeIntrusionScene: CutsceneScript = async (director) => {
     director.spawnModeledActor('intruder', INTRUDER_SPAWN, intruder, Math.PI)
 
     if (withIlya) {
-      await director.walk('intruder', INTRUDER_STOP_EARLY)
+      await trackIntruderWalk(director.walk('intruder', INTRUDER_STOP_EARLY))
       await director.walk(ilyaVlasov.id, ILYA_INTERCEPT)
       director.face(ilyaVlasov.id, 'intruder')
       director.face('intruder', ilyaVlasov.id)
+      // the interception, eye level: Ilya between the outsider and the office
+      await playShot('two-shot', ilyaVlasov.id, { partnerId: 'intruder', side: 1, durationMs: 900 })
       await director.walk(femalePm.id, SONYA_MARK_EARLY)
       director.face(femalePm.id, 'intruder')
       // 18C §5: body language for the beat - Ilya is firm, Sonya worried.
       director.emotion(ilyaVlasov.id, 'angry-controlled')
       director.emotion(femalePm.id, 'concerned')
       director.talk(ilyaVlasov.id, true)
+      // 18F: per-line OTS coverage over the intruder's shoulder
+      let side: 1 | -1 = 1
+      const detach = attachPerLineShots((line) => {
+        side = side === 1 ? -1 : 1
+        const speakerId = line.speaker === femalePm.persona!.name ? femalePm.id : ilyaVlasov.id
+        void playShot('over-the-shoulder', speakerId, { partnerId: 'intruder', side, durationMs: 800 })
+      })
       await director.say([
         asIlya('У этого посетителя нет согласованного доступа. Я остановил его до входа в рабочую зону.'),
         asSonya('Значит, даже без формальной СКУД мы уже зависим от того, заметит ли проблему конкретный человек.'),
         asIlya('Да. На этот раз мы успели. Но наблюдение сотрудника не заменяет контроль входа.'),
       ])
+      detach()
       director.talk(ilyaVlasov.id, false)
       director.emotion(ilyaVlasov.id, null)
       director.emotion(femalePm.id, null)
     } else {
-      await director.walk('intruder', INTRUDER_WORKSTATION)
+      await trackIntruderWalk(director.walk('intruder', INTRUDER_WORKSTATION))
+      // the violated workstation - the outsider reached a live screen
+      await playShot('medium-close', 'intruder', { side: 1, durationMs: 900 })
       await director.walk(femalePm.id, SONYA_MARK_DEEP)
       director.face(femalePm.id, 'intruder')
       director.face('intruder', femalePm.id)
       director.emotion(femalePm.id, 'concerned')
       director.talk(femalePm.id, true)
+      let side: 1 | -1 = -1
+      const detach = attachPerLineShots(() => {
+        side = side === 1 ? -1 : 1
+        void playShot('over-the-shoulder', femalePm.id, { partnerId: 'intruder', side, durationMs: 800 })
+      })
       await director.say([
         asSonya('Этот человек не должен был попасть в рабочую зону. Он успел подойти к компьютеру до того, как его остановили.'),
         asSonya('Мы не можем подтвердить утечку, но теперь придётся проверять доступы и журналы.'),
         asSonya('Ручного контроля недостаточно. Нам нужна работающая система доступа.'),
       ])
+      detach()
       director.talk(femalePm.id, false)
       director.emotion(femalePm.id, null)
     }
