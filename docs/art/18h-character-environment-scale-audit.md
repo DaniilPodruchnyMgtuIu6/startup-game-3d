@@ -82,8 +82,19 @@ FSM не содержит соответствующего состояния). 
   Meshy-моделей и закрыто регрессионным тестом
   `tools/art/characterIdentity.test.ts` («no animation carries SCALE tracks»).
 
-Regression-цепочка `scale before === during === after` из §9 поэтому
-проверяется на двух уровнях: структурно (аудит выше) и на уровне ассетов
-(guard-тест). Отдельный E2E-скриншот «масштаб визуально одинаков до/после
-сцены» — в scope Wave 4 (§24, пункт 5), там же, где полный visual regression
-набор, а не изобретается заново здесь.
+Regression-цепочка `scale before === during === after` из §9 проверяется на
+трёх уровнях: структурно (аудит выше), на уровне ассетов (`characterIdentity.test.ts`,
+guard против SCALE-треков в клипах) и теперь живым regression-тестом,
+превращающим сам структурный аудит в код, а не оставляющим его утверждением
+в markdown: `src/character/characterScaleInvariant.test.ts` парсит исходники
+`src/character/**` и падает, если где-либо появится запись в `.scale`
+персонажа (кроме двух явно разрешённых held-prop компенсаций — кружка/ракетка/
+телефон) или JSX `scale=` на `<CharacterModel>`/`<group>`/`<primitive>`.
+Полноценный live-mount через `@react-three/test-renderer` с реальным GLTF не
+взят — `useGLTF` тянет реальный `fetch` файла, которого нет в vitest/jsdom
+(нет dev/preview сервера); `Office.test.tsx` по той же причине подменяет
+`CharacterComponent={() => null}`, а не монтирует настоящую модель — сохраняю
+согласованность с этим уже принятым решением, а не изобретаю отдельный mock
+GLTF ради одного теста. Отдельный E2E-скриншот «масштаб визуально одинаков
+до/после сцены» — в scope Wave 4 (§24, пункт 5), там же, где полный visual
+regression набор, а не изобретается заново здесь.
