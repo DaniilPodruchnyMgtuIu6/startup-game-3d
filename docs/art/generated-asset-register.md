@@ -37,6 +37,8 @@ Production-код ссылается только на approved/integrated. Се
 | kickoff-safe-wide-composition-ref (job 94dfcfb5-c079-40d3-ba39-4cb636d77d29) | Higgsfield MCP / nano_banana_2 (nano_banana_flash) | docs/art/cinematics/sprint-kickoff/higgsfield-prompts.md | reference-only (не игровой ассет) | Higgsfield generation (проект) | docs/art/cinematics/sprint-kickoff/live-captures-18h/reference-safe-wide-composition.png |
 | poster-officeflow-2k (job 87948649-01c8-41d1-9e77-8784bc35cfc7) | Higgsfield MCP / upscale_image (bytedance, 2k) от исходника 768x1024 | — (upscale, промпта нет) | integrated | Higgsfield generation (проект) | public/posters/officeflow.jpg (1536x2048) |
 | poster-lock-screen-2k (job ec7046fc-8ecc-43ff-afea-49c35fd6b5b2) | Higgsfield MCP / upscale_image (bytedance, 2k) от исходника 768x1024 | — (upscale, промпта нет) | integrated | Higgsfield generation (проект) | public/posters/lock_screen.jpg (1536x2048) |
+| texture-oak-desk (job 3fb4842d-3ca9-49bb-ba6b-9e60b5be74a5) | Higgsfield MCP / nano_banana_pro (исп. nano_banana_2) | prompt в params job («seamless oak wood grain pattern…») | integrated | Higgsfield generation (проект) | public/textures/oak-desk/diffuse.jpg (1024², все столешницы) |
+| texture-chair-weave (job 17e0c89d-7734-47af-bc88-d63d75dfd0ca) | Higgsfield MCP / nano_banana_2 (flash) | prompt в params job («office chair mesh fabric weave…») | integrated | Higgsfield generation (проект) | public/textures/chair-weave/diffuse.jpg (512², тонируется цветом кресла) |
 
 Наследованные до-реестровые генерации (эталоны стиля, приняты ранее):
 `public/dialogue_pictures/prodact_manager/pm.jpeg`, `boss/*.jpeg`,

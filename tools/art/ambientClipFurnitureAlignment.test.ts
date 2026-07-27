@@ -121,10 +121,12 @@ function poseAtFraction(file: string, fraction: number): { handY: number; handZ:
   const li = findBone('LeftHand')
   const ri = findBone('RightHand')
   const hips = findBone('Hips')
+  const head = findBone('Head')
   return {
     handY: (worldP[li][1] + worldP[ri][1]) / 2,
     handZ: (worldP[li][2] + worldP[ri][2]) / 2,
     hipsY: worldP[hips][1],
+    headY: head >= 0 ? worldP[head][1] : NaN,
   }
 }
 
@@ -141,6 +143,32 @@ const REP_TOP_FRACTION = 0.5
 const REP_BOTTOM_FRACTION = 0.75
 const REP_MIN_RISE_M = 0.15
 const REP_HAND_TOLERANCE_M = 0.12
+
+// Retarget posture guard: an UPRIGHT standing clip keeps the head well above
+// the hips. The Meshy rigs name their spine chain TOP-DOWN (Hips->Spine02->
+// Spine01->Spine) while Mixamo goes bottom-up - the original name mapping
+// swapped the top and bottom vertebra rotations on every retarget, folding
+// the tall founder model "в скрепку" (head 0.26m over the hips instead of
+// 0.6m). This pins the fix for every rig and every future re-retarget.
+const UPRIGHT_CLIPS = ['walk', 'talk', 'type'] as const
+const MIN_HEAD_OVER_HIPS_M = 0.4
+
+describe('retargeted clips keep an upright posture (spine-map regression)', () => {
+  for (const character of TEAM) {
+    it(`${character}: head stays >=${MIN_HEAD_OVER_HIPS_M}m above the hips in standing clips`, () => {
+      for (const clip of UPRIGHT_CLIPS) {
+        const file = join(ROOT, 'public', 'character', character, `${clip}.glb`)
+        if (!existsSync(file)) continue
+        for (const fraction of [0, 0.5]) {
+          const { headY, hipsY } = poseAtFraction(file, fraction)
+          expect(headY - hipsY, `${character}/${clip} t=${fraction}: head ${headY.toFixed(2)} hips ${hipsY.toFixed(2)}`).toBeGreaterThanOrEqual(
+            MIN_HEAD_OVER_HIPS_M,
+          )
+        }
+      }
+    })
+  }
+})
 
 describe('pullUp clip hand contact matches the real pull-up bar (18H Wave 3)', () => {
   for (const character of TEAM) {

@@ -32,6 +32,15 @@ export function OfficeMaterialsProvider({ children }: { children: ReactNode }) {
     posterOfficeFlow: '/posters/officeflow.jpg',
     posterLockScreen: '/posters/lock_screen.jpg',
   })
+  // 18H beauty pass (live feedback «хочу качественную прорисовку мебели»):
+  // the two flat-color materials that dominate every frame get real surfaces.
+  // Generated via Higgsfield (see generated-asset-register.md): oak grain for
+  // every desk/table top, a fine neutral weave for the task chairs - the
+  // weave is near-grey so the per-chair color keeps tinting it (map * color).
+  const surfaceTex = useTexture({
+    oakDesk: '/textures/oak-desk/diffuse.jpg',
+    chairWeave: '/textures/chair-weave/diffuse.jpg',
+  })
 
   const value = useMemo<OfficeMaterials>(() => {
     wood.map.colorSpace = SRGBColorSpace
@@ -41,6 +50,8 @@ export function OfficeMaterialsProvider({ children }: { children: ReactNode }) {
     artTex.dashboard.colorSpace = SRGBColorSpace
     artTex.posterOfficeFlow.colorSpace = SRGBColorSpace
     artTex.posterLockScreen.colorSpace = SRGBColorSpace
+    surfaceTex.oakDesk.colorSpace = SRGBColorSpace
+    surfaceTex.chairWeave.colorSpace = SRGBColorSpace
 
     return {
       floorWoodTextures: wood,
@@ -52,7 +63,7 @@ export function OfficeMaterialsProvider({ children }: { children: ReactNode }) {
       metalFrame: procedural.metalFrame,
       metalChrome: procedural.metalChrome,
       plasticBlack: procedural.plasticBlack,
-      woodDesktop: procedural.woodDesktop,
+      woodDesktop: { map: surfaceTex.oakDesk, roughness: 0.55, metalness: 0 },
       leather: {
         map: leatherTex.map,
         normalMap: leatherTex.normalMap,
@@ -82,9 +93,9 @@ export function OfficeMaterialsProvider({ children }: { children: ReactNode }) {
       ledGreen: procedural.ledGreen,
       ledAmber: procedural.ledAmber,
       ledRed: procedural.ledRed,
-      chairFabric: procedural.chairFabric,
+      chairFabric: (color: string) => ({ color, map: surfaceTex.chairWeave, roughness: 0.85, metalness: 0 }),
     }
-  }, [wood, concrete, leatherTex, boucleTex, artTex])
+  }, [wood, concrete, leatherTex, boucleTex, artTex, surfaceTex])
 
   return <MaterialsContext.Provider value={value}>{children}</MaterialsContext.Provider>
 }

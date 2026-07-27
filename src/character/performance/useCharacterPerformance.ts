@@ -56,12 +56,19 @@ const NPC_ID_FOR_CHARACTER: Record<string, NpcId> = Object.fromEntries(
   (Object.entries(NPC_CHARACTER_ID) as [NpcId, string][]).map(([npcId, charId]) => [charId, npcId]),
 )
 
-function findBone(root: Object3D, suffix: RegExp): Object3D | undefined {
-  let found: Object3D | undefined
-  root.traverse((object) => {
-    if (!found && suffix.test(object.name)) found = object
-  })
-  return found
+function findBone(root: Object3D, ...patterns: RegExp[]): Object3D | undefined {
+  // ordered candidates: the first pattern with a match wins - needed because
+  // Mixamo and Meshy rigs name the SPINE CHAIN in opposite directions (Meshy:
+  // Hips -> Spine02 -> Spine01 -> Spine(top); Mixamo: Spine -> Spine1 ->
+  // Spine2(top)), so one regex cannot address "the chest" on both.
+  for (const pattern of patterns) {
+    let found: Object3D | undefined
+    root.traverse((object) => {
+      if (!found && pattern.test(object.name)) found = object
+    })
+    if (found) return found
+  }
+  return undefined
 }
 
 function eyeHeightOf(stateKind: string | undefined): number {
@@ -72,8 +79,13 @@ export function useCharacterPerformance(characterId: string, root: Object3D) {
   const bones = useMemo(
     () => ({
       head: findBone(root, /Head$/),
-      spine: findBone(root, /Spine$/),
-      chest: findBone(root, /Spine2$/),
+      // lower spine: Meshy 'Spine02', Mixamo '...rig:Spine'
+      spine: findBone(root, /Spine02$/, /:Spine$/, /^Spine$/),
+      // chest: Mixamo 'Spine2'; on Meshy rigs the TOP spine bone is the bare
+      // 'Spine' (carries shoulders+neck). The old /Spine2$/ matched NOTHING
+      // on the v2 rigs - chest breathing/coil was silently dead since the
+      // model swap.
+      chest: findBone(root, /Spine2$/, /^Spine$/),
       rightArm: findBone(root, /RightArm$/),
       rightForeArm: findBone(root, /RightForeArm$/),
     }),

@@ -22,7 +22,14 @@ const ROOT = process.cwd()
 const CHAR_DIR = join(ROOT, 'public', 'character')
 
 // Meshy bone name -> canonical Mixamo name (identical names pass through).
-const NAME_MAP = { Spine01: 'Spine1', Spine02: 'Spine2', neck: 'Neck' }
+// CRITICAL: Meshy names its spine chain TOP-DOWN - the hierarchy is
+// Hips -> Spine02 -> Spine01 -> Spine (which carries the shoulders/neck),
+// verified by the children arrays of every v2 rig. Mixamo is BOTTOM-UP
+// (Hips -> Spine -> Spine1 -> Spine2). The original map paired Spine02 with
+// Spine2 and left Spine=Spine, swapping the top and bottom vertebra rotations
+// on every retarget - a latent zig-zag on all rigs that turned into a full
+// "paperclip" fold on the taller founder model.
+const MESHY_NAME_MAP = { Spine02: 'Spine', Spine01: 'Spine1', Spine: 'Spine2', neck: 'Neck' }
 
 // Fingerless Meshy rigs render the baked open A-pose palm ("shovel hands").
 // When the DST skeleton has no finger bones, every retargeted clip gets a
@@ -181,7 +188,16 @@ function buildRig({ json, bin }) {
   return { json, bin, nodes, parent, rest, worldR, worldP, worldS, order, byName }
 }
 
-const canonical = (name) => NAME_MAP[name] ?? name.replace(/^mixamorig\d*:/, '')
+// Canonicalization is RIG-AWARE: Mixamo names only need the prefix stripped
+// ('mixamorig7:Spine' IS the canonical bottom Spine), while bare Meshy names
+// need the top-down spine remap above. Applying the Meshy map to a Mixamo
+// rig would corrupt its (already canonical) spine names, so each rig gets a
+// canonicalizer picked from its own naming style.
+function canonicalizerFor(rig) {
+  const isMixamo = rig.nodes.some((n) => /^mixamorig\d*:/.test(n.name ?? ''))
+  if (isMixamo) return (name) => name.replace(/^mixamorig\d*:/, '')
+  return (name) => MESHY_NAME_MAP[name] ?? name
+}
 
 // sample a track (times[], values[]) at time t with linear/quat interpolation
 function sampleTrack(times, values, t, isQuat) {
@@ -199,6 +215,8 @@ function sampleTrack(times, values, t, isQuat) {
 export function retargetMeshyClip(meshyFile, dstIdleFile, outFile, clipName, maxSec = Infinity) {
   const src = buildRig(readGlb(meshyFile))
   const dst = buildRig(readGlb(dstIdleFile))
+  const srcCanonical = canonicalizerFor(src)
+  const dstCanonical = canonicalizerFor(dst)
 
   // source animation tracks per node index
   const anim = src.json.animations?.[0]
@@ -223,7 +241,7 @@ export function retargetMeshyClip(meshyFile, dstIdleFile, outFile, clipName, max
   // map dst skeleton bones <-> src nodes by canonical name
   const srcByCanonical = {}
   src.nodes.forEach((n, i) => {
-    if (n.name) srcByCanonical[canonical(n.name)] = i
+    if (n.name) srcByCanonical[srcCanonical(n.name)] = i
   })
   // union of every skin's joints - converted Mixamo GLBs carry one skin per
   // mesh primitive group, each binding only a subset of the skeleton
@@ -257,7 +275,7 @@ export function retargetMeshyClip(meshyFile, dstIdleFile, outFile, clipName, max
   }
   const dstByCanonical = {}
   dst.nodes.forEach((n, i) => {
-    if (n.name) dstByCanonical[canonical(n.name)] = i
+    if (n.name) dstByCanonical[dstCanonical(n.name)] = i
   })
   const calWorldR = dst.worldR.slice()
   for (const i of dst.order) {
@@ -265,7 +283,7 @@ export function retargetMeshyClip(meshyFile, dstIdleFile, outFile, clipName, max
     const parentCal = p === -1 ? [0, 0, 0, 1] : calWorldR[p]
     // recompute this node's world rotation under the calibrated parent chain
     calWorldR[i] = qnorm(qmul(parentCal, dst.rest[i].r))
-    const name = dst.nodes[i].name ? canonical(dst.nodes[i].name) : undefined
+    const name = dst.nodes[i].name ? dstCanonical(dst.nodes[i].name) : undefined
     const childName = name ? DIRECTION_CHILD[name] : undefined
     const sIdx = name ? srcByCanonical[name] : undefined
     const sChild = childName ? srcByCanonical[childName] : undefined
@@ -296,7 +314,7 @@ export function retargetMeshyClip(meshyFile, dstIdleFile, outFile, clipName, max
     for (const i of dst.order) {
       const p = dst.parent[i]
       const parentWorld = p === -1 ? [0, 0, 0, 1] : dstWorld[p]
-      const name = dst.nodes[i].name ? canonical(dst.nodes[i].name) : undefined
+      const name = dst.nodes[i].name ? dstCanonical(dst.nodes[i].name) : undefined
       const s = name !== undefined ? srcByCanonical[name] : undefined
       let local
       if (s !== undefined && rotTracks.has(s)) {
