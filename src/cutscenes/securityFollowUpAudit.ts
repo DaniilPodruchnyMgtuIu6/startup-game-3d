@@ -4,6 +4,7 @@ import { security1 } from '../character/characters/security1'
 import { security2 } from '../character/characters/security2'
 import { useSprintStore } from '../game/sprintStore'
 import { useSecurityAuditStore } from '../game/securityAuditStore'
+import { playShot, attachPerLineShots } from '../game/cinematics/cinematicDirector'
 import type { FollowUpAuditRecord } from '../game/securityAuditRules'
 import type { CutsceneScript, Point } from './types'
 
@@ -87,8 +88,19 @@ export const securityFollowUpAuditScene: CutsceneScript = async (director) => {
     // Commit the result (idempotent) and narrate the matching branch.
     const resolved = audit().resolvePendingAudit(moment())
     const record = resolved.record
+    // 18F Wave 3: verdict body language + per-line OTS coverage - a failed
+    // audit gets the angry-talk gesture, a passed one stays composed.
+    if (record && record.result !== 'passed') director.perform('audit1', 'angryTalk')
+    let side: 1 | -1 = 1
+    const detach = attachPerLineShots((line) => {
+      side = side === 1 ? -1 : 1
+      const auditorId = line.speaker === security2.displayName ? 'audit2' : 'audit1'
+      void playShot('over-the-shoulder', auditorId, { partnerId: PLAYER_ID, side, durationMs: 800 })
+    })
     if (record) await director.say(auditorLines(record))
+    detach()
 
+    director.perform('audit1', null)
     director.talk('audit1', false)
     director.despawnActor('audit1')
     director.despawnActor('audit2')

@@ -5,6 +5,7 @@ import { useSprintStore } from '../game/sprintStore'
 import { useTeamStore } from '../game/teamStore'
 import { useServerIncidentStore } from '../game/serverIncidentStore'
 import { hasSecuritySpecialist } from '../game/teamRules'
+import { playShot, playInsert, attachPerLineShots, characterIdForSpeaker } from '../game/cinematics/cinematicDirector'
 import type { DialogueLine } from '../game/gameStore'
 import type { ServerIncidentId } from '../game/serverIncidentCatalog'
 import type { CutsceneDirector, CutsceneScript, Point } from './types'
@@ -49,10 +50,20 @@ async function runServerScene(director: CutsceneDirector, incidentId: ServerInci
     director.emotion(femalePm.id, 'concerned')
     director.emotion(kirillMorozov.id, 'focused')
     if (withIlya) director.emotion(ilyaVlasov.id, 'focused')
+    // 18F Wave 3: the broken rack is the fact of the scene, then the camera
+    // cuts to whoever speaks (racks stand in the server room, x≈-9.5).
+    await playInsert([-9.5, 1.1, 6.3], { side: -1, durationMs: 1300 })
     director.talk(femalePm.id, true)
     if (withIlya) director.talk(ilyaVlasov.id, true)
     director.talk(kirillMorozov.id, true)
+    let side: 1 | -1 = 1
+    const detach = attachPerLineShots((line) => {
+      side = side === 1 ? -1 : 1
+      const speakerId = characterIdForSpeaker(line) ?? femalePm.id
+      void playShot('medium-close', speakerId, { side, durationMs: 800 })
+    })
     await director.say(withIlya ? lines.withIlya : lines.withoutIlya)
+    detach()
     director.talk(femalePm.id, false)
     director.talk(kirillMorozov.id, false)
     if (withIlya) director.talk(ilyaVlasov.id, false)

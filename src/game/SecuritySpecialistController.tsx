@@ -8,6 +8,7 @@ import { useSecurityStoryStore } from './securityStoryStore'
 import { useCutsceneStore } from '../cutscenes/cutsceneStore'
 import { useCharacterStore, PLAYER_ID } from '../character/characterStore'
 import { usePerformanceStore } from '../character/performance/performanceStore'
+import { beginConversationCinematic } from './cinematics/cinematicDirector'
 import { ilyaVlasov } from '../character/characters/ilyaVlasov'
 import { nearestWalkable } from '../character/grid'
 import { releaseClaims } from '../interaction/interactionRegistry'
@@ -99,6 +100,9 @@ function runTalk() {
   store.dispatchTo(PLAYER_ID, { type: 'TALK_START' })
   store.dispatchTo(ILYA, { type: 'TALK_START' })
   usePerformanceStore.getState().setGazePair(PLAYER_ID, ILYA)
+  // 18F Wave 3: Ilya's introduction (and his risk warnings) get the same
+  // OTS/reverse coverage as every other one-on-one; auto-ends with the dialogue.
+  beginConversationCinematic({ pairA: PLAYER_ID, pairB: ILYA, autoEndOnDialogueClose: true })
   if (player && ilya) {
     store.setTransform(PLAYER_ID, player.position, facingBetween(player.position, ilya.position))
     store.setTransform(ILYA, ilya.position, facingBetween(ilya.position, player.position))
