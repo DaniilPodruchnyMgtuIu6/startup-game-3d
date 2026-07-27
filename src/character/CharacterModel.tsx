@@ -67,6 +67,9 @@ const CLIP_FALLBACKS: Record<ClipName, ClipName[]> = {
   explain: ['talk', 'idle'],
   angryTalk: ['talk', 'idle'],
   facepalm: ['talk', 'idle'],
+  // 18H Wave 3: no rig ships these yet - always idle until real clips land.
+  pullUp: ['idle'],
+  pingPongRally: ['idle'],
 }
 
 export function resolveClip(stateKind: string, available: ReadonlySet<string>, performClip?: ClipName): ClipName {

@@ -99,7 +99,14 @@ describe('legacy numbers are unchanged after the move', () => {
 describe('balance modules are leaf modules (no cyclic imports possible)', () => {
   // Raw sources via Vite - keeps this test free of node imports (browser tsconfig).
   const sources = import.meta.glob('./*.ts', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
-  const balanceFiles = ['./economyBalance.ts', './teamBalance.ts', './securityBalance.ts', './timelineBalance.ts', './storyBalance.ts']
+  const balanceFiles = [
+    './economyBalance.ts',
+    './teamBalance.ts',
+    './securityBalance.ts',
+    './timelineBalance.ts',
+    './storyBalance.ts',
+    './ambientOfficeBalance.ts',
+  ]
 
   it.each(balanceFiles)('%s contains no import statements at all', (file) => {
     const source = sources[file]

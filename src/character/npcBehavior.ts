@@ -7,7 +7,12 @@ import type { Point } from './navigation'
 // 'security-round' is a role-specific visual patrol (Feature 07). Like 'wander'
 // it carries no context target - its destination is chosen by the security
 // specialist's own planner from a fixed set of patrol points.
-export type ActivityKind = 'work' | 'coffee' | 'sofa' | 'meeting' | 'wander' | 'security-round'
+//
+// 'ping-pong' and 'pull-up-bar' are 18H Wave 3 ambient activities (§13/§14).
+// They exist here as data (kind, stay range, target pool) so the planner
+// stays a single source of truth, but neither is in AMBIENT_WEIGHTS yet - see
+// that constant's comment for why activation is deliberately held back.
+export type ActivityKind = 'work' | 'coffee' | 'sofa' | 'meeting' | 'wander' | 'security-round' | 'ping-pong' | 'pull-up-bar'
 
 export interface ActivityPlan {
   kind: ActivityKind
@@ -21,6 +26,12 @@ export interface ActivityContext {
   coffeeMachines: TriggerTarget[]
   sofas: TriggerTarget[]
   seats: TriggerTarget[]
+  // 18H Wave 3: optional so the existing Npcs.tsx call site needs no change
+  // while ping-pong/pull-up-bar stay unactivated (see AMBIENT_WEIGHTS).
+  // Missing/empty is safe - planNextActivity treats "no free target of this
+  // kind" as a fallback to 'wander', same as any other activity today.
+  pingPongTables?: TriggerTarget[]
+  pullUpBars?: TriggerTarget[]
   previousKind?: ActivityKind
   previousTargetKey?: string
 }
@@ -51,6 +62,8 @@ export const WORK_BIASED_WEIGHTS: ActivityWeights = [
   ['wander', 0.05],
 ]
 
+// 18H §16 shortActivityDurationSeconds [8,20] for pull-ups (a short burst);
+// ping-pong runs a little longer to fit AMBIENT_OFFICE_BALANCE.pingPongMaxRallies.
 const STAY_RANGES_MS: Record<ActivityKind, [number, number]> = {
   work: [20000, 45000],
   coffee: [8000, 15000],
@@ -58,7 +71,29 @@ const STAY_RANGES_MS: Record<ActivityKind, [number, number]> = {
   sofa: [12000, 28000],
   wander: [3000, 8000],
   'security-round': [8000, 16000],
+  'ping-pong': [15000, 30000],
+  'pull-up-bar': [8000, 18000],
 }
+
+// 18H Wave 3: the ambient-activity weights ping-pong/pull-up-bar WOULD use
+// once they have real motion (see CharacterModel.tsx's CLIP_FALLBACKS
+// comment - today both silently play 'idle', which is honest-but-invisible,
+// not "broken"). Deliberately NOT merged into WEIGHTS/WORK_BIASED_WEIGHTS -
+// wiring an ambient activity into the live picker before its clip exists
+// would send an NPC to stand at the bar/table doing nothing recognisable,
+// which reads as a bug rather than a feature. Flip this on (call
+// planNextActivity with these weights, or fold them into WEIGHTS) once
+// docs/art/ambient-office-animation-library.md has real entries for
+// pullUp/pingPongRally.
+export const AMBIENT_WEIGHTS: ActivityWeights = [
+  ['work', 0.45],
+  ['coffee', 0.13],
+  ['meeting', 0.11],
+  ['sofa', 0.1],
+  ['ping-pong', 0.08],
+  ['pull-up-bar', 0.06],
+  ['wander', 0.07],
+]
 
 function key(target: TriggerTarget): string {
   return `${target.point[0].toFixed(2)}|${target.point[2].toFixed(2)}`
@@ -105,6 +140,8 @@ export function planNextActivity(
     coffee: ctx.coffeeMachines,
     sofa: ctx.sofas,
     meeting: ctx.seats,
+    'ping-pong': ctx.pingPongTables ?? [],
+    'pull-up-bar': ctx.pullUpBars ?? [],
   }
   // wander and security-round have no context target; security-round's patrol
   // destination is supplied by the specialist's own planner wrapper.

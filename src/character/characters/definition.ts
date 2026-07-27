@@ -18,11 +18,18 @@ export const CLIP_NAMES = [
   'explain',
   'angryTalk',
   'facepalm',
+  // 18H Wave 3: ambient office activity gestures, played through the same
+  // 'performing' state as the dialogue gestures above. No character ships a
+  // URL for these yet (see docs/art/ambient-office-animation-library.md) -
+  // resolveClip's fallback chain degrades them to plain 'idle' until real
+  // clips land, so requesting them today is inert, never broken-looking.
+  'pullUp',
+  'pingPongRally',
 ] as const
 export type ClipName = (typeof CLIP_NAMES)[number]
 
 // Gesture clips a scene may play through the 'performing' state.
-export type PerformClip = 'agree' | 'celebrate' | 'explain' | 'angryTalk' | 'facepalm'
+export type PerformClip = 'agree' | 'celebrate' | 'explain' | 'angryTalk' | 'facepalm' | 'pullUp' | 'pingPongRally'
 
 export interface CharacterModelConfig {
   // URL per animation clip. 'idle' is required - it is also the base file
