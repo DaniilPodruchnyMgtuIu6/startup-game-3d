@@ -29,6 +29,7 @@ import { MvpReleaseOverlay } from './ui/MvpReleaseOverlay'
 import { CampaignSuccessOverlay } from './ui/CampaignSuccessOverlay'
 import { NpcConversationPanel } from './ui/NpcConversationPanel'
 import { CinematicBars } from './ui/CinematicBars'
+import { useQualityStore, currentQuality, type QualityTier } from './scene/qualityStore'
 import { useCutsceneStore } from './cutscenes/cutsceneStore'
 import { isIntroReset } from './game/gameStore'
 import { useGameOutcomeStore } from './game/gameOutcomeStore'
@@ -202,6 +203,17 @@ export function App() {
     aoIntensity: { value: 2, min: 0, max: 6, step: 0.1 },
     bloomIntensity: { value: 0.4, min: 0, max: 2, step: 0.05 },
   })
+  // 18E §7: persisted quality tier scales dpr/shadows/post passes. The dev
+  // panel exposes the switch; gameplay is never blurred on any tier.
+  const tier = useQualityStore((s) => s.tier)
+  const quality = currentQuality(tier)
+  useControls('Render', {
+    quality: {
+      value: tier,
+      options: ['low', 'medium', 'high', 'cinematic'] as QualityTier[],
+      onChange: (next: QualityTier) => useQualityStore.getState().setTier(next),
+    },
+  })
 
   return (
     <>
@@ -210,13 +222,14 @@ export function App() {
           control values keep their defaults, so the shipped look is unchanged. */}
       <Leva hidden={!import.meta.env.DEV} />
       <Canvas
-        shadows
-        // Cap the pixel ratio (was [1, 2]) so high-DPI screens don't render at
-        // 4× the pixels — a big GPU-load reduction on integrated GPUs. No
+        key={tier} // shadows/dpr changes need a clean renderer
+        shadows={quality.shadows}
+        // Cap the pixel ratio so high-DPI screens don't render at 4× the
+        // pixels — a big GPU-load reduction on integrated GPUs. No
         // preserveDrawingBuffer (nothing reads the buffer back) — it only added
         // memory pressure. A prevented contextlost lets the browser restore the
         // context instead of leaving the office permanently blank.
-        dpr={[1, 1.5]}
+        dpr={[1, quality.dprMax]}
         gl={{ antialias: true, toneMapping: ACESFilmicToneMapping }}
         onCreated={({ gl }) => {
           gl.domElement.addEventListener('webglcontextlost', (e) => e.preventDefault(), false)
@@ -225,13 +238,20 @@ export function App() {
         <ExposureControl exposure={exposure} />
         <SceneBackground />
         <Office />
-        <EffectComposer>
-          {/* halfRes + performance quality: AO at half resolution is much
-              cheaper on integrated GPUs and barely perceptible in this scene. */}
-          <N8AO halfRes quality="performance" aoRadius={1.2} intensity={aoIntensity} />
-          <Bloom intensity={bloomIntensity} luminanceThreshold={0.9} mipmapBlur />
-          <Vignette eskil={false} offset={0.1} darkness={0.6} />
-        </EffectComposer>
+        {quality.ao ? (
+          <EffectComposer>
+            {/* halfRes + performance quality: AO at half resolution is much
+                cheaper on integrated GPUs and barely perceptible in this scene. */}
+            <N8AO halfRes quality="performance" aoRadius={1.2} intensity={aoIntensity} />
+            <Bloom intensity={bloomIntensity} luminanceThreshold={0.9} mipmapBlur />
+            <Vignette eskil={false} offset={0.1} darkness={0.6} />
+          </EffectComposer>
+        ) : quality.bloom ? (
+          <EffectComposer>
+            <Bloom intensity={bloomIntensity} luminanceThreshold={0.9} mipmapBlur />
+            <Vignette eskil={false} offset={0.1} darkness={0.6} />
+          </EffectComposer>
+        ) : null}
       </Canvas>
       <CinematicBars />
       <IntroOverlay />

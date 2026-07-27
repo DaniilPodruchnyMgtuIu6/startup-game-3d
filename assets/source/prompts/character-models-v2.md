@@ -12,8 +12,8 @@
 |---|---|---|
 | Соня (female_pm) | 4c44004a-55cf-4e1f-b813-4bc42c956410 | integrated 2026-07-27 |
 | Алина (alina_belova) | 884704c8-ba55-444a-97b9-6daa0668da7a | integrated 2026-07-27 |
-| Кирилл (kirill_morozov) | 6c16983d-0a50-4367-973a-8f58a53386d7 | generating |
-| Илья (cybersecurity) | db63d60f-4555-4fcd-b27a-e6e98abfcadb | generating |
+| Кирилл (kirill_morozov) | 6c16983d-0a50-4367-973a-8f58a53386d7 | integrated 2026-07-27 |
+| Илья (cybersecurity) | db63d60f-4555-4fcd-b27a-e6e98abfcadb | integrated 2026-07-27; texture-дефект левого предплечья — регенерация job 1191ad44-c949-47c3-ac2b-cc7424680051 |
 
 QA: покадровые рендеры idle/walk/talk/sitIdle во вьюере + кадры в игре
 (kickoff-кинематика). Ограничение нового рига: 24 кости, без пальцев и morph

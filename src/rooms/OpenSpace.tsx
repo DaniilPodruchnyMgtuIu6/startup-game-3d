@@ -8,7 +8,10 @@ import { TrackLight } from '../furniture/TrackLight'
 import { AcousticCeilingPanel } from '../furniture/AcousticCeilingPanel'
 import { Whiteboard } from '../furniture/Whiteboard'
 import { WallPoster } from '../furniture/WallPoster'
+import { AuditPapers } from '../furniture/AuditPapers'
 import { PlanningMarker } from '../furniture/PlanningMarker'
+import { useSecurityStoryStore } from '../game/securityStoryStore'
+import { useSecurityAuditStore } from '../game/securityAuditStore'
 import { useCharacterStore, PLAYER_ID } from '../character/characterStore'
 import { useGameStore } from '../game/gameStore'
 import { useSprintStore } from '../game/sprintStore'
@@ -108,6 +111,13 @@ const PLANT_POSITIONS: [number, number][] = [
 
 export function OpenSpace() {
   const center = roomCenter(ROOMS.openSpace)
+  // 18E §5: environmental storytelling, deterministic from persisted stores.
+  // The lock-screen памятка appears only after the security training beat;
+  // audit paperwork piles onto Sonya's desk while a corrective plan is open.
+  const trainingIntroduced = useSecurityStoryStore((s) => s.securityBreach.status === 'completed')
+  const auditPlanOpen = useSecurityAuditStore((s) =>
+    ['scheduled', 'pending', 'running', 'critical-escalation'].includes(s.followUpAudit.status),
+  )
   return (
     <group position={center}>
       {CLUSTER_CENTERS.map((c, i) => (
@@ -124,7 +134,10 @@ export function OpenSpace() {
           of its door - same wall and 0.15 offset convention as the whiteboard
           (see scene/whiteboardSpot.ts), so they face the isometric camera. */}
       <WallPoster position={[-5.85, 1.55, 6.35]} rotation={[0, Math.PI / 2, 0]} variant="officeFlow" />
-      <WallPoster position={[-5.85, 1.55, 7.25]} rotation={[0, Math.PI / 2, 0]} variant="lockScreen" />
+      {trainingIntroduced ? (
+        <WallPoster position={[-5.85, 1.55, 7.25]} rotation={[0, Math.PI / 2, 0]} variant="lockScreen" />
+      ) : null}
+      {auditPlanOpen ? <AuditPapers position={[-1.55, 0.7, 4.55]} rotation={[0, 0.35, 0]} /> : null}
       {PLANT_POSITIONS.map(([x, z], i) => (
         <Plant key={i} position={[x, 0, z]} />
       ))}
