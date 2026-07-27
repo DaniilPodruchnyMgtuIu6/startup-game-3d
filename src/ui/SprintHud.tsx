@@ -35,6 +35,8 @@ import { useStoryDecisionStore } from '../game/story/storyDecisionStore'
 import { getActiveBlockingDecision } from '../game/story/storyDecisionSelectors'
 import { useStoryConsequenceStore } from '../game/story/storyConsequenceStore'
 import { LEVEL1_TIMELINE_BALANCE } from '../game/balance/timelineBalance'
+import { useCinematicStore } from '../game/cinematics/cinematicDirector'
+import { useCutsceneStore } from '../cutscenes/cutsceneStore'
 import './ui.css'
 
 const WARNING_TEXT: Record<Exclude<BudgetWarning, 'ok'>, string> = {
@@ -48,6 +50,10 @@ const WARNING_TEXT: Record<Exclude<BudgetWarning, 'ok'>, string> = {
 // its confirmation. Only shown in free play.
 export function SprintHud() {
   const gamePhase = useGameStore((s) => s.phase)
+  // 18D §8: the HUD leaves the frame while a conversation cinematic OR a
+  // scripted cutscene is on screen - nothing overlays the shots.
+  const cinematicActive = useCinematicStore((s) => s.active)
+  const cutsceneRunning = useCutsceneStore((s) => s.activeSceneId !== null)
   const sprintNumber = useSprintStore((s) => s.sprintNumber)
   const day = useSprintStore((s) => s.day)
   const sprintPhase = useSprintStore((s) => s.phase)
@@ -92,7 +98,7 @@ export function SprintHud() {
   const finalWarningShownAt = useStoryConsequenceStore((s) => s.finalWarningShownAtWorkdayIndex)
   const dataLossResolutionStatus = useStoryConsequenceStore((s) => s.checkpoints['data-loss-resolution'].status)
 
-  if (gamePhase !== 'free') return null
+  if (gamePhase !== 'free' || cinematicActive || cutsceneRunning) return null
 
   const incidentNeedingAssignee = Object.values(serverIncidents).find((s) => s.status === 'recovery-required' && !s.assignedEmployeeId)
   const intrusionArmedDaysLeft =

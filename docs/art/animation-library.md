@@ -33,6 +33,8 @@
 | agree | слушатель кивает/соглашается (`performing`) | 13.0s | loop | **new 18C (Higgsfield)**: Meshy action Agree_Gesture (id 25); слушатель в NPC↔NPC разговорах |
 | celebrate | празднование (`performing`) | 1.9s | loop | **new 18C (Higgsfield)**: Meshy action Cheer_with_Both_Hands_Up (id 298); финал MVP-релиза |
 | explain | объясняющий жест (`performing`) | 3.97s | loop | **new 18C (Higgsfield)**: Meshy action Talk_with_Hands_Open (id 313); Соня в post-audit разговоре |
+| angryTalk | сердитый разбор (`performing`) | 20.8s | loop | **new 18D (Higgsfield)**: Meshy action Stand_Talking_Angry (id 311); guard1 в конфронтации security-breach (риги охраны) |
+| facepalm | плохие новости (`performing`) | 3.73s | loop | **new 18D (Higgsfield)**: Meshy action Head_Hold_in_Pain (id 391); игрок на sad-бите security-breach (есть и у Сони) |
 
 Охрана (`security_1/2`): idle, walk, talk, look. Нарушитель (`intruder`): idle,
 walk. Для сцен этого достаточно.

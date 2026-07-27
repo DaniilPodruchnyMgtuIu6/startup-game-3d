@@ -7,7 +7,7 @@ import { join } from 'node:path'
 const ROOT = process.cwd()
 const DEF_DIR = join(ROOT, 'src/character/characters')
 
-const CLIP_NAMES = ['idle', 'walk', 'sit', 'type', 'drink', 'sitIdle', 'sofaSit', 'talk', 'look', 'agree', 'celebrate', 'explain']
+const CLIP_NAMES = ['idle', 'walk', 'sit', 'type', 'drink', 'sitIdle', 'sofaSit', 'talk', 'look', 'agree', 'celebrate', 'explain', 'angryTalk', 'facepalm']
 
 interface GltfJson {
   nodes?: { name?: string }[]

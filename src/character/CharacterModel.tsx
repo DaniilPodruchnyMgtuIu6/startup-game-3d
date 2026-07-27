@@ -61,10 +61,12 @@ const CLIP_FALLBACKS: Record<ClipName, ClipName[]> = {
   sofaSit: ['sitIdle', 'idle'],
   talk: ['idle'],
   look: ['idle'],
-  // 18C gesture clips degrade to plain talking on rigs without them
+  // 18C/18D gesture clips degrade to plain talking on rigs without them
   agree: ['talk', 'idle'],
   celebrate: ['talk', 'idle'],
   explain: ['talk', 'idle'],
+  angryTalk: ['talk', 'idle'],
+  facepalm: ['talk', 'idle'],
 }
 
 export function resolveClip(stateKind: string, available: ReadonlySet<string>, performClip?: ClipName): ClipName {

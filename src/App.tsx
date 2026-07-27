@@ -28,6 +28,7 @@ import { GameOverOverlay } from './ui/GameOverOverlay'
 import { MvpReleaseOverlay } from './ui/MvpReleaseOverlay'
 import { CampaignSuccessOverlay } from './ui/CampaignSuccessOverlay'
 import { NpcConversationPanel } from './ui/NpcConversationPanel'
+import { CinematicBars } from './ui/CinematicBars'
 import { useCutsceneStore } from './cutscenes/cutsceneStore'
 import { isIntroReset } from './game/gameStore'
 import { useGameOutcomeStore } from './game/gameOutcomeStore'
@@ -232,6 +233,7 @@ export function App() {
           <Vignette eskil={false} offset={0.1} darkness={0.6} />
         </EffectComposer>
       </Canvas>
+      <CinematicBars />
       <IntroOverlay />
       <DialoguePanel />
       <WhiteboardPanel />

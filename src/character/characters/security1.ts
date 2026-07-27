@@ -13,6 +13,7 @@ export const security1: CharacterDefinition = {
       walk: '/character/security_1/walk.glb',
       talk: '/character/security_1/talk.glb',
       look: '/character/security_1/look.glb',
+      angryTalk: '/character/security_1/angryTalk.glb',
     },
     walkPace: 1.6,
     walkLift: 0.011,

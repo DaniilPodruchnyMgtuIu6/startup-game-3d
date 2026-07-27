@@ -2327,3 +2327,31 @@ button.dialogue-choice {
   opacity: 0.5;
   cursor: default;
 }
+
+/* Feature 18D §8: letterbox bars during cinematics/cutscenes. Pointer-through,
+   slide in from the edges so the transition into a scene reads as a cut. */
+.cinematic-bars {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+}
+.cinematic-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 9vh;
+  background: #06090d;
+  transition: transform 0.55s ease;
+}
+.cinematic-bar--top {
+  top: 0;
+  transform: translateY(-100%);
+}
+.cinematic-bar--bottom {
+  bottom: 0;
+  transform: translateY(100%);
+}
+.cinematic-bars--active .cinematic-bar {
+  transform: translateY(0);
+}

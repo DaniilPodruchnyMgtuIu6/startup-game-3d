@@ -7,6 +7,7 @@ import { useGameStore } from '../game/gameStore'
 import { useSprintStore } from '../game/sprintStore'
 import { useSecurityStoryStore } from '../game/securityStoryStore'
 import { mapCutsceneChoiceToSecurityDecision, type SecurityBreachDecision } from '../game/securityStoryRules'
+import { playShot, playInsert, attachPerLineShots } from '../game/cinematics/cinematicDirector'
 import type { CutsceneScript, Point } from './types'
 
 // Preloaded at module load so the guards' GLTFs are already cached by the
@@ -35,6 +36,9 @@ const GUARD2_SPAWN: Point = [-5, 0, 6]
 const GUARD2_DESK_MARK: Point = [-2.8, 0, 5.4]
 
 const PLAYER_SEAT: Point = [9, 0, -7.53]
+// 18D: where the player rises to face the auditors - beside his chair, a
+// personal-space gap from both guard marks so the models never interpenetrate
+const PLAYER_STAND_MARK: Point = [9.0, 0, -7.35]
 const OFFICE_CAMERA_TARGET: Point = [9, 1.3, -7.53]
 const OFFICE_CAMERA_POSITION: Point = [12.5, 1.6, -6]
 const GUARD1_OFFICE_MARK: Point = [7.2, 0, -6.5]
@@ -121,6 +125,9 @@ async function runScene(director: Parameters<CutsceneScript>[0], { PLAYER_SHOCKE
   useCharacterStore.getState().markScreenUnlocked(PM_SEAT)
   await director.walk(femalePm.id, PM_AWAY_POINT)
 
+  // 18D §4 (тревога): INSERT of the fact of the scene - the unlocked monitor.
+  await playInsert([-1.9, 0.75, 4.75], { side: -1 })
+
   // Feature 16 §8: the guards are on urgent business — spawn them and give them
   // a faster-than-normal pace so they reach the office in ~4-6s, not ~15s.
   director.spawnModeledActor('guard1', GUARD1_SPAWN, security1)
@@ -132,18 +139,30 @@ async function runScene(director: Parameters<CutsceneScript>[0], { PLAYER_SHOCKE
   director.look('guard1', true)
   director.look('guard2', true)
 
+  // 18D: eye-level two-shot of the guards puzzling at the desk, then a cut to
+  // whichever guard speaks (short coverage - alarm scenes use tighter shots).
+  await playShot('two-shot', 'guard1', { partnerId: 'guard2', side: -1, durationMs: 900 })
+  const detachDesk = attachPerLineShots((line) => {
+    const guardId = line.speaker === security2.displayName ? 'guard2' : 'guard1'
+    void playShot('medium-close', guardId, { side: guardId === 'guard1' ? 1 : -1, durationMs: 700 })
+  })
   await director.say([
     { ...GUARD1_THINKING, text: 'Так, а тут у нас непорядок. Компьютер не заблокирован — ушла и оставила всё как есть.' },
     { ...GUARD2_THINKING, text: 'Если это дойдёт до руководства — влетит всему отделу. Идём к начальнику отдела, обсудим.' },
   ])
+  detachDesk()
 
   director.look('guard1', false)
   director.look('guard2', false)
 
   await director.sit(PLAYER_ID, { point: PLAYER_SEAT, facing: 0 }, 'seat')
 
+  // brief establishing of the office (the only high-ish angle allowed, §3)
   await director.camera(OFFICE_CAMERA_TARGET, { position: OFFICE_CAMERA_POSITION, durationMs: 700 })
   await Promise.all([director.walk('guard1', GUARD1_OFFICE_MARK), director.walk('guard2', GUARD2_OFFICE_MARK)])
+  // 18D: the player rises to face the auditors - a standing confrontation
+  // reads stronger and lets the facepalm land on the sad beat.
+  await director.walk(PLAYER_ID, PLAYER_STAND_MARK)
   director.face('guard1', PLAYER_ID)
   director.face('guard2', PLAYER_ID)
   director.face(PLAYER_ID, 'guard1')
@@ -153,7 +172,21 @@ async function runScene(director: Parameters<CutsceneScript>[0], { PLAYER_SHOCKE
   director.emotion('guard2', 'angry-controlled')
   director.emotion(PLAYER_ID, 'surprised')
   director.talk(PLAYER_ID, true)
-  director.talk('guard1', true)
+  // 18D: the lead auditor gets the Higgsfield angry-talk gesture clip
+  director.perform('guard1', 'angryTalk')
+
+  // 18D §4: per-line OTS/reaction coverage - camera cuts with the speakers
+  let confrontSide: 1 | -1 = 1
+  const detachConfront = attachPerLineShots((line) => {
+    confrontSide = confrontSide === 1 ? -1 : 1
+    if (line.speaker === security1.displayName) {
+      void playShot('over-the-shoulder', 'guard1', { partnerId: PLAYER_ID, side: confrontSide, durationMs: 800 })
+    } else if (line.speaker === security2.displayName) {
+      void playShot('over-the-shoulder', 'guard2', { partnerId: PLAYER_ID, side: confrontSide, durationMs: 800 })
+    } else {
+      void playShot('reaction', PLAYER_ID, { partnerId: 'guard1', side: confrontSide, durationMs: 800 })
+    }
+  })
 
   await director.say([
     {
@@ -164,6 +197,8 @@ async function runScene(director: Parameters<CutsceneScript>[0], { PLAYER_SHOCKE
     { ...PLAYER_SHOCKED, text: 'Что?! Оставила компьютер разблокированным средь бела дня?' },
   ])
   director.emotion(PLAYER_ID, 'sad')
+  // group shot before the responsibility choice (§4)
+  await playShot('two-shot', PLAYER_ID, { partnerId: 'guard1', side: -1, durationMs: 900 })
 
   // The choice is skipped when a decision was already recorded (e.g. a reload
   // after choosing), so the saved choice stays the single source of truth.
@@ -199,11 +234,18 @@ async function runScene(director: Parameters<CutsceneScript>[0], { PLAYER_SHOCKE
       ...GUARD2_ANGRY,
       text: 'В качестве меры — отдел обязан регулярно проводить курсы по безопасности для сотрудников. Мы это проконтролируем.',
     },
-    { ...PLAYER_SAD, text: 'Ладно... Проведём. Хотя не самая приятная новость под конец дня.' },
   ])
+  detachConfront()
+
+  // 18D: the bad-news beat - the player holds his head (Higgsfield facepalm
+  // clip) under a close-up before conceding.
+  director.perform(PLAYER_ID, 'facepalm')
+  await playShot('close-up', PLAYER_ID, { side: 1, durationMs: 700 })
+  await director.say([{ ...PLAYER_SAD, text: 'Ладно... Проведём. Хотя не самая приятная новость под конец дня.' }])
+  director.perform(PLAYER_ID, null)
 
   director.talk(PLAYER_ID, false)
-  director.talk('guard1', false)
+  director.perform('guard1', null)
   director.despawnActor('guard1')
   director.despawnActor('guard2')
 }

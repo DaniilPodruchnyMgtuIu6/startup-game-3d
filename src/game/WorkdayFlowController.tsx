@@ -42,6 +42,7 @@ import { hasSecuritySpecialist } from './teamRules'
 import { getCharacterById } from '../character/characters'
 import { femalePm } from '../character/characters/femalePm'
 import { ilyaVlasov } from '../character/characters/ilyaVlasov'
+import { beginConversationCinematic } from './cinematics/cinematicDirector'
 import '../ui/ui.css'
 
 // Feature 16 §2: the kickoff/beat content is built from the LIVE sprint plan.
@@ -233,6 +234,11 @@ export function WorkdayFlowController() {
     if (shouldOpenSprintKickoff(day, sprintNumber, useSprintStore.getState().kickoffShownForSprint)) {
       useSprintStore.getState().markSprintKickoffShown(sprintNumber)
       useGameStore.getState().startDialogue(buildSprintKickoffDialogue(buildKickoffContext()))
+      // 18D: the kickoff is one of the three reference cinematic scenes - the
+      // camera cuts to whoever speaks at eye level (tracking their live pose)
+      // and returns on close; the speakers' brains pause for the duration.
+      const presentTeam = Object.keys(useCharacterStore.getState().characters).filter((id) => id.startsWith('npc-'))
+      beginConversationCinematic({ autoEndOnDialogueClose: true, ownIds: presentTeam })
       return
     }
     // §8 priority: an ambient conversation must never play on top of a mandatory

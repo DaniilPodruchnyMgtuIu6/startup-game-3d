@@ -20,6 +20,7 @@ export const businessMan: CharacterDefinition = {
       agree: '/character/business_man/agree.glb',
       celebrate: '/character/business_man/celebrate.glb',
       explain: '/character/business_man/explain.glb',
+      facepalm: '/character/business_man/facepalm.glb',
     },
     walkPace: 1.33,
     walkLift: 0.011,

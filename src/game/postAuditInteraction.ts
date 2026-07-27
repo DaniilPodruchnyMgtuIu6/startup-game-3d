@@ -16,6 +16,7 @@ import {
 import { postAuditIntroLines, postAuditFinalLines, POST_AUDIT_CHOICES } from './postAuditDialogue'
 import { useStoryDecisionStore } from './story/storyDecisionStore'
 import { mapBaselineChoiceToStaffingDecision } from './story/storyDecisionRules'
+import { beginConversationCinematic } from './cinematics/cinematicDirector'
 
 // The non-React half of the post-audit conversation (Feature 06): pausing
 // Sonya's autonomous brain, sending the player to her, and running the scripted
@@ -122,41 +123,47 @@ export async function runPostAuditConversation(): Promise<void> {
   const chars = useCharacterStore.getState()
   chars.setInputLocked(true)
   startTalking()
+  // 18D: reference cinematic scene #2 - OTS/reverse coverage between the
+  // player and Sonya, close-ups on key lines, two-shot held for the choice.
+  const cinematic = beginConversationCinematic({ pairA: PLAYER_ID, pairB: SONYA })
   useSecurityStoryStore.getState().markPostAuditConversationRunning(currentMoment())
 
-  const branch = getPostAuditDialogueBranch(useSecurityStoryStore.getState().securityBreach.decision)
-  await say(postAuditIntroLines(branch))
+  try {
+    const branch = getPostAuditDialogueBranch(useSecurityStoryStore.getState().securityBreach.decision)
+    await say(postAuditIntroLines(branch))
 
-  // A decision saved before a mid-conversation reload is reused (spec §14): the
-  // choice is skipped and effects are never re-applied.
-  let decision: SecurityStaffingDecision | undefined =
-    useSecurityStoryStore.getState().postAuditConversation.staffingDecision
-  if (!decision) {
-    // Feature 17A §9: the staffing fork moved to the early baseline scene. When
-    // that scene already recorded the choice, this talk is a follow-up - Sonya
-    // does NOT ask the same question again; the recorded decision is applied
-    // (its legacy effects: branch task + decline risk signal) exactly once.
-    const baseline = useStoryDecisionStore.getState().decisions['security-baseline-path']
-    const recorded = baseline.status === 'resolved' ? baseline.selectedChoiceId : undefined
-    const mapped = recorded ? mapBaselineChoiceToStaffingDecision(recorded) : undefined
-    if (mapped) {
-      decision = mapped
-      useSecurityStoryStore.getState().resolveSecurityStaffingDecision(decision)
+    // A decision saved before a mid-conversation reload is reused (spec §14):
+    // the choice is skipped and effects are never re-applied.
+    let decision: SecurityStaffingDecision | undefined =
+      useSecurityStoryStore.getState().postAuditConversation.staffingDecision
+    if (!decision) {
+      // Feature 17A §9: the staffing fork moved to the early baseline scene.
+      // When that scene already recorded the choice, this talk is a follow-up -
+      // Sonya does NOT ask the same question again; the recorded decision is
+      // applied (its legacy effects: branch task + decline risk signal) once.
+      const baseline = useStoryDecisionStore.getState().decisions['security-baseline-path']
+      const recorded = baseline.status === 'resolved' ? baseline.selectedChoiceId : undefined
+      const mapped = recorded ? mapBaselineChoiceToStaffingDecision(recorded) : undefined
+      if (mapped) {
+        decision = mapped
+        useSecurityStoryStore.getState().resolveSecurityStaffingDecision(decision)
+      }
     }
-  }
-  if (!decision) {
-    const pick = await choose(POST_AUDIT_CHOICES)
-    decision = mapPostAuditChoiceToStaffingDecision(pick) ?? 'decline-security-hire'
-    useSecurityStoryStore.getState().resolveSecurityStaffingDecision(decision)
-    // Keep the story-decision record in sync when an old save takes the legacy
-    // fork (the baseline scene never existed for it) - no effects re-applied.
-    useStoryDecisionStore.getState().recordLegacyBaselineResolution(decision, currentMoment())
-  }
+    if (!decision) {
+      const pick = await choose(POST_AUDIT_CHOICES)
+      decision = mapPostAuditChoiceToStaffingDecision(pick) ?? 'decline-security-hire'
+      useSecurityStoryStore.getState().resolveSecurityStaffingDecision(decision)
+      // Keep the story-decision record in sync when an old save takes the
+      // legacy fork (the baseline scene never existed for it) - no re-apply.
+      useStoryDecisionStore.getState().recordLegacyBaselineResolution(decision, currentMoment())
+    }
 
-  await say(postAuditFinalLines(decision))
-  useSecurityStoryStore.getState().markPostAuditConversationCompleted(currentMoment())
-
-  endTalking()
-  resumePlanner()
-  useCharacterStore.getState().setInputLocked(false)
+    await say(postAuditFinalLines(decision))
+    useSecurityStoryStore.getState().markPostAuditConversationCompleted(currentMoment())
+  } finally {
+    await cinematic.end()
+    endTalking()
+    resumePlanner()
+    useCharacterStore.getState().setInputLocked(false)
+  }
 }

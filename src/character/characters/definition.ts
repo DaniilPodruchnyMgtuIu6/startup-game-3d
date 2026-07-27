@@ -11,16 +11,18 @@ export const CLIP_NAMES = [
   'sofaSit',
   'talk',
   'look',
-  // 18C: Higgsfield/Meshy actions retargeted onto the project rigs
+  // 18C/18D: Higgsfield/Meshy actions retargeted onto the project rigs
   // (tools/art/retargetMeshyClip.mjs) - dialogue and story gestures.
   'agree',
   'celebrate',
   'explain',
+  'angryTalk',
+  'facepalm',
 ] as const
 export type ClipName = (typeof CLIP_NAMES)[number]
 
 // Gesture clips a scene may play through the 'performing' state.
-export type PerformClip = 'agree' | 'celebrate' | 'explain'
+export type PerformClip = 'agree' | 'celebrate' | 'explain' | 'angryTalk' | 'facepalm'
 
 export interface CharacterModelConfig {
   // URL per animation clip. 'idle' is required - it is also the base file
