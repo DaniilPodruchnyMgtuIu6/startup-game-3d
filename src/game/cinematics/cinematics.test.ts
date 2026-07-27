@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeShot, eyePoint, type SubjectPose, type CinematicShotType } from './cinematicShots'
+import { computeShot, eyePoint, widestPairIndices, type SubjectPose, type CinematicShotType } from './cinematicShots'
 import { makeShotSafe, pickSafeShotSide, roomOf } from './cinematicSafety'
 import { KICKOFF_SLOTS } from './meetingSlots'
 import { BUILDING, ROOMS } from '../../scene/layout'
@@ -103,6 +103,25 @@ describe('camera safety (18D §5/§9)', () => {
         for (const v of [...safe.position, ...safe.target]) expect(Number.isFinite(v)).toBe(true)
       }
     }
+  })
+
+  it('the safe-wide group shot spans the two FARTHEST-APART kickoff participants (18H §6)', () => {
+    // With Sonya/player/Kirill/Alina on the real slots, first↔last of the
+    // cast order (Sonya↔Alina) are only ~1.3m apart - a two-shot on that
+    // narrow axis parks the camera 2.4m away with the mid-lane participants
+    // looming outside the frame. The widest pair pulls the camera back.
+    const present = KICKOFF_SLOTS.filter((s) => s.characterId !== 'npc-ilya-vlasov')
+    const positions = present.map((s) => s.position)
+    const [i, j] = widestPairIndices(positions)
+    const span = Math.hypot(positions[i][0] - positions[j][0], positions[i][2] - positions[j][2])
+    for (let a = 0; a < positions.length; a++) {
+      for (let b = a + 1; b < positions.length; b++) {
+        expect(span).toBeGreaterThanOrEqual(Math.hypot(positions[a][0] - positions[b][0], positions[a][2] - positions[b][2]))
+      }
+    }
+    // and the widest pair is genuinely wider than the old first↔last axis
+    const firstLast = Math.hypot(positions[0][0] - positions[positions.length - 1][0], positions[0][2] - positions[positions.length - 1][2])
+    expect(span).toBeGreaterThan(firstLast)
   })
 
   it('picks the two-shot side that backs into open floor, not the whiteboard wall (18H §3/§6)', () => {

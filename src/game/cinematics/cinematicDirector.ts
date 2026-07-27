@@ -12,7 +12,7 @@ import { useCharacterStore, PLAYER_ID } from '../../character/characterStore'
 import { CHARACTERS, DEVELOPER_CHARACTERS, SPECIALIST_CHARACTERS, PLAYER_CHARACTER } from '../../character/characters'
 import { usePerformanceStore } from '../../character/performance/performanceStore'
 import { enterCutsceneCamera, exitCutsceneCamera, flyTo, useCutsceneCameraStore } from '../../scene/camera/cameraController'
-import { computeShot, eyePoint, type CinematicShotType, type ShotFrame, type SubjectPose } from './cinematicShots'
+import { computeShot, eyePoint, widestPairIndices, type CinematicShotType, type ShotFrame, type SubjectPose } from './cinematicShots'
 import { makeShotSafe, pickSafeShotSide } from './cinematicSafety'
 import { WHITEBOARD_POSITION } from '../../scene/whiteboardSpot'
 import { pickDialoguePanelSide, projectHeadsForShot, type DialoguePanelSide } from './dialogueSafeArea'
@@ -206,8 +206,10 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
     useCinematicStore.setState({ panelSide: pickDialoguePanelSide(projected) })
   }
 
-  // §6: the mandatory safe-wide-group shot - a two-shot spanning the first and
-  // last PRESENT participants of the gathered semicircle covers everyone.
+  // §6: the mandatory safe-wide-group shot - a two-shot spanning the two
+  // FARTHEST-APART present participants: everyone else stands between them,
+  // so the frame shows the whole cast, and the wider axis pulls the camera
+  // further back (two-shot distance scales with the pair separation).
   // The side is CHOSEN per §3/§6 sightline safety, not fixed: the semicircle
   // stands against the whiteboard wall, and the fixed side=1 perpendicular
   // dove into that wall - the clamped camera settled 0.45m from the plaster
@@ -215,11 +217,11 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
   const aimSafeWideGroup = (): Promise<void> => {
     const group = presentGroup()
     if (group.length >= 2) {
-      const a = subjectOf(group[0])!
-      const b = subjectOf(group[group.length - 1])
-      const side = pickSafeShotSide('two-shot', a, { partner: b, durationMs: 1100 })
-      applySafeArea('two-shot', group[0], { partnerId: group[group.length - 1], side, durationMs: 1100 }, group)
-      return playShot('two-shot', group[0], { partnerId: group[group.length - 1], side, durationMs: 1100 })
+      const subjects = group.map((id) => subjectOf(id)!)
+      const [i, j] = widestPairIndices(subjects.map((s) => s.position))
+      const side = pickSafeShotSide('two-shot', subjects[i], { partner: subjects[j], durationMs: 1100 })
+      applySafeArea('two-shot', group[i], { partnerId: group[j], side, durationMs: 1100 }, group)
+      return playShot('two-shot', group[i], { partnerId: group[j], side, durationMs: 1100 })
     }
     if (group.length === 1) {
       applySafeArea('medium', group[0], { side: 1, durationMs: 1000 }, group)

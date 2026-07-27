@@ -63,6 +63,26 @@ function orbitPoint(subject: SubjectPose, distance: number, azimuthOffset: numbe
   return [x + Math.sin(yaw) * distance, height, z + Math.cos(yaw) * distance]
 }
 
+// 18H §6: the safe-wide group shot must show EVERY present participant - a
+// two-shot spanning the two farthest-apart members covers the whole group
+// (everyone else stands between them), and the wider axis pushes the camera
+// further back (distance scales with the pair separation). Pure; ties keep
+// the earliest pair, so the result is deterministic for a fixed cast order.
+export function widestPairIndices(positions: Point[]): [number, number] {
+  let best: [number, number] = [0, positions.length - 1]
+  let bestDistance = -1
+  for (let i = 0; i < positions.length; i++) {
+    for (let j = i + 1; j < positions.length; j++) {
+      const distance = Math.hypot(positions[i][0] - positions[j][0], positions[i][2] - positions[j][2])
+      if (distance > bestDistance) {
+        bestDistance = distance
+        best = [i, j]
+      }
+    }
+  }
+  return best
+}
+
 export interface ShotOptions {
   // The conversation partner: OTS/two-shot frames need both people.
   partner?: SubjectPose
