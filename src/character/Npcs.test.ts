@@ -1,15 +1,30 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import { ambientGate, useNpcBrain } from './Npcs'
+import { ambientGate, useNpcBrain, npcActivityPools } from './Npcs'
 import { createAmbientHistory, recordActivityStart, wasJustDone } from './ambientActivityHistory'
 import { createRng } from './npcBehavior'
 import { AMBIENT_OFFICE_BALANCE } from '../game/balance'
 import { useCharacterStore } from './characterStore'
 import { useGameStore } from '../game/gameStore'
+import { registerInteraction, targetKey } from '../interaction/interactionRegistry'
 import type { ActivityPlan, ActivityPlanner } from './npcBehavior'
 
 const PULL_UP: ActivityPlan = { kind: 'pull-up-bar', stayMs: 9000 }
 const WORK: ActivityPlan = { kind: 'work', stayMs: 30000 }
+
+describe('npcActivityPools: the CEO chair stays player-only (Feature 16 §7 / 18H §22.16)', () => {
+  it('a registered exec-seat never appears in any pool an NPC brain samples from', () => {
+    const execSeat = { point: [9.9, 0, 9.9] as [number, number, number], facing: 0 }
+    const unregister = registerInteraction('exec-seat', execSeat)
+    try {
+      const pools = npcActivityPools('npc-female-pm')
+      const sampled = Object.values(pools).flat()
+      expect(sampled.some((target) => targetKey(target) === targetKey(execSeat))).toBe(false)
+    } finally {
+      unregister()
+    }
+  })
+})
 
 describe('ambientGate (18H §15/§16)', () => {
   it('passes core activities through untouched, even with an exhausted history', () => {

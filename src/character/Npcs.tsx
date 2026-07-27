@@ -61,6 +61,20 @@ function freeTargets(kind: Parameters<typeof getInteractions>[0], ownerId: strin
     .filter((target) => isTargetFree(target, ownerId))
 }
 
+// The full set of interaction pools an NPC brain may sample from. Exported so
+// the §22.16 regression test can pin the CEO-chair rule at the policy source:
+// 'exec-seat' (and 'server', 'ping-pong' - matchmade separately) must NEVER
+// appear here, whatever furniture is registered.
+export function npcActivityPools(ownerId: string) {
+  return {
+    workstations: freeTargets('workstation', ownerId),
+    coffeeMachines: freeTargets('coffee', ownerId),
+    sofas: freeTargets('sofa', ownerId),
+    seats: freeTargets('seat', ownerId),
+    pullUpBars: freeTargets('pull-up-bar', ownerId),
+  }
+}
+
 // The default brain is the seeded random office-life planner; a character
 // definition may override npc.planActivity (e.g. a DeepSeek agent fed with
 // the character's persona) - planners may be async. Exported for its own
@@ -129,11 +143,7 @@ export function useNpcBrain(id: string, planActivity: ActivityPlanner = planNext
     const timer = setTimeout(() => {
       void (async () => {
         const rawPlan = await planActivity(rng, {
-          workstations: freeTargets('workstation', id),
-          coffeeMachines: freeTargets('coffee', id),
-          sofas: freeTargets('sofa', id),
-          seats: freeTargets('seat', id),
-          pullUpBars: freeTargets('pull-up-bar', id),
+          ...npcActivityPools(id),
           previousKind: planRef.current?.kind,
           previousTargetKey: planRef.current?.target ? targetKey(planRef.current.target) : undefined,
         })
