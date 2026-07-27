@@ -12,13 +12,16 @@ export interface QualityPreset {
   bloom: boolean
   vignette: boolean
   shadows: boolean
+  // 18G §4: the per-frame NPC performance layer (breathing/gaze/nods/emotion
+  // bone poses) - the one per-character CPU cost worth shedding on low.
+  npcPerformance: boolean
 }
 
 export const QUALITY_PRESETS: Record<QualityTier, QualityPreset> = {
-  low: { dprMax: 1, ao: false, bloom: false, vignette: false, shadows: false },
-  medium: { dprMax: 1.25, ao: false, bloom: true, vignette: true, shadows: true },
-  high: { dprMax: 1.5, ao: true, bloom: true, vignette: true, shadows: true },
-  cinematic: { dprMax: 2, ao: true, bloom: true, vignette: true, shadows: true },
+  low: { dprMax: 1, ao: false, bloom: false, vignette: false, shadows: false, npcPerformance: false },
+  medium: { dprMax: 1.25, ao: false, bloom: true, vignette: true, shadows: true, npcPerformance: true },
+  high: { dprMax: 1.5, ao: true, bloom: true, vignette: true, shadows: true, npcPerformance: true },
+  cinematic: { dprMax: 2, ao: true, bloom: true, vignette: true, shadows: true, npcPerformance: true },
 }
 
 interface QualityState {

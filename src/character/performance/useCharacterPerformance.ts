@@ -14,6 +14,7 @@ import { useCharacterStore } from '../characterStore'
 import { useNpcAmbientStore } from '../../game/npcAmbientStore'
 import { NPC_CHARACTER_ID, type NpcId } from '../../game/npcChatTypes'
 import { usePerformanceStore } from './performanceStore'
+import { useQualityStore, QUALITY_PRESETS } from '../../scene/qualityStore'
 import { EMOTION_POSES } from './characterEmotion'
 import { gazeAnglesToward, EYE_HEIGHT_SEATED, EYE_HEIGHT_STANDING } from './gaze'
 
@@ -63,6 +64,8 @@ export function useCharacterPerformance(characterId: string, root: Object3D) {
   }, [root])
 
   useFrame(({ clock }, delta) => {
+    // 18G §4: the low tier sheds this whole per-frame layer (mixer poses stay)
+    if (!QUALITY_PRESETS[useQualityStore.getState().tier].npcPerformance) return
     const t = clock.elapsedTime
     const k = 1 - Math.exp(-delta * 6) // damping toward targets
     const store = useCharacterStore.getState()
