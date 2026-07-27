@@ -10,4 +10,4 @@
 - Характер в кадре: современная frontend-выразительность, внимательна к деталям.
 - Запрещено менять: лицо, цвет и форму волос, кардиган, пропорции.
 - Эталон identity: public/dialogue_pictures/alina_belova/alina_neutral.jpg.
-- 3D-модель: public/character/alina_belova (54 871 tris, 111 костей, 0 morphs).
+- 3D-модель: public/character/alina_belova — identity-точная (Higgsfield multi_image_to_3d, 24 кости Meshy-рига; клипы ретаргетированы из Mixamo-набора).

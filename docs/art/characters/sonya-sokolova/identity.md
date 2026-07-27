@@ -10,4 +10,4 @@
 - Характер в кадре: управленческая собранность, тёплая, но требовательная.
 - Запрещено менять: лицо, причёску, цвет волос, костюм, пропорции.
 - Эталон identity: public/dialogue_pictures/prodact_manager/pm.jpeg (+ pm_worried.jpg).
-- 3D-модель: public/character/female_pm (50 757 tris, 131 кость, 0 morphs).
+- 3D-модель: public/character/female_pm — identity-точная (Higgsfield multi_image_to_3d, 46 112 tris, 24 кости Meshy-рига, 0 morphs; клипы ретаргетированы из Mixamo-набора).

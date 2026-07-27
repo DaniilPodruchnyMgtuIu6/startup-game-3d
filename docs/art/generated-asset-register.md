@@ -26,6 +26,9 @@ Production-код ссылается только на approved/integrated. Се
 | storyboard-sprint-kickoff | Higgsfield MCP / nano_banana_2 | docs/art/cinematics/sprint-kickoff/higgsfield-prompts.md | approved (reference-only) | Higgsfield generation (проект) | — docs/art/cinematics/sprint-kickoff/ |
 | storyboard-audit-or-ilya-choice | Higgsfield MCP / nano_banana_2 | docs/art/cinematics/audit-or-ilya-choice/higgsfield-prompts.md | approved (reference-only) | Higgsfield generation (проект) | — docs/art/cinematics/audit-or-ilya-choice/ |
 | storyboard-security-breach | Higgsfield MCP / nano_banana_2 | docs/art/cinematics/security-breach/higgsfield-prompts.md | approved (reference-only) | Higgsfield generation (проект) | — docs/art/cinematics/security-breach/ |
+| model-sonya-v2 (+12 ретаргет-клипов) | Higgsfield MCP / multi_image_to_3d (Meshy) + importHiggsfieldModel | assets/source/prompts/character-models-v2.md | integrated | Higgsfield generation (проект) | public/character/female_pm/ |
+| model-alina-v2 (+11 ретаргет-клипов) | Higgsfield MCP / multi_image_to_3d (Meshy) + importHiggsfieldModel | assets/source/prompts/character-models-v2.md | integrated | Higgsfield generation (проект) | public/character/alina_belova/ |
+| moodboards-environment ×8 (зоны + alert/success/failure) | Higgsfield MCP / nano_banana_2 | docs/art/references/environment/ | approved (reference-only) | Higgsfield generation (проект) | — docs/art/references/environment/ |
 
 Наследованные до-реестровые генерации (эталоны стиля, приняты ранее):
 `public/dialogue_pictures/prodact_manager/pm.jpeg`, `boss/*.jpeg`,
