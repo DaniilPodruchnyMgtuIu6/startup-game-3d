@@ -2381,3 +2381,18 @@ button.dialogue-choice {
   max-height: 10vh;
   overflow-y: auto;
 }
+
+/* 18H §8: layout variation - the Cinematic Director projects the current
+   shot's cast heads into screen space every line and only shifts the panel
+   off center when it would otherwise sit under someone's head (see
+   dialogueSafeArea.ts). Higher specificity than the base .dialogue-panel
+   centering rule so it actually wins. */
+.dialogue-panel--cinematic.dialogue-panel--left {
+  left: 6vw;
+  transform: none;
+}
+.dialogue-panel--cinematic.dialogue-panel--right {
+  left: auto;
+  right: 6vw;
+  transform: none;
+}

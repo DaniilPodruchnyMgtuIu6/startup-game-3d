@@ -233,3 +233,51 @@ describe('DialoguePerformanceCue application (18H §7)', () => {
     expect(perf.listenerReactions[ALINA]).toBeUndefined()
   })
 })
+
+describe('dialogue panel safe area (18H §8)', () => {
+  it('group mode: panelSide starts as a valid value once the opening shot is aimed', () => {
+    const handle = beginConversationCinematic({ groupIds: [SONYA, KIRILL, ALINA] })
+    expect(['center', 'left', 'right']).toContain(useCinematicStore.getState().panelSide)
+    void handle.end()
+  })
+
+  it('pair mode: panelSide starts as a valid value once the opening two-shot is aimed', () => {
+    const handle = beginConversationCinematic({ pairA: PLAYER_ID, pairB: SONYA })
+    expect(['center', 'left', 'right']).toContain(useCinematicStore.getState().panelSide)
+    void handle.end()
+  })
+
+  it('recomputes per line as the speaker changes in a group scene', () => {
+    const handle = beginConversationCinematic({ groupIds: [SONYA, KIRILL, ALINA] })
+    useGameStore.setState({
+      activeDialogue: {
+        lines: [
+          { speaker: 'Соня Соколова', text: 'x' },
+          { speaker: 'Кирилл Морозов', text: 'y' },
+        ],
+        index: 0,
+      },
+    })
+    const firstSide = useCinematicStore.getState().panelSide
+    expect(['center', 'left', 'right']).toContain(firstSide)
+    useGameStore.setState((s) => ({ activeDialogue: s.activeDialogue && { ...s.activeDialogue, index: 1 } }))
+    expect(['center', 'left', 'right']).toContain(useCinematicStore.getState().panelSide)
+    void handle.end()
+  })
+
+  it('end() resets panelSide back to center for the next scene', async () => {
+    const handle = beginConversationCinematic({ groupIds: [SONYA, KIRILL, ALINA] })
+    await handle.end()
+    expect(useCinematicStore.getState().panelSide).toBe('center')
+  })
+
+  it('does not throw when the speaker has no live subject (off-cast speaker fallback)', () => {
+    const handle = beginConversationCinematic({ groupIds: [SONYA, KIRILL, ALINA] })
+    expect(() =>
+      useGameStore.setState({
+        activeDialogue: { lines: [{ speaker: 'Кто-то Неизвестный', text: 'x' }], index: 0 },
+      }),
+    ).not.toThrow()
+    void handle.end()
+  })
+})

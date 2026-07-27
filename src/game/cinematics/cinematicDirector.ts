@@ -12,12 +12,19 @@ import { useCharacterStore, PLAYER_ID } from '../../character/characterStore'
 import { CHARACTERS, DEVELOPER_CHARACTERS, SPECIALIST_CHARACTERS, PLAYER_CHARACTER } from '../../character/characters'
 import { usePerformanceStore } from '../../character/performance/performanceStore'
 import { enterCutsceneCamera, exitCutsceneCamera, flyTo, useCutsceneCameraStore } from '../../scene/camera/cameraController'
-import { computeShot, type CinematicShotType, type ShotFrame, type SubjectPose } from './cinematicShots'
+import { computeShot, eyePoint, type CinematicShotType, type ShotFrame, type SubjectPose } from './cinematicShots'
 import { makeShotSafe } from './cinematicSafety'
 import { WHITEBOARD_POSITION } from '../../scene/whiteboardSpot'
+import { pickDialoguePanelSide, projectHeadsForShot, type DialoguePanelSide } from './dialogueSafeArea'
 
 // HUD/letterbox flag (§8): SprintHud hides and CinematicBars show while true.
-export const useCinematicStore = create<{ active: boolean }>()(() => ({ active: false }))
+// panelSide (§8): which side the dialogue panel renders on for the CURRENT
+// shot - shifted away from 'center' only when a cast member's head would
+// otherwise sit under it. DialoguePanel.tsx reads this directly.
+export const useCinematicStore = create<{ active: boolean; panelSide: DialoguePanelSide }>()(() => ({
+  active: false,
+  panelSide: 'center',
+}))
 
 const SEATED_KINDS = new Set(['sittingDown', 'working', 'sittingIdle', 'sofaSitting'])
 
@@ -116,6 +123,14 @@ const TRACK_INTERVAL_MS = 450
 // line indefinitely on a frame-rate-dependent convergence check.
 const READY_TIMEOUT_MS = 3500
 
+// §8: aspect ratio drives how head projections map to screen fractions, so
+// the safe area actually accounts for the real browser viewport rather than
+// an assumed ratio. Falls back to 16:9 outside a browser (tests).
+function currentAspect(): number {
+  if (typeof window === 'undefined' || !window.innerHeight) return 16 / 9
+  return window.innerWidth / window.innerHeight
+}
+
 // Exported for its own focused unit test (cinematicDirector.test.ts) - the
 // real call sites below are hard to force into a "never resolves" state
 // without a live camera-controls rig, which jsdom doesn't have.
@@ -161,12 +176,40 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
 
   const presentGroup = () => (options.groupIds ?? []).filter((id) => subjectOf(id))
 
+  // §8: recompute which side the dialogue panel renders on for the shot
+  // about to play, from the SAME frame the shot itself will use - so the
+  // decision reflects where heads will actually end up once the cut lands,
+  // not the mid-transition camera.
+  const applySafeArea = (
+    type: CinematicShotType,
+    subjectId: string,
+    opts: { partnerId?: string; side?: 1 | -1; durationMs?: number },
+    headIds: string[],
+  ) => {
+    const subject = subjectOf(subjectId)
+    if (!subject) return
+    const partner = opts.partnerId ? subjectOf(opts.partnerId) : undefined
+    const frame = makeShotSafe(computeShot(type, subject, { partner, side: opts.side, durationMs: opts.durationMs }))
+    const heads = headIds
+      .map((id) => subjectOf(id))
+      .filter((s): s is SubjectPose => !!s)
+      .map(eyePoint)
+    const projected = projectHeadsForShot(frame.position, frame.target, currentAspect(), heads)
+    useCinematicStore.setState({ panelSide: pickDialoguePanelSide(projected) })
+  }
+
   // §6: the mandatory safe-wide-group shot - a two-shot spanning the first and
   // last PRESENT participants of the gathered semicircle covers everyone.
   const aimSafeWideGroup = (): Promise<void> => {
     const group = presentGroup()
-    if (group.length >= 2) return playShot('two-shot', group[0], { partnerId: group[group.length - 1], side: 1, durationMs: 1100 })
-    if (group.length === 1) return playShot('medium', group[0], { side: 1, durationMs: 1000 })
+    if (group.length >= 2) {
+      applySafeArea('two-shot', group[0], { partnerId: group[group.length - 1], side: 1, durationMs: 1100 }, group)
+      return playShot('two-shot', group[0], { partnerId: group[group.length - 1], side: 1, durationMs: 1100 })
+    }
+    if (group.length === 1) {
+      applySafeArea('medium', group[0], { side: 1, durationMs: 1000 }, group)
+      return playShot('medium', group[0], { side: 1, durationMs: 1000 })
+    }
     return Promise.resolve()
   }
 
@@ -233,9 +276,12 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
       const shotSide = side
       // group grammar: open wide, single the speaker, re-establish every 4th
       const wide = index === 0 || index % 4 === 3
-      currentAim = wide
-        ? () => void aimSafeWideGroup()
-        : () => void playShot('medium-close', speakerId, { side: shotSide, durationMs: 850 })
+      if (wide) {
+        currentAim = () => void aimSafeWideGroup()
+      } else {
+        applySafeArea('medium-close', speakerId, { side: shotSide, durationMs: 850 }, presentGroup())
+        currentAim = () => void playShot('medium-close', speakerId, { side: shotSide, durationMs: 850 })
+      }
       currentAim()
       return
     }
@@ -252,7 +298,9 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
     } else {
       type = index === 0 ? 'medium' : 'medium-close'
     }
-    currentAim = () => void playShot(type, speakerId, { partnerId, side: shotSide, durationMs: type === 'two-shot' ? 1100 : 850 })
+    const shotOpts = { partnerId, side: shotSide, durationMs: type === 'two-shot' ? 1100 : 850 }
+    applySafeArea(type, speakerId, shotOpts, partnerId ? [speakerId, partnerId] : [speakerId])
+    currentAim = () => void playShot(type, speakerId, shotOpts)
     currentAim()
   }
 
@@ -293,7 +341,7 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
       useCharacterStore.getState().setSceneOwned(next)
     }
     exitCutsceneCamera()
-    useCinematicStore.setState({ active: false })
+    useCinematicStore.setState({ active: false, panelSide: 'center' })
   }
 
   // §5: the opening shot is AWAITED - `ready` resolves once the camera has
@@ -306,6 +354,7 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
     ready = withReadyTimeout(aimSafeWideGroup())
     currentAim = () => void aimSafeWideGroup()
   } else if (options.pairA && options.pairB) {
+    applySafeArea('two-shot', options.pairA, { partnerId: options.pairB, side, durationMs: 1100 }, [options.pairA, options.pairB])
     ready = withReadyTimeout(playShot('two-shot', options.pairA, { partnerId: options.pairB, side, durationMs: 1100 }))
     currentAim = () => void playShot('two-shot', options.pairA!, { partnerId: options.pairB, side, durationMs: 1100 })
   } else {
