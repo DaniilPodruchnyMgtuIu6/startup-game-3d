@@ -7,6 +7,11 @@ import { attachHoverOutline } from './hoverOutline'
 
 export interface InteractionTriggerProps {
   position?: [number, number, number]
+  // The trigger's forward (+z after this rotation) IS the facing a character
+  // adopts on arrival (computeTriggerPayload) - rotate the trigger when the
+  // character must face a different way than the furniture group's forward
+  // (e.g. ping-pong sides face the table, the pull-up approach faces the bar).
+  rotation?: [number, number, number]
   size?: [number, number, number]
   onTrigger?: (target: TriggerTarget) => void
   // When given, the trigger also announces itself in the interaction registry
@@ -16,6 +21,7 @@ export interface InteractionTriggerProps {
 
 export function InteractionTrigger({
   position = [0, 0, 0],
+  rotation = [0, 0, 0],
   size = [0.7, 0.6, 0.7],
   onTrigger,
   kind,
@@ -51,6 +57,7 @@ export function InteractionTrigger({
     <mesh
       ref={mesh}
       position={position}
+      rotation={rotation}
       onClick={handleClick}
       onPointerOver={() => {
         document.body.style.cursor = 'pointer'

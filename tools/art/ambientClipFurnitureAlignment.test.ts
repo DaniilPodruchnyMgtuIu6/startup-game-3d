@@ -67,19 +67,35 @@ const vrot = (q: Quat, v: number[]): number[] => {
   return [v[0] + 2 * (s * c1[0] + c2[0]), v[1] + 2 * (s * c1[1] + c2[1]), v[2] + 2 * (s * c1[2] + c2[2])]
 }
 
-function meanHandHeightAtLastFrame(file: string): number {
+// FK-sample the clip at an arbitrary time (linear interpolation between
+// keyframes) and return hand/hips world positions. `fraction` is 0..1 of the
+// clip duration; 1 = last frame.
+function poseAtFraction(file: string, fraction: number): { handY: number; handZ: number; hipsY: number } {
   const { json, bin } = readGlb(file)
   const nodes = json.nodes
   const parent = new Array(nodes.length).fill(-1)
   nodes.forEach((n, i) => (n.children ?? []).forEach((c) => (parent[c] = i)))
   const anim = json.animations[0]
+  const channels = anim.channels.map((ch) => ({
+    node: ch.target.node,
+    path: ch.target.path,
+    times: readFloats(json, bin, anim.samplers[ch.sampler].input) as number[],
+    values: readFloats(json, bin, anim.samplers[ch.sampler].output) as number[][],
+  }))
+  const duration = Math.max(...channels.map((c) => c.times[c.times.length - 1]))
+  const time = duration * fraction
+  const lerp = (a: number[], b: number[], t: number) => a.map((v, i) => v + (b[i] - v) * t)
   const localRot: Quat[] = nodes.map((n) => (n.rotation as Quat) ?? [0, 0, 0, 1])
   const localTra: number[][] = nodes.map((n) => n.translation ?? [0, 0, 0])
-  for (const ch of anim.channels) {
-    const values = readFloats(json, bin, anim.samplers[ch.sampler].output) as number[][]
-    const last = values[values.length - 1]
-    if (ch.target.path === 'rotation') localRot[ch.target.node] = last as Quat
-    if (ch.target.path === 'translation') localTra[ch.target.node] = last
+  for (const ch of channels) {
+    let i = ch.times.findIndex((t) => t >= time)
+    if (i === -1) i = ch.times.length - 1
+    const prev = Math.max(0, i - 1)
+    const span = ch.times[i] - ch.times[prev] || 1
+    const f = Math.max(0, Math.min(1, (time - ch.times[prev]) / span))
+    const v = lerp(ch.values[prev], ch.values[i], f)
+    if (ch.path === 'rotation') localRot[ch.node] = v as Quat
+    if (ch.path === 'translation') localTra[ch.node] = v
   }
   const worldP: number[][] = new Array(nodes.length)
   const worldR: Quat[] = new Array(nodes.length)
@@ -104,16 +120,47 @@ function meanHandHeightAtLastFrame(file: string): number {
   const findBone = (suffix: string) => nodes.findIndex((n) => n.name === suffix || n.name?.endsWith(':' + suffix))
   const li = findBone('LeftHand')
   const ri = findBone('RightHand')
-  return (worldP[li][1] + worldP[ri][1]) / 2
+  const hips = findBone('Hips')
+  return {
+    handY: (worldP[li][1] + worldP[ri][1]) / 2,
+    handZ: (worldP[li][2] + worldP[ri][2]) / 2,
+    hipsY: worldP[hips][1],
+  }
 }
+
+// The character stands 0.9m in front of the crossbar plane (PullUpBar.tsx's
+// trigger / PULL_UP_BAR_ANCHORS.approach) facing it - the clip's forward
+// travel is ramp-normalized (normalizeClipForwardTravel.mjs) so the hands
+// end exactly over the bar.
+const TARGET_HAND_Z = 0.9
+const Z_TOLERANCE_M = 0.07
+// The procedural rep window (CharacterModel's PULLUP_REP_*): scrubbing
+// between these clip fractions must give a real pull-up - hands pinned near
+// the bar at BOTH ends of the window, hips visibly higher at the top.
+const REP_TOP_FRACTION = 0.5
+const REP_BOTTOM_FRACTION = 0.75
+const REP_MIN_RISE_M = 0.15
+const REP_HAND_TOLERANCE_M = 0.12
 
 describe('pullUp clip hand contact matches the real pull-up bar (18H Wave 3)', () => {
   for (const character of TEAM) {
     const file = join(ROOT, 'public', 'character', character, 'pullUp.glb')
     it(`${character}: both hands land within ${TOLERANCE_M}m of the bar (y=${TARGET_HAND_Y})`, () => {
       expect(existsSync(file), file).toBe(true)
-      const handY = meanHandHeightAtLastFrame(file)
+      const { handY, handZ } = poseAtFraction(file, 1)
       expect(Math.abs(handY - TARGET_HAND_Y), `${character} hand y=${handY.toFixed(3)}`).toBeLessThan(TOLERANCE_M)
+      // horizontal contact: the jump must actually REACH the bar plane - the
+      // original retarget stopped 0.35-0.55m short and the character hung in
+      // mid-air in front of the bar
+      expect(Math.abs(handZ - TARGET_HAND_Z), `${character} hand z=${handZ.toFixed(3)}`).toBeLessThan(Z_TOLERANCE_M)
+    })
+
+    it(`${character}: the rep-scrub window is a real pull-up (hands on bar, hips rise >=${REP_MIN_RISE_M}m)`, () => {
+      const top = poseAtFraction(file, REP_TOP_FRACTION)
+      const bottom = poseAtFraction(file, REP_BOTTOM_FRACTION)
+      expect(Math.abs(top.handY - TARGET_HAND_Y), `top hand y=${top.handY.toFixed(3)}`).toBeLessThan(REP_HAND_TOLERANCE_M)
+      expect(Math.abs(bottom.handY - TARGET_HAND_Y), `bottom hand y=${bottom.handY.toFixed(3)}`).toBeLessThan(REP_HAND_TOLERANCE_M)
+      expect(top.hipsY - bottom.hipsY, `rise=${(top.hipsY - bottom.hipsY).toFixed(3)}`).toBeGreaterThanOrEqual(REP_MIN_RISE_M)
     })
   }
 })

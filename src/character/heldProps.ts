@@ -17,15 +17,20 @@ export function buildHeldMug(): Group {
 }
 
 // 18H Wave 3: the ping-pong paddle - no Higgsfield generation, same reasoning
-// as the mug (a simple held prop doesn't need a generated asset). Blade faces
-// the player's forward swing plane; local +x is "toward the ball".
+// as the mug (a simple held prop doesn't need a generated asset). Handle runs
+// along local +x (the finger axis of the hand bone it attaches to); the BLADE
+// disc lies in the handle's plane with its face normal on ±z - the original
+// build rotated the disc's axis onto +x, which capped the handle end-on like
+// a plunger instead of continuing it as a blade (the "криво держат ракетку"
+// defect: no orientation reads as a proper grip when the blade itself is
+// perpendicular to the handle).
 export function buildHeldPaddle(): Group {
   const group = new Group()
   const rubber = new MeshStandardMaterial({ color: '#c23b3b', roughness: 0.6, metalness: 0 })
   const wood = new MeshStandardMaterial({ color: '#caa06a', roughness: 0.7, metalness: 0 })
 
   const blade = new Mesh(new CylinderGeometry(0.075, 0.075, 0.01, 20), rubber)
-  blade.rotation.z = Math.PI / 2
+  blade.rotation.x = Math.PI / 2 // disc face normal on ±z: blade plane CONTAINS the handle axis
   blade.position.x = 0.11
 
   const handle = new Mesh(new CylinderGeometry(0.015, 0.018, 0.09, 12), wood)

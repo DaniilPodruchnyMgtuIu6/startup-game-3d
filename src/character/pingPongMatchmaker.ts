@@ -8,8 +8,9 @@ import { useEffect, useRef } from 'react'
 import { useCharacterStore, PLAYER_ID } from './characterStore'
 import { useGameStore } from '../game/gameStore'
 import { useGameOutcomeStore } from '../game/gameOutcomeStore'
-import { getInteractions } from '../interaction/interactionRegistry'
+import { getInteractions, isTargetFree, claimTarget, targetKey } from '../interaction/interactionRegistry'
 import { tryReservePairActivity, releasePairActivity } from '../interaction/pairActivityReservation'
+import { usePingPongRallyStore } from './pingPongRallyStore'
 import { AMBIENT_OFFICE_BALANCE } from '../game/balance'
 
 const CHECK_INTERVAL_MS = 5000
@@ -36,6 +37,89 @@ export function usePingPongMatchmaker(rng: () => number = Math.random): void {
   const activeRef = useRef(false)
 
   useEffect(() => {
+    // Shared rally lifecycle (§17): arrival barrier -> ball + hold duration ->
+    // idempotent cleanup. Both participants are already claimed and walking
+    // when this is called. The live-watch ends the rally the moment EITHER
+    // participant leaves the table early (the player walks away, an NPC gets
+    // pulled into a story scene) - no ball bouncing over an empty side.
+    const runRally = (a: string, b: string) => {
+      activeRef.current = true
+      let finished = false
+      let unsubscribeLive: (() => void) | null = null
+      const finish = () => {
+        if (finished) return
+        finished = true
+        unsubscribeLive?.()
+        const latest = useCharacterStore.getState()
+        if (latest.characters[a]?.state.kind === 'performing') latest.dispatchTo(a, { type: 'PERFORM_END' })
+        if (latest.characters[b]?.state.kind === 'performing') latest.dispatchTo(b, { type: 'PERFORM_END' })
+        releasePairActivity(a, b)
+        usePingPongRallyStore.getState().end()
+        activeRef.current = false
+      }
+
+      // Hold duration only starts once BOTH have actually arrived - the same
+      // reasoning as the group-scene camera-ready barrier (18H §5): a rally
+      // that starts counting down while someone is still walking there
+      // shortchanges the activity by however long the walk took.
+      const arrivalTimeout = setTimeout(() => {
+        unsubscribeArrival()
+        finish()
+      }, ARRIVAL_TIMEOUT_MS)
+      const performing = (id: string) => useCharacterStore.getState().characters[id]?.state.kind === 'performing'
+      const unsubscribeArrival = useCharacterStore.subscribe(() => {
+        if (finished) return
+        if (!performing(a) || !performing(b)) return
+        unsubscribeArrival()
+        clearTimeout(arrivalTimeout)
+        usePingPongRallyStore.getState().begin(a, b)
+        const [minS, maxS] = AMBIENT_OFFICE_BALANCE.socialActivityDurationSeconds
+        const durationTimer = setTimeout(finish, (minS + rng() * (maxS - minS)) * 1000)
+        unsubscribeLive = useCharacterStore.subscribe(() => {
+          if (finished) return
+          if (performing(a) && performing(b)) return
+          clearTimeout(durationTimer)
+          finish()
+        })
+      })
+    }
+
+    // The PLAYER's way in: clicking a table side (clickPingPong) claims the
+    // side and walks up in rally stance. Recruit a free NPC to the far side
+    // IMMEDIATELY (while the player is still walking - both arrive roughly
+    // together, §17 barrier handles the rest). If nobody is free the player
+    // simply practices solo at the table (§14/§17: no eternal wait).
+    const playerRallyWalkTarget = () => {
+      const state = useCharacterStore.getState().characters[PLAYER_ID]?.state
+      if (state?.kind === 'walking' && state.onArrive.kind === 'perform' && state.onArrive.clip === 'pingPongRally') {
+        return state.onArrive.target
+      }
+      return null
+    }
+    const unsubscribePlayerWatch = useCharacterStore.subscribe(() => {
+      if (activeRef.current) return
+      if (useGameStore.getState().phase !== 'free') return
+      if (useGameOutcomeStore.getState().status !== 'playing') return
+      const playerTarget = playerRallyWalkTarget()
+      if (!playerTarget) return
+      const sides = getInteractions('ping-pong')
+      const farSide = sides.find((side) => targetKey(side.target) !== targetKey(playerTarget))
+      if (!farSide) return
+      const store = useCharacterStore.getState()
+      const npc = Object.keys(store.characters).find(
+        (id) =>
+          id !== PLAYER_ID &&
+          store.characters[id].state.kind === 'idle' &&
+          !store.sceneOwned.has(id) &&
+          isTargetFree(farSide.target, id),
+      )
+      if (!npc) return
+      claimTarget(npc, farSide.target)
+      store.dispatchTo(npc, { type: 'CLICK_PERFORM_ACTIVITY', target: farSide.target, clip: 'pingPongRally' })
+      runRally(PLAYER_ID, npc)
+    })
+
+    // NPC-NPC matches: the original slow ambient pairing, unchanged in spirit.
     const interval = setInterval(() => {
       if (activeRef.current) return
       if (useGameStore.getState().phase !== 'free') return
@@ -57,36 +141,15 @@ export function usePingPongMatchmaker(rng: () => number = Math.random): void {
       const [targetA, targetB] = [sides[0].target, sides[1].target]
       if (!tryReservePairActivity(a, b, targetA, targetB)) return
 
-      activeRef.current = true
       store.dispatchTo(a, { type: 'CLICK_PERFORM_ACTIVITY', target: targetA, clip: 'pingPongRally' })
       store.dispatchTo(b, { type: 'CLICK_PERFORM_ACTIVITY', target: targetB, clip: 'pingPongRally' })
-
-      const finish = () => {
-        const latest = useCharacterStore.getState()
-        if (latest.characters[a]?.state.kind === 'performing') latest.dispatchTo(a, { type: 'PERFORM_END' })
-        if (latest.characters[b]?.state.kind === 'performing') latest.dispatchTo(b, { type: 'PERFORM_END' })
-        releasePairActivity(a, b)
-        activeRef.current = false
-      }
-
-      // Hold duration only starts once BOTH have actually arrived - the same
-      // reasoning as the group-scene camera-ready barrier (18H §5): a rally
-      // that starts counting down while someone is still walking there
-      // shortchanges the activity by however long the walk took.
-      const arrivalTimeout = setTimeout(() => {
-        unsubscribe()
-        finish()
-      }, ARRIVAL_TIMEOUT_MS)
-      const unsubscribe = useCharacterStore.subscribe(() => {
-        const s = useCharacterStore.getState()
-        const ready = (id: string) => s.characters[id]?.state.kind === 'performing'
-        if (!ready(a) || !ready(b)) return
-        unsubscribe()
-        clearTimeout(arrivalTimeout)
-        const [minS, maxS] = AMBIENT_OFFICE_BALANCE.socialActivityDurationSeconds
-        setTimeout(finish, (minS + rng() * (maxS - minS)) * 1000)
-      })
+      runRally(a, b)
     }, CHECK_INTERVAL_MS)
-    return () => clearInterval(interval)
+
+    return () => {
+      clearInterval(interval)
+      unsubscribePlayerWatch()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 }

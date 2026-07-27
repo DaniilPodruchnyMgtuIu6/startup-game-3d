@@ -3,6 +3,7 @@ import ReactThreeTestRenderer from '@react-three/test-renderer'
 import { StubMaterialsProvider } from '../materials/StubMaterialsProvider'
 import { SceneLights } from '../scene/lighting/Lighting'
 import { Office } from '../scene/Office'
+import { isBlockedAt, nearestWalkable } from '../character/grid'
 import { getInteractions, type InteractionKind } from './interactionRegistry'
 
 // 18H §11/§22.14: every interactive furniture kind must register its anchors
@@ -44,6 +45,25 @@ describe('interaction anchors register on the real office mount (18H §11/§22.1
         }
       }
       expect(getInteractions('ping-pong').length, 'ping-pong sides').toBe(2)
+
+      // STANDING targets (the character performs upright at target.point,
+      // facing target.facing): the stand point must be genuinely walkable,
+      // and ~0.9m AHEAD along the facing must be inside the furniture - i.e.
+      // the character faces the equipment, not a wall or a sideline. This
+      // exact contract would have caught both live defects: the pull-up bar
+      // whose stand point registered OUTSIDE the room wall, and the ping-pong
+      // sides whose unrotated triggers faced the sideline.
+      for (const kind of ['pull-up-bar', 'ping-pong'] as const) {
+        for (const { target } of getInteractions(kind)) {
+          expect(nearestWalkable(target.point), `${kind} stand point walkable`).toEqual(target.point)
+          const ahead: [number, number, number] = [
+            target.point[0] + Math.sin(target.facing) * 0.9,
+            0,
+            target.point[2] + Math.cos(target.facing) * 0.9,
+          ]
+          expect(isBlockedAt(ahead[0], ahead[2]), `${kind} facing points at the furniture`).toBe(true)
+        }
+      }
     } finally {
       await renderer.unmount()
     }

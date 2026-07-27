@@ -31,6 +31,18 @@ const NPC_ID_FOR_CHARACTER: Record<string, NpcId> = Object.fromEntries(
 const SIT_SETTLE_MS = 1000
 const BREW_MS = 3500
 
+// 18H: procedural pull-up REPS by scrubbing the mount clip's own settle
+// window. FK-traced on the retargeted clips (same timeline on all 5 rigs,
+// duration 1.73s): between 0.50*duration and 0.75*duration the hands stay
+// pinned on the crossbar (y 2.08→2.00) while the hips travel 1.75→1.52 -
+// scrubbing that window back and forth IS a full-amplitude pull-up with the
+// grip glued to the bar, no IK and no per-rig axis tuning. See
+// docs/art/higgsfield-ambient-motion-prompts.md (Турник).
+const PULLUP_REP_TOP_FRACTION = 0.5
+const PULLUP_REP_BOTTOM_FRACTION = 0.75
+const PULLUP_REP_HZ = 0.5 // one rep every 2s - effortful, not frantic
+const PULLUP_REP_EASE_IN_S = 0.35 // blend from the clip end into the scrub window
+
 // Feature 18B §6: below this orthographic zoom the office is so far out that
 // name tags turn into unreadable overlapping clutter - hide them until the
 // player zooms back in (default zoom is 28, allowed range 12-70).
@@ -179,6 +191,48 @@ export function CharacterModel({ characterId, config, label }: CharacterModelPro
       action.fadeOut(0.3)
     }
   }, [stateKind, performClip, actions, availableClips, config.walkPace])
+
+  // 18H: pull-up reps. The mount clip is a one-shot (jump + grab) that clamps
+  // on its final hang frame; once it FINISHES, scrub its settle window back
+  // and forth (see PULLUP_REP_* above) so the body visibly pulls up and
+  // lowers with the hands on the bar - "реалистичные подтягивания, не вис".
+  const pullUpRepStart = useRef<number | null>(null)
+  useEffect(() => {
+    pullUpRepStart.current = null
+    if (stateKind !== 'performing' || performClip !== 'pullUp') return
+    const action = actions[resolveClip('performing', availableClips, 'pullUp')]
+    // fallback rigs (no pullUp clip) just idle - nothing to scrub
+    if (!action || action.getClip().name !== 'pullUp') return
+    const mixer = action.getMixer()
+    const onFinished = (event: { action?: unknown }) => {
+      if (event.action !== action) return
+      action.paused = true
+      pullUpRepStart.current = -1 // armed; first useFrame stamps the clock
+    }
+    mixer.addEventListener('finished', onFinished)
+    return () => {
+      mixer.removeEventListener('finished', onFinished)
+      pullUpRepStart.current = null
+    }
+  }, [stateKind, performClip, actions, availableClips])
+
+  useFrame(({ clock }) => {
+    if (pullUpRepStart.current === null) return
+    const action = actions['pullUp']
+    if (!action) return
+    if (pullUpRepStart.current < 0) pullUpRepStart.current = clock.elapsedTime
+    const elapsed = clock.elapsedTime - pullUpRepStart.current
+    const duration = action.getClip().duration
+    const bottom = duration * PULLUP_REP_BOTTOM_FRACTION
+    const top = duration * PULLUP_REP_TOP_FRACTION
+    if (elapsed < PULLUP_REP_EASE_IN_S) {
+      // settle from the clamped final frame into the scrub window's bottom
+      action.time = duration + (bottom - duration) * (elapsed / PULLUP_REP_EASE_IN_S)
+      return
+    }
+    const pulse = (1 - Math.cos((elapsed - PULLUP_REP_EASE_IN_S) * Math.PI * 2 * PULLUP_REP_HZ)) / 2
+    action.time = bottom + (top - bottom) * pulse
+  })
 
   // hand the character a coffee mug while drinking (the Mixamo drink
   // animations raise the LEFT hand to the mouth)

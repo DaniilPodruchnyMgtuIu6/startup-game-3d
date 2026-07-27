@@ -49,6 +49,7 @@ interface CharactersStore {
   clickSofa: (target: Target) => void
   clickServer: (target: Target, role: ServerRole) => void
   clickPullUpBar: (target: Target) => void
+  clickPingPong: (target: Target) => void
 }
 
 export const useCharacterStore = create<CharactersStore>()((set, get) => {
@@ -132,6 +133,15 @@ export const useCharacterStore = create<CharactersStore>()((set, get) => {
       if (!isTargetFree(target, PLAYER_ID)) return
       claimTarget(PLAYER_ID, target)
       get().dispatchTo(PLAYER_ID, { type: 'CLICK_PERFORM_ACTIVITY', target, clip: 'pullUp' })
+    },
+    // Player clicks a ping-pong side: claim it and walk up in rally stance.
+    // The matchmaker (usePingPongMatchmaker) watches for exactly this and
+    // recruits a free NPC to the opposite side while the player is walking.
+    clickPingPong: (target) => {
+      if (get().inputLocked) return
+      if (!isTargetFree(target, PLAYER_ID)) return
+      claimTarget(PLAYER_ID, target)
+      get().dispatchTo(PLAYER_ID, { type: 'CLICK_PERFORM_ACTIVITY', target, clip: 'pingPongRally' })
     },
   }
 })

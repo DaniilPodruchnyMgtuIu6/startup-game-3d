@@ -34,8 +34,13 @@ export interface InteractionAnchorSet {
 // short hop/reach-up rather than a flat-footed grab (documented, not fixed
 // here: fixing it is an animation decision, not an anchor-placement one).
 // Foot plates (PullUpBar.tsx) extend to z=0.65 (position z=0.3, depth 0.7) -
-// approach/exit sit at z=0.9, a real 0.25m clear of the plates, not merely
-// outside the post radius.
+// approach/exit sit at z=0.9, a real 0.25m clear of the plates. Walkability
+// of this exact point is guaranteed by the bar registering only its
+// POST/CROSSBAR line as a nav obstacle (not the plates/braces bounds, which
+// with grid inflation used to wall off the whole approach) and pinned by the
+// mounted registry test. The mount clip's forward travel is ramp-normalized
+// to this stand-off (tools/art/normalizeClipForwardTravel.mjs) so the jump
+// ends with the hands on the bar.
 export const PULL_UP_BAR_ANCHORS: InteractionAnchorSet = {
   approach: { position: [0, 0, 0.9], facingY: Math.PI },
   root: { position: [0, 0, 0], facingY: Math.PI },
@@ -52,19 +57,27 @@ export const PULL_UP_BAR_ANCHORS: InteractionAnchorSet = {
 const TABLE_HALF_LENGTH = 2.74 / 2
 const TABLE_HEIGHT = 0.76
 
+// Stand-off 0.75m behind each table end: the table's obstacle box plus the
+// nav grid's character-radius inflation blocks cells out to ~0.5m past the
+// edge (plus cell rounding), so the old 0.4m root was itself unwalkable and
+// every arriving player got silently diverted off the mark (mounted registry
+// test pins the walkability now).
+const SIDE_ROOT = TABLE_HALF_LENGTH + 0.75
+const SIDE_APPROACH = TABLE_HALF_LENGTH + 1.0
+
 export const PING_PONG_TABLE_ANCHORS: { sideA: InteractionAnchorSet; sideB: InteractionAnchorSet } = {
   sideA: {
-    approach: { position: [-(TABLE_HALF_LENGTH + 0.7), 0, 0], facingY: -Math.PI / 2 },
-    root: { position: [-(TABLE_HALF_LENGTH + 0.4), 0, 0], facingY: -Math.PI / 2 },
+    approach: { position: [-SIDE_APPROACH, 0, 0], facingY: -Math.PI / 2 },
+    root: { position: [-SIDE_ROOT, 0, 0], facingY: -Math.PI / 2 },
     rightHand: { position: [-(TABLE_HALF_LENGTH + 0.15), TABLE_HEIGHT + 0.12, 0] },
-    lookAt: { position: [TABLE_HALF_LENGTH + 0.4, TABLE_HEIGHT, 0] },
-    exit: { position: [-(TABLE_HALF_LENGTH + 0.7), 0, 0], facingY: -Math.PI / 2 },
+    lookAt: { position: [SIDE_ROOT, TABLE_HEIGHT, 0] },
+    exit: { position: [-SIDE_APPROACH, 0, 0], facingY: -Math.PI / 2 },
   },
   sideB: {
-    approach: { position: [TABLE_HALF_LENGTH + 0.7, 0, 0], facingY: Math.PI / 2 },
-    root: { position: [TABLE_HALF_LENGTH + 0.4, 0, 0], facingY: Math.PI / 2 },
+    approach: { position: [SIDE_APPROACH, 0, 0], facingY: Math.PI / 2 },
+    root: { position: [SIDE_ROOT, 0, 0], facingY: Math.PI / 2 },
     leftHand: { position: [TABLE_HALF_LENGTH + 0.15, TABLE_HEIGHT + 0.12, 0] },
-    lookAt: { position: [-(TABLE_HALF_LENGTH + 0.4), TABLE_HEIGHT, 0] },
-    exit: { position: [TABLE_HALF_LENGTH + 0.7, 0, 0], facingY: Math.PI / 2 },
+    lookAt: { position: [-SIDE_ROOT, TABLE_HEIGHT, 0] },
+    exit: { position: [SIDE_APPROACH, 0, 0], facingY: Math.PI / 2 },
   },
 }

@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { usePingPongMatchmaker, shuffledPairFrom } from './pingPongMatchmaker'
-import { useCharacterStore } from './characterStore'
+import { useCharacterStore, PLAYER_ID } from './characterStore'
+import { usePingPongRallyStore } from './pingPongRallyStore'
 import { useGameStore } from '../game/gameStore'
 import { registerInteraction, isTargetFree, releaseClaims } from '../interaction/interactionRegistry'
 import type { TriggerTarget } from '../interaction/triggerPayload'
@@ -92,6 +93,41 @@ describe('usePingPongMatchmaker (18H §17)', () => {
       await vi.advanceTimersByTimeAsync(5000)
       expect(useCharacterStore.getState().characters['npc-a'].state.kind).toBe('idle')
       expect(isTargetFree(SIDE_A, 'npc-c')).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('recruits a free NPC to the far side when the PLAYER walks up to play, and ends the rally when the player leaves', async () => {
+    vi.useFakeTimers()
+    try {
+      releaseClaims(PLAYER_ID)
+      useCharacterStore.getState().spawnCharacter(PLAYER_ID, SIDE_A.point, 0)
+      useCharacterStore.getState().spawnCharacter('npc-a', SIDE_B.point, 0)
+      // NPC-NPC chance roll never fires (0.99 > MATCH_CHANCE) - only the
+      // player watch can start this match.
+      renderHook(() => usePingPongMatchmaker(seq(0.99)))
+
+      useCharacterStore.getState().clickPingPong(SIDE_A)
+      // the player watch reacts synchronously to the walk dispatch: the far
+      // side is claimed and the NPC is already on its way
+      expect(useCharacterStore.getState().characters['npc-a'].state.kind).toBe('walking')
+      expect(isTargetFree(SIDE_B, 'npc-x')).toBe(false)
+
+      useCharacterStore.getState().dispatchTo(PLAYER_ID, { type: 'WAYPOINT_REACHED' })
+      useCharacterStore.getState().dispatchTo('npc-a', { type: 'WAYPOINT_REACHED' })
+      expect(useCharacterStore.getState().characters[PLAYER_ID].state.kind).toBe('performing')
+      expect(useCharacterStore.getState().characters['npc-a'].state.kind).toBe('performing')
+      // both arrived -> the rally (and its ball) is live
+      expect(usePingPongRallyStore.getState().participants).toEqual([PLAYER_ID, 'npc-a'])
+
+      // the player walks away mid-rally: the rally ends NOW - the NPC is
+      // released back to the planner and both side claims are freed
+      useCharacterStore.getState().clickFloor([5, 0, 5])
+      expect(usePingPongRallyStore.getState().participants).toBeNull()
+      expect(useCharacterStore.getState().characters['npc-a'].state.kind).toBe('idle')
+      expect(isTargetFree(SIDE_A, 'npc-x')).toBe(true)
+      expect(isTargetFree(SIDE_B, 'npc-x')).toBe(true)
     } finally {
       vi.useRealTimers()
     }
