@@ -88,6 +88,13 @@ export interface ConversationCinematicHandle {
   // resolves once the OPENING shot has fully settled (§5: no line before the
   // camera arrives) - callers await this before the first startDialogue
   ready: Promise<void>
+  // §2: re-aim the CURRENT shot at the participants' latest poses and resolve
+  // once that move settles (bounded like `ready`). The kickoff awaits this
+  // AFTER gatherParticipants: `ready` covers only the opening transition,
+  // which is aimed while the cast is still walking in - by gather-end the
+  // camera may be mid-blend from a tracking re-aim, and the first line must
+  // wait for a settle on the GATHERED group, not the pre-gather composition.
+  resettle: () => Promise<void>
 }
 
 export interface ConversationCinematicOptions {
@@ -155,7 +162,7 @@ let activeCinematic: ConversationCinematicHandle | null = null
 export function beginConversationCinematic(options: ConversationCinematicOptions = {}): ConversationCinematicHandle {
   // §9: only one active cinematic - a second begin() is a safe no-op handle.
   if (activeCinematic || useCutsceneCameraStore.getState().active) {
-    return { end: async () => {}, ready: Promise.resolve() }
+    return { end: async () => {}, ready: Promise.resolve(), resettle: async () => {} }
   }
   useCinematicStore.setState({ active: true })
   enterCutsceneCamera()
@@ -171,8 +178,9 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
   let lastAppliedIndex = -1
   let side: 1 | -1 = 1
   let ended = false
-  // the currently held shot, re-aimed by the tracking loop with fresh poses
-  let currentAim: (() => void) | null = null
+  // the currently held shot, re-aimed by the tracking loop with fresh poses;
+  // promise-returning so resettle() can await one full settle of the same aim
+  let currentAim: (() => Promise<void>) | null = null
 
   const presentGroup = () => (options.groupIds ?? []).filter((id) => subjectOf(id))
 
@@ -262,8 +270,8 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
     if (options.groupIds) {
       if (!subjectOf(speakerId)) {
         // §6: invalid target -> hold the safe group composition, never a void
-        currentAim = () => void aimSafeWideGroup()
-        currentAim()
+        currentAim = aimSafeWideGroup
+        void currentAim()
         return
       }
       applyGroupGaze(speakerId)
@@ -277,12 +285,12 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
       // group grammar: open wide, single the speaker, re-establish every 4th
       const wide = index === 0 || index % 4 === 3
       if (wide) {
-        currentAim = () => void aimSafeWideGroup()
+        currentAim = aimSafeWideGroup
       } else {
         applySafeArea('medium-close', speakerId, { side: shotSide, durationMs: 850 }, presentGroup())
-        currentAim = () => void playShot('medium-close', speakerId, { side: shotSide, durationMs: 850 })
+        currentAim = () => playShot('medium-close', speakerId, { side: shotSide, durationMs: 850 })
       }
-      currentAim()
+      void currentAim()
       return
     }
     if (!subjectOf(speakerId)) return
@@ -300,8 +308,8 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
     }
     const shotOpts = { partnerId, side: shotSide, durationMs: type === 'two-shot' ? 1100 : 850 }
     applySafeArea(type, speakerId, shotOpts, partnerId ? [speakerId, partnerId] : [speakerId])
-    currentAim = () => void playShot(type, speakerId, shotOpts)
-    currentAim()
+    currentAim = () => playShot(type, speakerId, shotOpts)
+    void currentAim()
   }
 
   const applyCurrent = () => {
@@ -317,7 +325,7 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
   }
 
   const unsubscribe = useGameStore.subscribe(applyCurrent)
-  const tracker = setInterval(() => currentAim?.(), TRACK_INTERVAL_MS)
+  const tracker = setInterval(() => void currentAim?.(), TRACK_INTERVAL_MS)
 
   const end = async () => {
     if (ended) return
@@ -352,15 +360,24 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
   activeCinematic = null // set below with the full handle
   if (options.groupIds) {
     ready = withReadyTimeout(aimSafeWideGroup())
-    currentAim = () => void aimSafeWideGroup()
+    currentAim = aimSafeWideGroup
   } else if (options.pairA && options.pairB) {
     applySafeArea('two-shot', options.pairA, { partnerId: options.pairB, side, durationMs: 1100 }, [options.pairA, options.pairB])
     ready = withReadyTimeout(playShot('two-shot', options.pairA, { partnerId: options.pairB, side, durationMs: 1100 }))
-    currentAim = () => void playShot('two-shot', options.pairA!, { partnerId: options.pairB, side, durationMs: 1100 })
+    currentAim = () => playShot('two-shot', options.pairA!, { partnerId: options.pairB, side, durationMs: 1100 })
   } else {
     ready = Promise.resolve()
   }
-  const handle: ConversationCinematicHandle = { end, ready }
+  // §2: one fresh, settle-awaited pass of the current shot at the cast's
+  // LATEST poses - the kickoff calls this after gatherParticipants so the
+  // first line opens on a camera settled over the gathered group, not one
+  // still blending away from its pre-gather framing. Bounded exactly like
+  // `ready`; a no-op after end() or when nothing is aimed yet.
+  const resettle = (): Promise<void> => {
+    if (ended || !currentAim) return Promise.resolve()
+    return withReadyTimeout(currentAim())
+  }
+  const handle: ConversationCinematicHandle = { end, ready, resettle }
   activeCinematic = handle
   // if a dialogue is already open, frame its current line immediately
   applyCurrent()

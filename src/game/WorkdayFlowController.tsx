@@ -252,7 +252,11 @@ export function WorkdayFlowController() {
         try {
           const { timedOut } = await gatherParticipants(KICKOFF_SLOTS)
           if (timedOut.length) console.warn('kickoff gather timeout (snapped to slots):', timedOut)
-          await cinematic.ready // §5: camera settled before the first line
+          await cinematic.ready // §5: opening transition settled
+          // §2: the opening shot was aimed while the cast was still walking in
+          // (ready caps at 3.5s, the gather at up to 9s) - re-aim once at the
+          // GATHERED group and wait for that settle before the first line.
+          await cinematic.resettle()
           useSprintStore.getState().markSprintKickoffShown(sprintNumber)
           useGameStore.getState().startDialogue(buildSprintKickoffDialogue(buildKickoffContext()))
         } catch (error) {

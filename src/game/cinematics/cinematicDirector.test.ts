@@ -234,6 +234,27 @@ describe('DialoguePerformanceCue application (18H §7)', () => {
   })
 })
 
+describe('resettle (18H §2 - settle on the GATHERED group before the first line)', () => {
+  it('resolves for a group cinematic with an aimed opening shot', async () => {
+    const handle = beginConversationCinematic({ groupIds: [SONYA, KIRILL, ALINA] })
+    await expect(handle.resettle()).resolves.toBeUndefined()
+    await handle.end()
+  })
+
+  it('is a safe no-op after end()', async () => {
+    const handle = beginConversationCinematic({ groupIds: [SONYA, KIRILL, ALINA] })
+    await handle.end()
+    await expect(handle.resettle()).resolves.toBeUndefined()
+  })
+
+  it('the §9 no-op guard handle also carries a resolving resettle', async () => {
+    const first = beginConversationCinematic({ pairA: PLAYER_ID, pairB: SONYA })
+    const second = beginConversationCinematic({})
+    await expect(second.resettle()).resolves.toBeUndefined()
+    await first.end()
+  })
+})
+
 describe('dialogue panel safe area (18H §8)', () => {
   it('group mode: panelSide starts as a valid value once the opening shot is aimed', () => {
     const handle = beginConversationCinematic({ groupIds: [SONYA, KIRILL, ALINA] })
