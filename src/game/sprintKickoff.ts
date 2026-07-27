@@ -31,7 +31,13 @@ export interface SprintKickoffContext {
 export function buildSprintKickoffDialogue(ctx: SprintKickoffContext): DialogueLine[] {
   const asPm = { speaker: ctx.pm.name, speakerRole: ctx.pm.role, portrait: ctx.pm.portrait }
   const lines: DialogueLine[] = [
-    { ...asPm, text: `Планёрка спринта ${ctx.sprintNumber}. Разобрали доску — вот на чём фокус.` },
+    {
+      ...asPm,
+      text: `Планёрка спринта ${ctx.sprintNumber}. Разобрали доску — вот на чём фокус.`,
+      // 18H §7: the plan she is presenting is ON the board - the team's
+      // attention belongs there, not on her face, for this one opening line.
+      cue: { speakerEmotion: 'confident', listenerReaction: 'focused-listening', focusTarget: 'whiteboard' },
+    },
   ]
 
   for (const dev of ctx.developers) {
@@ -41,24 +47,40 @@ export function buildSprintKickoffDialogue(ctx: SprintKickoffContext): DialogueL
       text: dev.firstTask
         ? `Беру «${dev.firstTask}». Загрузка на спринт — ${dev.load}/10 рабочих дней.`
         : 'На этот спринт мне задач не досталось — подхвачу, если что-то освободится.',
+      // A dev with a real task states it plainly; a dev with nothing to do
+      // says so a little awkwardly - the room's reaction differs to match.
+      cue: dev.firstTask
+        ? { speakerEmotion: 'confident', listenerReaction: 'focused-listening' }
+        : { speakerEmotion: 'neutral', listenerReaction: 'thinking' },
     })
   }
 
   if (ctx.overloaded) {
-    lines.push({ ...asPm, text: 'План плотный: часть задач может не уложиться в 10 дней. Держим приоритеты.' })
+    lines.push({
+      ...asPm,
+      text: 'План плотный: часть задач может не уложиться в 10 дней. Держим приоритеты.',
+      cue: { speakerEmotion: 'concerned', listenerReaction: 'concerned-listening' },
+    })
   }
 
   if (ctx.specialist) {
     const asIlya = { speaker: ctx.specialist.name, speakerRole: ctx.specialist.role, portrait: ctx.specialist.portrait }
+    const hasFindings = ctx.specialist.openFindings > 0
     lines.push({
       ...asIlya,
-      text:
-        ctx.specialist.openFindings > 0
-          ? `Держу безопасность в фокусе. Открытых замечаний — ${ctx.specialist.openFindings}, не откладываем их.`
-          : 'Держу безопасность в фокусе — по замечаниям пока чисто.',
+      text: hasFindings
+        ? `Держу безопасность в фокусе. Открытых замечаний — ${ctx.specialist.openFindings}, не откладываем их.`
+        : 'Держу безопасность в фокусе — по замечаниям пока чисто.',
+      cue: hasFindings
+        ? { speakerEmotion: 'focused', listenerReaction: 'concerned-listening' }
+        : { speakerEmotion: 'relieved', listenerReaction: 'relieved-reaction' },
     })
   }
 
-  lines.push({ ...asPm, text: 'Погнали.' })
+  lines.push({
+    ...asPm,
+    text: 'Погнали.',
+    cue: { speakerEmotion: 'confident', listenerReaction: 'nod' },
+  })
   return lines
 }

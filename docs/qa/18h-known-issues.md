@@ -1,5 +1,44 @@
 # 18H — Known issues (факт 2026-07-27)
 
+## §7 — реакции слушателей по DialoguePerformanceCue (закрыто отдельным заходом)
+
+Ранее (Wave 4) числилось открытой проблемой: был только обобщённый
+group-gaze, без структурированных реакций по metadata реплики. Реализовано:
+
+- `src/character/performance/dialoguePerformanceCue.ts` — типы
+  `ListenerReaction` (все 11 из §7) и `DialoguePerformanceCue`, плюс
+  `REACTION_EMOTION` (6 реакций переиспользуют готовые emotion-позы —
+  neutral/focused/concerned/surprised/controlled-frustration/relieved —
+  никаких новых raw morph names, только typed enum-to-enum).
+- `performanceStore.ts` — `listenerReactions` + `gazePoints` (фиксированная
+  точка взгляда, например «на доску», в дополнение к взгляду на персонажа).
+- `useCharacterPerformance.ts` — nod обобщён (раньше только ambient-чат),
+  добавлены small-head-shake (yaw-осцилляция) и thinking (статичный
+  наклон+уведённый взгляд) процедурно, тем же способом, что дыхание/emotion.
+- `cinematicDirector.ts` — `applyCue()` в group И pair режимах,
+  `focusTarget: 'whiteboard'`/`'player'` переопределяет дефолтный
+  «слушатели смотрят на говорящего».
+- `sprintKickoff.ts` — реальные cues на каждой реплике планёрки, подобранные
+  по содержанию (не случайно): открывающая реплика → фокус на доску;
+  разработчик с задачей → confident/focused-listening, без задачи →
+  neutral/thinking; предупреждение о перегрузке → concerned/concerned-listening;
+  Илья без замечаний → relieved/relieved-reaction, с замечаниями →
+  focused/concerned-listening; закрывающее «Погнали» → confident/nod.
+
+**Найден и исправлен по пути реальный regression-риск при разработке**: первая
+версия `applyCue` ОЧИЩАЛА эмоцию говорящего на любой реплике без cue — это
+стёрло бы существующее «Соня остаётся concerned весь разговор»
+(`postAuditInteraction.ts`, ни один существующий диалог ещё не использует
+`cue`). Исправлено: `speakerEmotion` теперь только УСТАНАВЛИВАЕТ, никогда не
+чистит сама по себе; `listenerReaction` (новая концепция, конфликтовать не с
+чем) остаётся per-line сбрасываемым. Закреплено regression-тестом.
+
+Не реализовано: cues в остальных диалоговых скриптах (8 story-decision сцен,
+post-audit разговор) — механизм полностью готов и покрыт тестами, но
+существующие скрипты пока играют без явных cue (ведут себя как раньше 18H,
+ничего не сломано). Добавление — по одному `cue: {...}` объекту на реплику,
+без дальнейшей инженерной работы.
+
 ## Найдено и исправлено в этой волне (не «issues» — фиксирую как факт процесса)
 
 Полный `npm run test:e2e` прогонялся впервые за весь ход 18H именно в Wave 4.

@@ -14,6 +14,7 @@ import { usePerformanceStore } from '../../character/performance/performanceStor
 import { enterCutsceneCamera, exitCutsceneCamera, flyTo, useCutsceneCameraStore } from '../../scene/camera/cameraController'
 import { computeShot, type CinematicShotType, type ShotFrame, type SubjectPose } from './cinematicShots'
 import { makeShotSafe } from './cinematicSafety'
+import { WHITEBOARD_POSITION } from '../../scene/whiteboardSpot'
 
 // HUD/letterbox flag (§8): SprintHud hides and CinematicBars show while true.
 export const useCinematicStore = create<{ active: boolean }>()(() => ({ active: false }))
@@ -182,6 +183,35 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
     if (listener) performance.setGaze(speakerId, listener)
   }
 
+  // 18H §7: apply the line's DialoguePerformanceCue, if any - the speaker's
+  // emotion, every listener's reaction, and (when focusTarget overrides the
+  // default "look at the speaker") where listeners actually look. Metadata
+  // on the line drives this, never a random pick.
+  //
+  // speakerEmotion only ever SETS, never auto-clears: emotion is a sustained
+  // scene-level mood some callers set before the cinematic even starts
+  // (postAuditInteraction.ts keeps Sonya 'concerned' for the whole talk) -
+  // a line with no cue must not silently erase that. listenerReaction is the
+  // opposite: a momentary per-line reaction with no prior persistent-state
+  // convention to protect, so it resets to neutral cleanly on every line
+  // that doesn't specify one (no stuck reaction from two lines ago).
+  const applyCue = (line: DialogueLine, speakerId: string, listeners: string[]) => {
+    const performance = usePerformanceStore.getState()
+    if (line.cue?.speakerEmotion) performance.setEmotion(speakerId, line.cue.speakerEmotion)
+    for (const id of listeners) {
+      if (line.cue?.listenerReaction) performance.setListenerReaction(id, line.cue.listenerReaction)
+      else performance.clearListenerReaction(id)
+    }
+    if (line.cue?.focusTarget === 'whiteboard') {
+      for (const id of listeners) performance.setGazePoint(id, WHITEBOARD_POSITION)
+    } else if (line.cue?.focusTarget === 'player') {
+      for (const id of listeners) if (id !== PLAYER_ID) performance.setGaze(id, PLAYER_ID)
+    }
+    // 'speaker' is already the default via applyGroupGaze/pair gaze above;
+    // 'object' has no generic world-position source on the cue and is not
+    // implemented (documented limitation, see 18h-known-issues.md).
+  }
+
   const aimAtLine = (line: DialogueLine, index: number) => {
     // off-cast speakers (guards, «Руководство») frame the player listening -
     // the camera never stares at an empty room (§5)
@@ -194,6 +224,11 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
         return
       }
       applyGroupGaze(speakerId)
+      applyCue(
+        line,
+        speakerId,
+        presentGroup().filter((id) => id !== speakerId),
+      )
       side = side === 1 ? -1 : 1
       const shotSide = side
       // group grammar: open wide, single the speaker, re-establish every 4th
@@ -209,6 +244,7 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
     const shotSide = side
     const partnerId =
       options.pairA && options.pairB ? (speakerId === options.pairA ? options.pairB : options.pairA) : undefined
+    if (partnerId) applyCue(line, speakerId, [partnerId])
     let type: CinematicShotType
     if (partnerId) {
       // pair coverage: open on a two-shot, then OTS with medium-close emphasis
@@ -242,6 +278,15 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
     unsubscribe()
     activeCinematic = null
     if (options.groupIds?.length) usePerformanceStore.getState().clearGaze(...options.groupIds)
+    // 18H §7: applyCue's emotion/listener-reaction state is this director's
+    // own responsibility to clean up - unlike gaze (which pair-mode callers
+    // like postAuditInteraction.ts already clear themselves), nothing else
+    // touches these fields for a cue-driven scene.
+    const cueParticipants = options.groupIds ?? [options.pairA, options.pairB].filter((id): id is string => !!id)
+    for (const id of cueParticipants) {
+      usePerformanceStore.getState().clearEmotion(id)
+      usePerformanceStore.getState().clearListenerReaction(id)
+    }
     if (ownedByUs.length) {
       const next = new Set(useCharacterStore.getState().sceneOwned)
       for (const id of ownedByUs) next.delete(id)

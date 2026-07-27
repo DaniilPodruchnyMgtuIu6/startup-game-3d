@@ -2,17 +2,24 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useGameStore } from '../gameStore'
 import { useCharacterStore, PLAYER_ID } from '../../character/characterStore'
 import { useCutsceneCameraStore } from '../../scene/camera/cameraController'
+import { usePerformanceStore } from '../../character/performance/performanceStore'
+import { WHITEBOARD_POSITION } from '../../scene/whiteboardSpot'
 import { beginConversationCinematic, characterIdForSpeaker, useCinematicStore, withReadyTimeout } from './cinematicDirector'
 
 const SONYA = 'npc-female-pm'
+const KIRILL = 'npc-kirill-morozov'
+const ALINA = 'npc-alina-belova'
 
 beforeEach(() => {
   window.localStorage.clear()
   useGameStore.setState({ activeDialogue: null })
   useCutsceneCameraStore.setState({ active: false })
   useCinematicStore.setState({ active: false })
+  usePerformanceStore.getState().clearAllPerformance()
   const chars = useCharacterStore.getState()
   if (!chars.characters[SONYA]) chars.spawnCharacter(SONYA, [1, 0, 1], 0)
+  if (!chars.characters[KIRILL]) chars.spawnCharacter(KIRILL, [2, 0, 1], 0)
+  if (!chars.characters[ALINA]) chars.spawnCharacter(ALINA, [3, 0, 1], 0)
 })
 
 describe('cinematic director runtime (18D §6/§9)', () => {
@@ -123,5 +130,106 @@ describe('withReadyTimeout (18H §4/§5 - bounded camera-settle wait)', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+})
+
+describe('DialoguePerformanceCue application (18H §7)', () => {
+  // beginConversationCinematic refuses a second begin() while activeCinematic
+  // is still set (§9) - every test here MUST end() its own handle, or it
+  // silently no-ops every later test in this block (module-level guard).
+  it('group mode: sets the speaker emotion and every listener reaction from the cue', async () => {
+    const handle = beginConversationCinematic({ groupIds: [SONYA, KIRILL, ALINA] })
+    useGameStore.setState({
+      activeDialogue: {
+        lines: [
+          {
+            speaker: 'Соня Соколова',
+            text: 'x',
+            cue: { speakerEmotion: 'confident', listenerReaction: 'focused-listening' },
+          },
+        ],
+        index: 0,
+      },
+    })
+    const perf = usePerformanceStore.getState()
+    expect(perf.emotions[SONYA]).toBe('confident')
+    expect(perf.listenerReactions[KIRILL]).toBe('focused-listening')
+    expect(perf.listenerReactions[ALINA]).toBe('focused-listening')
+    // the speaker never reacts to their own line
+    expect(perf.listenerReactions[SONYA]).toBeUndefined()
+    await handle.end()
+  })
+
+  it('group mode: a listener reaction clears on the next line when no cue repeats it', async () => {
+    const handle = beginConversationCinematic({ groupIds: [SONYA, KIRILL, ALINA] })
+    useGameStore.setState({
+      activeDialogue: {
+        lines: [
+          { speaker: 'Соня Соколова', text: 'x', cue: { listenerReaction: 'concerned-listening' } },
+          { speaker: 'Кирилл Морозов', text: 'y' }, // no cue on this line
+        ],
+        index: 0,
+      },
+    })
+    expect(usePerformanceStore.getState().listenerReactions[ALINA]).toBe('concerned-listening')
+    useGameStore.setState((s) => ({ activeDialogue: s.activeDialogue && { ...s.activeDialogue, index: 1 } }))
+    expect(usePerformanceStore.getState().listenerReactions[ALINA]).toBeUndefined()
+    await handle.end()
+  })
+
+  it('group mode: focusTarget "whiteboard" points listener gaze at the board instead of the speaker', async () => {
+    const handle = beginConversationCinematic({ groupIds: [SONYA, KIRILL, ALINA] })
+    useGameStore.setState({
+      activeDialogue: {
+        lines: [{ speaker: 'Соня Соколова', text: 'x', cue: { focusTarget: 'whiteboard' } }],
+        index: 0,
+      },
+    })
+    const perf = usePerformanceStore.getState()
+    expect(perf.gazePoints[KIRILL]).toEqual(WHITEBOARD_POSITION)
+    expect(perf.gazeTargets[KIRILL]).toBeUndefined() // setGazePoint clears the character target
+    await handle.end()
+  })
+
+  it('a pre-existing speaker emotion survives a line with no cue at all (regression: must not auto-clear)', async () => {
+    // mirrors postAuditInteraction.ts: emotion set BEFORE the cinematic starts,
+    // meant to persist through a scene whose script does not use cues yet
+    usePerformanceStore.getState().setEmotion(SONYA, 'concerned')
+    const handle = beginConversationCinematic({ pairA: PLAYER_ID, pairB: SONYA })
+    useGameStore.setState({
+      activeDialogue: { lines: [{ speaker: 'Соня Соколова', text: 'обычная реплика без cue' }], index: 0 },
+    })
+    expect(usePerformanceStore.getState().emotions[SONYA]).toBe('concerned')
+    await handle.end()
+  })
+
+  it('pair mode: an explicit cue still sets the speaker emotion and the partner reaction', async () => {
+    const handle = beginConversationCinematic({ pairA: PLAYER_ID, pairB: SONYA })
+    useGameStore.setState({
+      activeDialogue: {
+        lines: [{ speaker: 'Соня Соколова', text: 'x', cue: { speakerEmotion: 'sad', listenerReaction: 'surprised-reaction' } }],
+        index: 0,
+      },
+    })
+    const perf = usePerformanceStore.getState()
+    expect(perf.emotions[SONYA]).toBe('sad')
+    expect(perf.listenerReactions[PLAYER_ID]).toBe('surprised-reaction')
+    await handle.end()
+  })
+
+  it('end() clears listener reactions and cue-set emotion for every scene participant', async () => {
+    const handle = beginConversationCinematic({ groupIds: [SONYA, KIRILL, ALINA] })
+    useGameStore.setState({
+      activeDialogue: {
+        lines: [{ speaker: 'Соня Соколова', text: 'x', cue: { speakerEmotion: 'concerned', listenerReaction: 'nod' } }],
+        index: 0,
+      },
+    })
+    expect(usePerformanceStore.getState().emotions[SONYA]).toBe('concerned')
+    await handle.end()
+    const perf = usePerformanceStore.getState()
+    expect(perf.emotions[SONYA]).toBeUndefined()
+    expect(perf.listenerReactions[KIRILL]).toBeUndefined()
+    expect(perf.listenerReactions[ALINA]).toBeUndefined()
   })
 })

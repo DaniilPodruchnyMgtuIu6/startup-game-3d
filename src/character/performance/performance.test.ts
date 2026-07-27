@@ -64,6 +64,30 @@ describe('performance store (18C §5-§7)', () => {
     expect(usePerformanceStore.getState().emotions).toEqual({})
     expect(usePerformanceStore.getState().gazeTargets).toEqual({})
   })
+
+  it('a gaze point replaces any character gaze target and clears with the same call (18H §7)', () => {
+    usePerformanceStore.getState().setGaze('npc-a', 'npc-b')
+    usePerformanceStore.getState().setGazePoint('npc-a', [1, 2, 3])
+    expect(usePerformanceStore.getState().gazeTargets['npc-a']).toBeUndefined()
+    expect(usePerformanceStore.getState().gazePoints['npc-a']).toEqual([1, 2, 3])
+    usePerformanceStore.getState().clearGaze('npc-a')
+    expect(usePerformanceStore.getState().gazePoints['npc-a']).toBeUndefined()
+  })
+
+  it('sets and clears a listener reaction per character (18H §7)', () => {
+    usePerformanceStore.getState().setListenerReaction('npc-a', 'concerned-listening')
+    expect(usePerformanceStore.getState().listenerReactions['npc-a']).toBe('concerned-listening')
+    usePerformanceStore.getState().clearListenerReaction('npc-a')
+    expect(usePerformanceStore.getState().listenerReactions['npc-a']).toBeUndefined()
+  })
+
+  it('clearAllPerformance also wipes gaze points and listener reactions', () => {
+    usePerformanceStore.getState().setGazePoint('npc-a', [1, 2, 3])
+    usePerformanceStore.getState().setListenerReaction('npc-a', 'nod')
+    usePerformanceStore.getState().clearAllPerformance()
+    expect(usePerformanceStore.getState().gazePoints).toEqual({})
+    expect(usePerformanceStore.getState().listenerReactions).toEqual({})
+  })
 })
 
 describe('gaze math (18C §6)', () => {

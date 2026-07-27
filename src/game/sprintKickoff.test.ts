@@ -48,3 +48,52 @@ describe('buildSprintKickoffDialogue', () => {
     expect(lines.find((l) => l.speaker === 'Кирилл Морозов')!.text).toContain('задач не досталось')
   })
 })
+
+// 18H §7: every line carries performance metadata matched to its own
+// content - not a random pick. These pin the specific mapping so a future
+// edit to the dialogue text can't silently drop or randomize it.
+describe('buildSprintKickoffDialogue performance cues (18H §7)', () => {
+  it('the opening line points the room at the whiteboard, not at Sonya', () => {
+    const [opening] = buildSprintKickoffDialogue(base)
+    expect(opening.cue?.focusTarget).toBe('whiteboard')
+    expect(opening.cue?.speakerEmotion).toBeDefined()
+  })
+
+  it('a developer with a real task reads as confident; one with none reads as a beat of thinking', () => {
+    const withTask = buildSprintKickoffDialogue(base).find((l) => l.speaker === 'Кирилл Морозов')!
+    expect(withTask.cue?.speakerEmotion).toBe('confident')
+    expect(withTask.cue?.listenerReaction).toBe('focused-listening')
+
+    const noTask = buildSprintKickoffDialogue({
+      ...base,
+      developers: [{ name: 'Кирилл Морозов', role: 'Backend-разработчик', load: 0 }, base.developers[1]],
+    }).find((l) => l.speaker === 'Кирилл Морозов')!
+    expect(noTask.cue?.listenerReaction).toBe('thinking')
+  })
+
+  it('the overload warning reads as concerned, not neutral', () => {
+    const overloadLine = buildSprintKickoffDialogue({ ...base, overloaded: true }).find((l) => l.text.includes('не уложиться'))!
+    expect(overloadLine.cue?.speakerEmotion).toBe('concerned')
+    expect(overloadLine.cue?.listenerReaction).toBe('concerned-listening')
+  })
+
+  it("Ilya's line reads relieved with zero findings, concerned-listening with open ones", () => {
+    const clean = buildSprintKickoffDialogue({
+      ...base,
+      specialist: { name: 'Илья Власов', role: 'Специалист по информационной безопасности', openFindings: 0 },
+    }).find((l) => l.speaker === 'Илья Власов')!
+    expect(clean.cue?.speakerEmotion).toBe('relieved')
+    expect(clean.cue?.listenerReaction).toBe('relieved-reaction')
+
+    const findings = buildSprintKickoffDialogue({
+      ...base,
+      specialist: { name: 'Илья Власов', role: 'Специалист по информационной безопасности', openFindings: 3 },
+    }).find((l) => l.speaker === 'Илья Власов')!
+    expect(findings.cue?.listenerReaction).toBe('concerned-listening')
+  })
+
+  it('the closing "Погнали" line cues a nod, not a blank stare', () => {
+    const lines = buildSprintKickoffDialogue(base)
+    expect(lines[lines.length - 1].cue?.listenerReaction).toBe('nod')
+  })
+})

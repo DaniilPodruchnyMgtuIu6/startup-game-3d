@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { BOARD_TASKS, type BoardTask } from './tasks'
+import type { DialoguePerformanceCue } from '../character/performance/dialoguePerformanceCue'
 
 // 'fired' is the refusal ending - never persisted, a reload starts over.
 export type GamePhase = 'intro' | 'meetPm' | 'free' | 'fired'
@@ -10,6 +11,11 @@ export interface DialogueLine {
   // Drawn portrait of the speaker shown beside the line.
   portrait?: string
   text: string
+  // 18H §7: optional performance metadata for group/cinematic scenes - the
+  // speaker's emotion and how listeners react, chosen by whoever writes the
+  // line, never randomized at runtime (cinematicDirector.ts is the only
+  // consumer; a script without a cue plays exactly as it did before 18H).
+  cue?: DialoguePerformanceCue
 }
 
 interface ActiveDialogue {
