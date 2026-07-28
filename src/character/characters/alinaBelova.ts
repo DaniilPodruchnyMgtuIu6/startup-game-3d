@@ -33,7 +33,8 @@ export const alinaBelova: CharacterDefinition = {
     walkPace: 1.15,
     walkLift: 0.003,
     // visual calibration: moderate raise over her native depth
-    seatLift: { sit: 0.075, sitIdle: 0.075, sofa: 0.06 },
+    // sofa: native 0.471 sat at cushion level - thighs sank; +0.065 -> ~0.535
+    seatLift: { sit: 0.075, sitIdle: 0.075, sofa: 0.065 },
   },
   npc: {
     spawn: [-4, 0, 6.3],

@@ -41,8 +41,10 @@ const THINKING_HEAD_YAW = 0.16
 // docs/art/higgsfield-ambient-motion-prompts.md). Same additive-on-idle
 // technique as breathing/emotion, just on the arm chain instead of the torso.
 const PADDLE_SWING_HZ = 2.4
-const PADDLE_SWING_SHOULDER_RAD = 0.55
-const PADDLE_SWING_ELBOW_RAD = 0.4
+// amplitudes tuned UP after live feedback - the exchange must read as tennis
+// even from the isometric distance, not as a wrist twitch
+const PADDLE_SWING_SHOULDER_RAD = 0.75
+const PADDLE_SWING_ELBOW_RAD = 0.55
 // 18H Wave 3: procedural phone-check pose - a held, mostly-still raise of the
 // forearm (same verified -X axis as the paddle swing, static amplitude - no
 // oscillation) plus a downward head pitch (headPitch's own established
@@ -214,9 +216,9 @@ export function useCharacterPerformance(characterId: string, root: Object3D) {
         if (bones.rightForeArm) bones.rightForeArm.rotation.x -= 0.25
       } else {
         const { windup, strike } = swingEnvelope(t, side)
-        if (bones.rightArm) bones.rightArm.rotation.x -= 0.3 - windup * 0.3 + strike * PADDLE_SWING_SHOULDER_RAD
-        if (bones.rightForeArm) bones.rightForeArm.rotation.x -= 0.2 + strike * PADDLE_SWING_ELBOW_RAD - windup * 0.15
-        if (bones.spine) bones.spine.rotation.y += windup * 0.28 - strike * 0.18
+        if (bones.rightArm) bones.rightArm.rotation.x -= 0.3 - windup * 0.35 + strike * PADDLE_SWING_SHOULDER_RAD
+        if (bones.rightForeArm) bones.rightForeArm.rotation.x -= 0.2 + strike * PADDLE_SWING_ELBOW_RAD - windup * 0.18
+        if (bones.spine) bones.spine.rotation.y += windup * 0.38 - strike * 0.26
         // ready stance between exchanges: slight forward lean
         if (bones.chest) bones.chest.rotation.x += 0.06
       }

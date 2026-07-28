@@ -31,6 +31,7 @@ export const businessMan: CharacterDefinition = {
     walkLift: 0.011,
     // visual calibration (live feedback iterations): native clip depth plus a
     // small constant raise; sofa cushions swallowed everyone at native depth
-    seatLift: { sit: 0.05, sitIdle: 0.05, sofa: 0.06 },
+    // sofa: his native sofaSit hips (0.540) already ride the 0.48 cushion
+    seatLift: { sit: 0.05, sitIdle: 0.05, sofa: 0 },
   },
 }

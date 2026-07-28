@@ -37,7 +37,9 @@ export const femalePm: CharacterDefinition = {
     walkPace: 0.69,
     // visual calibration: bone-height normalization (0.115) overshot and she
     // floated; moderate raise over her native depth instead («девочки ниже»)
-    seatLift: { sit: 0.08, sitIdle: 0.08, sofa: 0.06 },
+    // sofa: native 0.445 is BELOW the 0.48 cushion top - she sank into the
+    // fabric; +0.09 puts her hips at the tall rigs' riding level (~0.535)
+    seatLift: { sit: 0.08, sitIdle: 0.08, sofa: 0.09 },
   },
   npc: {
     spawn: [-2, 0, 6.3],

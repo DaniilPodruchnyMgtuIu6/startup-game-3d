@@ -36,7 +36,8 @@ export const ilyaVlasov: CharacterDefinition = {
     walkPace: 1.4,
     walkLift: 0.01,
     // visual calibration: the old global 0.05 level read fine for him
-    seatLift: { sit: 0.05, sitIdle: 0.05, sofa: 0.06 },
+    // sofa: native 0.561 already rides the cushion
+    seatLift: { sit: 0.05, sitIdle: 0.05, sofa: 0 },
   },
   npc: {
     spawn: [5.5, 0, 6],

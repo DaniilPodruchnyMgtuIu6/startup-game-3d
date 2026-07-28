@@ -35,7 +35,8 @@ export const kirillMorozov: CharacterDefinition = {
     walkLift: 0.015,
     // visual calibration: the reference look («нормально сидит только backend»)
     // asked for a touch higher than the old global 0.05
-    seatLift: { sit: 0.065, sitIdle: 0.065, sofa: 0.06 },
+    // sofa: native 0.547 already rides the cushion
+    seatLift: { sit: 0.065, sitIdle: 0.065, sofa: 0 },
   },
   npc: {
     spawn: [4, 0, 6.3],

@@ -8,7 +8,7 @@ import { useEffect, useRef } from 'react'
 import { useCharacterStore, PLAYER_ID } from './characterStore'
 import { useGameStore } from '../game/gameStore'
 import { useGameOutcomeStore } from '../game/gameOutcomeStore'
-import { getInteractions, isTargetFree, claimTarget, targetKey } from '../interaction/interactionRegistry'
+import { getInteractions, isTargetFree, claimTarget, releaseClaims, targetKey } from '../interaction/interactionRegistry'
 import { tryReservePairActivity, releasePairActivity } from '../interaction/pairActivityReservation'
 import { usePingPongRallyStore } from './pingPongRallyStore'
 import { usePerformanceStore } from './performance/performanceStore'
@@ -90,10 +90,16 @@ export function usePingPongMatchmaker(rng: () => number = Math.random): void {
     }
 
     // The PLAYER's way in: clicking a table side (clickPingPong) claims the
-    // side and walks up in rally stance. Recruit a free NPC to the far side
+    // side and walks up in rally stance. Recruit an opponent to the far side
     // IMMEDIATELY (while the player is still walking - both arrive roughly
-    // together, §17 barrier handles the rest). If nobody is free the player
-    // simply practices solo at the table (§14/§17: no eternal wait).
+    // together, §17 barrier handles the rest). Unlike ambient NPC-NPC
+    // matches, a player invitation PULLS A COLLEAGUE OFF THEIR DESK: during
+    // free play everyone is usually seated working ('working'/'sittingIdle'),
+    // and an idle-only filter meant nobody EVER came - the player stood at
+    // the table swaying alone (the «никто не подходит» live report). Story
+    // scenes and urgent states still refuse (sceneOwned + settled-state
+    // filter). If truly nobody is available the player practices solo.
+    const RECRUITABLE = new Set(['idle', 'working', 'sittingIdle', 'sofaSitting'])
     const playerRallyWalkTarget = () => {
       const state = useCharacterStore.getState().characters[PLAYER_ID]?.state
       if (state?.kind === 'walking' && state.onArrive.kind === 'perform' && state.onArrive.clip === 'pingPongRally') {
@@ -114,11 +120,12 @@ export function usePingPongMatchmaker(rng: () => number = Math.random): void {
       const npc = Object.keys(store.characters).find(
         (id) =>
           id !== PLAYER_ID &&
-          store.characters[id].state.kind === 'idle' &&
+          RECRUITABLE.has(store.characters[id].state.kind) &&
           !store.sceneOwned.has(id) &&
           isTargetFree(farSide.target, id),
       )
       if (!npc) return
+      releaseClaims(npc) // leaving a claimed desk/sofa to come play
       claimTarget(npc, farSide.target)
       store.dispatchTo(npc, { type: 'CLICK_PERFORM_ACTIVITY', target: farSide.target, clip: 'pingPongRally' })
       runRally(PLAYER_ID, npc)
