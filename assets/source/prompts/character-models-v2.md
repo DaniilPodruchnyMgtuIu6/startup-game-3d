@@ -15,6 +15,7 @@
 | Кирилл (kirill_morozov) | 6c16983d-0a50-4367-973a-8f58a53386d7 | integrated 2026-07-27 |
 | Илья (cybersecurity) | db63d60f-4555-4fcd-b27a-e6e98abfcadb | integrated 2026-07-27; texture-дефект левого предплечья — регенерация job 1191ad44-c949-47c3-ac2b-cc7424680051 |
 | Игрок (business_man) | 557d5fb9-5ef9-4f7b-b844-ae50c71a94d9 | integrated 2026-07-27 (по живому отзыву «я единственный на старой модели»): 46.6k tris, 24 кости, текстуры ужаты 7.2→2.3МБ (`optimizeGlbTextures`), scale-треки idle сняты (`stripScaleTracks`), pullUp ретаргетнут отдельно + lift 2.0 + normalize 0.9 (все art-guard тесты зелёные); live-кадр — kickoff-cinematic e2e |
+| Нарушитель (intruder) | 9f4f18fb-4003-4dc9-8455-5ca6c19f56c9 | integrated 2026-07-28 (по живому отзыву «модель не совпадает с видео»): не из turnaround-листов 18B, а с нуля — identity-референс сгенерирован из сюжетного видео-кейфрейма (см. `docs/art/characters/intruder-visitor/generation-prompts.md`); 46.3k tris, 24 кости, рост 1.72м (заказан) / 1.704м (замерено, канон 1.70-1.72), walkPace 1.48, текстуры 6.3→2.2МБ, scale-треки сняты (все art-guard тесты зелёные); оба сюжетных видео-клипа (`public/cutscenes/office-intrusion-*.mp4`) пересобраны с того же identity-референса, чтобы видео и модель не расходились |
 
 QA: покадровые рендеры idle/walk/talk/sitIdle во вьюере + кадры в игре
 (kickoff-кинематика). Ограничение нового рига: 24 кости, без пальцев и morph

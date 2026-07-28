@@ -30,6 +30,7 @@ import { CampaignSuccessOverlay } from './ui/CampaignSuccessOverlay'
 import { NpcConversationPanel } from './ui/NpcConversationPanel'
 import { CinematicBars } from './ui/CinematicBars'
 import { VideoCutsceneOverlay } from './cutscenes/VideoCutsceneOverlay'
+import { useVideoCutsceneStore } from './cutscenes/videoCutscene'
 import { useQualityStore, currentQuality, type QualityTier } from './scene/qualityStore'
 import { QualityMenu } from './ui/QualityMenu'
 import { useCutsceneStore } from './cutscenes/cutsceneStore'
@@ -248,6 +249,15 @@ export function App() {
     },
   })
 
+  // Story video clips play fullscreen and fully occlude the canvas (z-index
+  // above everything, opaque black backdrop) - the WebGL render loop AND the
+  // browser's video decode/compositing were both fighting the GPU for the
+  // same frames underneath a frame nobody can see, which is exactly what read
+  // as "видео лагает". 'never' stops R3F's per-frame render+useFrame work
+  // outright; input is already locked during any cutscene, so nothing needed
+  // it. Rendering resumes exactly where it left off the instant the clip ends.
+  const videoPlaying = useVideoCutsceneStore((s) => s.src !== null)
+
   return (
     <>
       {/* The leva render-tuning panel is a development affordance — hide it in
@@ -256,6 +266,7 @@ export function App() {
       <Leva hidden={!import.meta.env.DEV} />
       <Canvas
         key={tier} // shadows/dpr changes need a clean renderer
+        frameloop={videoPlaying ? 'never' : 'always'}
         // 'soft' = PCFSoftShadowMap: the hard 1-texel shadow edges read as
         // dirty stripes across the floor; soft filtering costs almost nothing
         // and looks like a real interior.
