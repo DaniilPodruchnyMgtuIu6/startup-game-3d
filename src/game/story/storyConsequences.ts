@@ -41,12 +41,16 @@ import {
 // the consequence store, so scenes can replay visually without re-applying
 // anything. Dialogue only here - failures go through registerStoryFailure.
 
-const sonya = (text: string): DialogueLine => ({ speaker: femalePm.persona!.name, speakerRole: femalePm.persona!.role, portrait: femalePm.portraitWorried ?? femalePm.portrait, text })
-const sonyaCalm = (text: string): DialogueLine => ({ speaker: femalePm.persona!.name, speakerRole: femalePm.persona!.role, portrait: femalePm.portrait, text })
-const kirill = (text: string): DialogueLine => ({ speaker: kirillMorozov.persona!.name, speakerRole: kirillMorozov.persona!.role, portrait: kirillMorozov.portrait, text })
-const alina = (text: string): DialogueLine => ({ speaker: alinaBelova.persona!.name, speakerRole: alinaBelova.persona!.role, portrait: alinaBelova.portrait, text })
-const ilya = (text: string): DialogueLine => ({ speaker: ilyaVlasov.persona!.name, speakerRole: ilyaVlasov.persona!.role, portrait: ilyaVlasov.portrait, text })
-const auditor = (text: string): DialogueLine => ({ speaker: 'Аудитор', speakerRole: 'Внешний аудит', portrait: security1.portrait, text })
+// 18H §7 второй проход: cue.speakerEmotion по смыслу реплики — consequence-
+// сцены играют без pair/group, поэтому применяется только эмоция говорящего
+// (реакции слушателей на этом пути некому назначать, см. cinematicDirector).
+type Cue = DialogueLine['cue']
+const sonya = (text: string, cue?: Cue): DialogueLine => ({ speaker: femalePm.persona!.name, speakerRole: femalePm.persona!.role, portrait: femalePm.portraitWorried ?? femalePm.portrait, text, cue })
+const sonyaCalm = (text: string, cue?: Cue): DialogueLine => ({ speaker: femalePm.persona!.name, speakerRole: femalePm.persona!.role, portrait: femalePm.portrait, text, cue })
+const kirill = (text: string, cue?: Cue): DialogueLine => ({ speaker: kirillMorozov.persona!.name, speakerRole: kirillMorozov.persona!.role, portrait: kirillMorozov.portrait, text, cue })
+const alina = (text: string, cue?: Cue): DialogueLine => ({ speaker: alinaBelova.persona!.name, speakerRole: alinaBelova.persona!.role, portrait: alinaBelova.portrait, text, cue })
+const ilya = (text: string, cue?: Cue): DialogueLine => ({ speaker: ilyaVlasov.persona!.name, speakerRole: ilyaVlasov.persona!.role, portrait: ilyaVlasov.portrait, text, cue })
+const auditor = (text: string, cue?: Cue): DialogueLine => ({ speaker: 'Аудитор', speakerRole: 'Внешний аудит', portrait: security1.portrait, text, cue })
 
 const LATE_DRILL_CHOICE_ID = 'run-late-restore-drill'
 const LATE_DRILL_DECLINE_ID = 'postpone-again'
@@ -133,20 +137,21 @@ export function buildConsequenceScript(id: StoryConsequenceId): ConsequenceScrip
     case 'baseline-review-overdue':
       return {
         lines: [
-          sonya('Мы выбрали внутреннюю проверку, но у нас всё ещё нет ни специалиста, ни результата.'),
-          sonya('Если продолжим без проверки, мы будем принимать следующие решения вслепую.'),
+          sonya('Мы выбрали внутреннюю проверку, но у нас всё ещё нет ни специалиста, ни результата.', { speakerEmotion: 'concerned' }),
+          sonya('Если продолжим без проверки, мы будем принимать следующие решения вслепую.', { speakerEmotion: 'concerned' }),
         ],
       }
     case 'baseline-audit-result':
       return {
         lines: [
+          // «Аудитор» - вне каста: без cue (fallback-резолв повесил бы эмоцию на игрока)
           auditor('Критической компрометации мы не нашли. Но доступы, резервные копии и тестовые данные нужно привести в контролируемое состояние.'),
-          sonyaCalm('Хорошо. Теперь у нас есть список, а не только предположения.'),
+          sonyaCalm('Хорошо. Теперь у нас есть список, а не только предположения.', { speakerEmotion: 'relieved' }),
         ],
       }
     case 'internal-review-complete':
       return {
-        lines: [ilya('Я закончил первичную проверку. Система не выглядит потерянной, но несколько решений нужно принять до следующего этапа.')],
+        lines: [ilya('Я закончил первичную проверку. Система не выглядит потерянной, но несколько решений нужно принять до следующего этапа.', { speakerEmotion: 'focused' })],
       }
     case 'admin-access-consequence': {
       const permanent = choiceOf('developer-admin-access') === 'grant-permanent-admin'
@@ -154,14 +159,14 @@ export function buildConsequenceScript(id: StoryConsequenceId): ConsequenceScrip
         ? {
             lines: [
               hired
-                ? ilya('Подозрительная сессия использовала те же права, которые мы оставили постоянными.')
-                : kirill('Подозрительная сессия использовала те же права, которые мы оставили постоянными.'),
-              kirill('Это ещё не доказывает, что доступ украли. Но область возможного ущерба стала больше.'),
+                ? ilya('Подозрительная сессия использовала те же права, которые мы оставили постоянными.', { speakerEmotion: 'concerned' })
+                : kirill('Подозрительная сессия использовала те же права, которые мы оставили постоянными.', { speakerEmotion: 'concerned' }),
+              kirill('Это ещё не доказывает, что доступ украли. Но область возможного ущерба стала больше.', { speakerEmotion: 'concerned' }),
             ],
           }
         : {
             lines: [
-              kirill('Подозрительная сессия упёрлась в ограниченные права. Доступ был локализован — решение с временными правами сработало.'),
+              kirill('Подозрительная сессия упёрлась в ограниченные права. Доступ был локализован — решение с временными правами сработало.', { speakerEmotion: 'confident' }),
             ],
           }
     }
@@ -170,22 +175,22 @@ export function buildConsequenceScript(id: StoryConsequenceId): ConsequenceScrip
       return production
         ? {
             lines: [
-              alina('В тестовой среде осталась копия реальных данных. Я думала удалить её после проверки, но мы так и не зафиксировали этот шаг.'),
+              alina('В тестовой среде осталась копия реальных данных. Я думала удалить её после проверки, но мы так и не зафиксировали этот шаг.', { speakerEmotion: 'sad' }),
               hired
-                ? ilya('Теперь придётся считать, что подозрительный доступ мог затронуть и её.')
-                : kirill('Теперь придётся считать, что подозрительный доступ мог затронуть и её.'),
+                ? ilya('Теперь придётся считать, что подозрительный доступ мог затронуть и её.', { speakerEmotion: 'concerned' })
+                : kirill('Теперь придётся считать, что подозрительный доступ мог затронуть и её.', { speakerEmotion: 'concerned' }),
             ],
           }
         : {
-            lines: [alina('Тестовая среда осталась чистой: в ней нет реальных данных, и текущие проверки её не затронули.')],
+            lines: [alina('Тестовая среда осталась чистой: в ней нет реальных данных, и текущие проверки её не затронули.', { speakerEmotion: 'relieved' })],
           }
     }
     case 'backup-warning-scene': {
       const configured = choiceOf('backup-and-restore-strategy') === 'configure-backups-only'
       return {
         lines: configured
-          ? [kirill('Копии создаются по расписанию. Но я всё ещё не проверял, что проект реально поднимается из них целиком.')]
-          : [kirill('Мы снова отложили резервное копирование. Сейчас единственная рабочая версия проекта — та, с которой работает команда.')],
+          ? [kirill('Копии создаются по расписанию. Но я всё ещё не проверял, что проект реально поднимается из них целиком.', { speakerEmotion: 'concerned' })]
+          : [kirill('Мы снова отложили резервное копирование. Сейчас единственная рабочая версия проекта — та, с которой работает команда.', { speakerEmotion: 'concerned' })],
         choices: [
           {
             id: LATE_DRILL_CHOICE_ID,
@@ -196,19 +201,19 @@ export function buildConsequenceScript(id: StoryConsequenceId): ConsequenceScrip
         ],
         reaction: (choiceId) =>
           choiceId === LATE_DRILL_CHOICE_ID
-            ? [kirill('Хорошо. Останавливаю текущую задачу и поднимаю проект из копии с нуля.')]
-            : [sonya('Записываю как открытый вопрос. Вернуться к нему придётся до контрольного этапа.')],
+            ? [kirill('Хорошо. Останавливаю текущую задачу и поднимаю проект из копии с нуля.', { speakerEmotion: 'focused' })]
+            : [sonya('Записываю как открытый вопрос. Вернуться к нему придётся до контрольного этапа.', { speakerEmotion: 'concerned' })],
       }
     }
     case 'data-loss-final-warning':
       return {
         lines: [
-          sonya('У нас нет завершённой проверки системы. И мы не доказали, что можем восстановить проект.'),
-          sonya('Это уже не просто технический долг. Следующий серьёзный сбой может оставить нас без рабочей версии.'),
-          kirill('Мне нужен хотя бы один день, чтобы проверить копию и журналы.'),
+          sonya('У нас нет завершённой проверки системы. И мы не доказали, что можем восстановить проект.', { speakerEmotion: 'concerned' }),
+          sonya('Это уже не просто технический долг. Следующий серьёзный сбой может оставить нас без рабочей версии.', { speakerEmotion: 'angry-controlled' }),
+          kirill('Мне нужен хотя бы один день, чтобы проверить копию и журналы.', { speakerEmotion: 'focused' }),
           hired
-            ? ilya('Если отложим ещё раз, я не смогу обещать, что восстановление вообще возможно.')
-            : kirill('Если отложим ещё раз, я не смогу обещать, что восстановление вообще возможно.'),
+            ? ilya('Если отложим ещё раз, я не смогу обещать, что восстановление вообще возможно.', { speakerEmotion: 'concerned' })
+            : kirill('Если отложим ещё раз, я не смогу обещать, что восстановление вообще возможно.', { speakerEmotion: 'concerned' }),
         ],
         choices: [
           {
@@ -220,76 +225,76 @@ export function buildConsequenceScript(id: StoryConsequenceId): ConsequenceScrip
         ],
         reaction: (choiceId) =>
           choiceId === LATE_DRILL_CHOICE_ID
-            ? [kirill('Начинаю немедленно. Каждый день без проверенной копии — это ставка на удачу.')]
-            : [sonya('Тогда я фиксирую: мы осознанно продолжаем без подтверждённого восстановления.')],
+            ? [kirill('Начинаю немедленно. Каждый день без проверенной копии — это ставка на удачу.', { speakerEmotion: 'focused' })]
+            : [sonya('Тогда я фиксирую: мы осознанно продолжаем без подтверждённого восстановления.', { speakerEmotion: 'sad' })],
       }
     case 'project-files-destroyed':
       return {
         lines: [
-          kirill('Репозиторий не открывается. Общая папка тоже пустая.'),
-          alina('У меня осталась только вчерашняя сборка интерфейса. Исходников и макетов нет.'),
-          sonya('Резервная копия?'),
-          kirill('Проверенной копии нет. Журналы обрываются ночью.'),
+          kirill('Репозиторий не открывается. Общая папка тоже пустая.', { speakerEmotion: 'surprised' }),
+          alina('У меня осталась только вчерашняя сборка интерфейса. Исходников и макетов нет.', { speakerEmotion: 'surprised' }),
+          sonya('Резервная копия?', { speakerEmotion: 'concerned' }),
+          kirill('Проверенной копии нет. Журналы обрываются ночью.', { speakerEmotion: 'sad' }),
           hired
-            ? ilya('Это мог быть взлом, вредоносный пакет или ошибочная команда. Без аудита и журналов мы не докажем причину.')
-            : kirill('Причину без аудита и полных журналов мы уже не установим.'),
-          sonya('Но главное уже понятно: восстановить проект в срок мы не можем.'),
+            ? ilya('Это мог быть взлом, вредоносный пакет или ошибочная команда. Без аудита и журналов мы не докажем причину.', { speakerEmotion: 'concerned' })
+            : kirill('Причину без аудита и полных журналов мы уже не установим.', { speakerEmotion: 'concerned' }),
+          sonya('Но главное уже понятно: восстановить проект в срок мы не можем.', { speakerEmotion: 'sad' }),
         ],
       }
     case 'project-recovered-unverified':
       return {
         lines: [
-          kirill('Основная версия повреждена. Копия есть, но она не поднимается автоматически. Мне придётся вручную собирать проект и проверять целостность.'),
-          sonya('Сколько времени?'),
-          kirill('Три рабочих дня, если внутри копии нет новых повреждений.'),
+          kirill('Основная версия повреждена. Копия есть, но она не поднимается автоматически. Мне придётся вручную собирать проект и проверять целостность.', { speakerEmotion: 'concerned' }),
+          sonya('Сколько времени?', { speakerEmotion: 'concerned' }),
+          kirill('Три рабочих дня, если внутри копии нет новых повреждений.', { speakerEmotion: 'focused' }),
         ],
       }
     case 'project-recovered-verified':
       return {
-        lines: [kirill('Основная версия повреждена, но проверенная копия поднялась штатно. Мы потеряли часы, а не проект.')],
+        lines: [kirill('Основная версия повреждена, но проверенная копия поднялась штатно. Мы потеряли часы, а не проект.', { speakerEmotion: 'relieved' })],
       }
     case 'architecture-incident-consequence': {
       const shared = choiceOf('architecture-boundary') === 'keep-shared-architecture'
       return shared
-        ? { lines: [kirill('Проблема началась в одном контуре, но общий технический доступ затронул и соседние операции.')] }
+        ? { lines: [kirill('Проблема началась в одном контуре, но общий технический доступ затронул и соседние операции.', { speakerEmotion: 'concerned' })] }
         : {
             lines: [
               hired
-                ? ilya('Инцидент остался внутри своего контура. Разделение доступов сработало так, как мы рассчитывали.')
-                : kirill('Инцидент остался внутри своего контура. Разделение доступов сработало так, как мы рассчитывали.'),
+                ? ilya('Инцидент остался внутри своего контура. Разделение доступов сработало так, как мы рассчитывали.', { speakerEmotion: 'confident' })
+                : kirill('Инцидент остался внутри своего контура. Разделение доступов сработало так, как мы рассчитывали.', { speakerEmotion: 'confident' }),
             ],
           }
     }
     case 'disclosure-incident-consequence': {
       const choice = choiceOf('suspicious-activity-disclosure')
       if (choice === 'report-activity-immediately') {
-        return { lines: [sonyaCalm('Руководство уже знает контекст. Нам не нужно объяснять, почему мы молчали.')] }
+        return { lines: [sonyaCalm('Руководство уже знает контекст. Нам не нужно объяснять, почему мы молчали.', { speakerEmotion: 'relieved' })] }
       }
       const investigationClosed = !useStoryWorkStore.getState().assignments.some((a) => a.id.startsWith('story-decision:suspicious-activity-disclosure:investigate-quietly'))
       return investigationClosed
         ? {
             lines: [
               hired
-                ? ilya('Мы успели проверить сигнал до инцидента. Хронология у нас на руках — объясняться будет проще.')
-                : kirill('Мы успели проверить сигнал до инцидента. Хронология у нас на руках — объясняться будет проще.'),
+                ? ilya('Мы успели проверить сигнал до инцидента. Хронология у нас на руках — объясняться будет проще.', { speakerEmotion: 'confident' })
+                : kirill('Мы успели проверить сигнал до инцидента. Хронология у нас на руках — объясняться будет проще.', { speakerEmotion: 'confident' }),
             ],
           }
         : {
-            lines: [sonya('Руководство узнало, что мы видели сигнал и не сообщили. Теперь вопросы задают уже нам.')],
+            lines: [sonya('Руководство узнало, что мы видели сигнал и не сообщили. Теперь вопросы задают уже нам.', { speakerEmotion: 'angry-controlled' })],
           }
     }
     case 'dismissed-warning-incident':
       return {
         lines: [
-          sonya('Нам уже задавали вопрос об этой активности. Мы решили, что это ложное срабатывание.'),
-          sonya('Теперь придётся объяснить, почему проверка не была проведена.'),
+          sonya('Нам уже задавали вопрос об этой активности. Мы решили, что это ложное срабатывание.', { speakerEmotion: 'concerned' }),
+          sonya('Теперь придётся объяснить, почему проверка не была проведена.', { speakerEmotion: 'sad' }),
         ],
       }
     case 'concealed-risk-discovered':
       return {
         lines: [
-          sonya('Руководство сверило отчёт с фактическим состоянием системы.'),
-          sonya('Расхождение обнаружено: критический риск не был указан. Решение по проекту принимает уже не наш отдел.'),
+          sonya('Руководство сверило отчёт с фактическим состоянием системы.', { speakerEmotion: 'concerned' }),
+          sonya('Расхождение обнаружено: критический риск не был указан. Решение по проекту принимает уже не наш отдел.', { speakerEmotion: 'sad' }),
         ],
       }
   }

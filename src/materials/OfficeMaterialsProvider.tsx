@@ -63,10 +63,12 @@ export function OfficeMaterialsProvider({ children }: { children: ReactNode }) {
       floorWoodTextures: wood,
       floorConcreteTextures: concrete,
       // subtle plaster over the paint tint - the walls are the largest flat
-      // surfaces on screen and pure flat color read as "unfinished"
+      // surfaces on screen and pure flat color read as "unfinished". The
+      // accent colors (kitchen fronts, feature walls) share the texture,
+      // tinted by their own color.
       wallPaint: { color: '#f2efe7', map: surfaceTex.wallPlaster, roughness: 0.9, metalness: 0 },
-      wallAccentBlue: procedural.wallAccentBlue,
-      wallAccentGreen: procedural.wallAccentGreen,
+      wallAccentBlue: { color: '#3457a6', map: surfaceTex.wallPlaster, roughness: 0.85, metalness: 0 },
+      wallAccentGreen: { color: '#2f5d4f', map: surfaceTex.wallPlaster, roughness: 0.85, metalness: 0 },
       glass: procedural.glass,
       metalFrame: procedural.metalFrame,
       metalChrome: procedural.metalChrome,

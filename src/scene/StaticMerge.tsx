@@ -92,7 +92,14 @@ export function StaticMerge({ children }: { children: ReactNode }) {
         let shared: Set<string> | null = null
         for (const g of geometries) {
           const names = new Set(Object.keys(g.attributes))
-          shared = shared ? new Set([...shared].filter((n) => names.has(n))) : names
+          if (shared === null) {
+            shared = names
+          } else {
+            const prev = shared
+            const next = new Set<string>()
+            for (const n of names) if (prev.has(n)) next.add(n)
+            shared = next
+          }
         }
         for (const g of geometries) {
           for (const name of Object.keys(g.attributes)) {

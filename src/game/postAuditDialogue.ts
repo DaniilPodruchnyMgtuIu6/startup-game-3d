@@ -7,28 +7,34 @@ import type { PostAuditDialogueBranch, SecurityStaffingDecision } from './securi
 // the sequencing in PostAuditConversationController. Sonya's opening tone
 // follows the earlier security-breach choice (see getPostAuditDialogueBranch).
 
-const asSonya = (text: string): DialogueLine => ({
+// 18H §7 второй проход: эмоция говорящей + реакция слушателя-игрока по
+// СМЫСЛУ реплики. Ветка «конфликт» несёт сдержанный гнев Сони — сцена
+// обязана играть иначе, чем конструктивная.
+const asSonya = (text: string, cue?: DialogueLine['cue']): DialogueLine => ({
   speaker: femalePm.persona!.name,
   speakerRole: femalePm.persona!.role,
   portrait: femalePm.portraitWorried ?? femalePm.portrait,
   text,
+  cue,
 })
 
 // Branch A - the player took responsibility in the breach scene.
 const CONSTRUCTIVE: DialogueLine[] = [
-  asSonya('Спасибо, что не стали сваливать всё на одного человека. Проблема не в одном незаблокированном компьютере.'),
-  asSonya('У нас уже есть разработчики, рабочий прототип, серверы и учётные записи. Но за безопасность системно никто не отвечает.'),
+  asSonya('Спасибо, что не стали сваливать всё на одного человека. Проблема не в одном незаблокированном компьютере.', { speakerEmotion: 'relieved', listenerReaction: 'nod' }),
+  asSonya('У нас уже есть разработчики, рабочий прототип, серверы и учётные записи. Но за безопасность системно никто не отвечает.', { speakerEmotion: 'concerned', listenerReaction: 'focused-listening' }),
   asSonya(
     'Я считаю, нам нужен отдельный специалист по информационной безопасности. Он будет разбирать замечания аудита, проводить обучение и проверять новые решения до релиза.',
+    { speakerEmotion: 'focused', listenerReaction: 'thinking' },
   ),
 ]
 
 // Branch B - the player blamed Sonya in the breach scene.
 const CONFLICT: DialogueLine[] = [
-  asSonya('После аудита вы решили сделать виноватой меня. Но проблема не исчезнет от того, кому выдадут выговор.'),
-  asSonya('У нас есть разработчики, рабочий прототип, серверы и учётные записи. При этом за безопасность системно никто не отвечает.'),
+  asSonya('После аудита вы решили сделать виноватой меня. Но проблема не исчезнет от того, кому выдадут выговор.', { speakerEmotion: 'angry-controlled', listenerReaction: 'controlled-frustration' }),
+  asSonya('У нас есть разработчики, рабочий прототип, серверы и учётные записи. При этом за безопасность системно никто не отвечает.', { speakerEmotion: 'concerned', listenerReaction: 'focused-listening' }),
   asSonya(
     'Если мы продолжим искать крайнего после каждого нарушения, следующая проверка закончится намного хуже. Нам нужен отдельный специалист по информационной безопасности.',
+    { speakerEmotion: 'angry-controlled', listenerReaction: 'thinking' },
   ),
 ]
 
@@ -36,6 +42,7 @@ const CONFLICT: DialogueLine[] = [
 const NEUTRAL: DialogueLine[] = [
   asSonya(
     'Аудит показал, что безопасность у нас держится на случайных решениях. Теперь у нас есть команда, прототип и данные, поэтому так продолжаться не может.',
+    { speakerEmotion: 'concerned', listenerReaction: 'focused-listening' },
   ),
 ]
 
@@ -56,12 +63,14 @@ export function postAuditFinalLines(decision: SecurityStaffingDecision): Dialogu
     return [
       asSonya(
         'Хорошо. Я подготовлю требования к вакансии. Но учтите: безопасник будет просить время разработчиков на исправления, а его зарплата увеличит наши постоянные расходы.',
+        { speakerEmotion: 'relieved', listenerReaction: 'nod' },
       ),
     ]
   }
   return [
     asSonya(
       'Тогда замечания аудита останутся на нашей ответственности. Если мы не успеем их закрыть, следующая проверка уже не ограничится предупреждением.',
+      { speakerEmotion: 'sad', listenerReaction: 'controlled-frustration' },
     ),
   ]
 }

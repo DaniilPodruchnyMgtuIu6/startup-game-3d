@@ -243,6 +243,11 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
     if (listener) performance.setGaze(speakerId, listener)
   }
 
+  // Every id that actually received a cue-driven emotion/reaction this scene -
+  // end() must clear exactly these even when they are not in the options
+  // (consequence scenes pass empty options; the speaker resolves per line).
+  const cuedIds = new Set<string>()
+
   // 18H §7: apply the line's DialoguePerformanceCue, if any - the speaker's
   // emotion, every listener's reaction, and (when focusTarget overrides the
   // default "look at the speaker") where listeners actually look. Metadata
@@ -257,10 +262,15 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
   // that doesn't specify one (no stuck reaction from two lines ago).
   const applyCue = (line: DialogueLine, speakerId: string, listeners: string[]) => {
     const performance = usePerformanceStore.getState()
-    if (line.cue?.speakerEmotion) performance.setEmotion(speakerId, line.cue.speakerEmotion)
+    if (line.cue?.speakerEmotion) {
+      performance.setEmotion(speakerId, line.cue.speakerEmotion)
+      cuedIds.add(speakerId) // ids outside pairA/pairB/groupIds (empty-options scenes) still get cleaned in end()
+    }
     for (const id of listeners) {
-      if (line.cue?.listenerReaction) performance.setListenerReaction(id, line.cue.listenerReaction)
-      else performance.clearListenerReaction(id)
+      if (line.cue?.listenerReaction) {
+        performance.setListenerReaction(id, line.cue.listenerReaction)
+        cuedIds.add(id)
+      } else performance.clearListenerReaction(id)
     }
     if (line.cue?.focusTarget === 'whiteboard') {
       for (const id of listeners) performance.setGazePoint(id, WHITEBOARD_POSITION)
@@ -307,7 +317,9 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
     const shotSide = side
     const partnerId =
       options.pairA && options.pairB ? (speakerId === options.pairA ? options.pairB : options.pairA) : undefined
-    if (partnerId) applyCue(line, speakerId, [partnerId])
+    // no partner (consequence scenes use empty options): the speaker's own
+    // emotion still plays - only listener reactions have no one to land on
+    applyCue(line, speakerId, partnerId ? [partnerId] : [])
     let type: CinematicShotType
     if (partnerId) {
       // pair coverage: open on a two-shot, then OTS with medium-close emphasis
@@ -356,7 +368,10 @@ export function beginConversationCinematic(options: ConversationCinematicOptions
     // own responsibility to clean up - unlike gaze (which pair-mode callers
     // like postAuditInteraction.ts already clear themselves), nothing else
     // touches these fields for a cue-driven scene.
-    const cueParticipants = options.groupIds ?? [options.pairA, options.pairB].filter((id): id is string => !!id)
+    const cueParticipants = new Set([
+      ...(options.groupIds ?? [options.pairA, options.pairB].filter((id): id is string => !!id)),
+      ...cuedIds,
+    ])
     for (const id of cueParticipants) {
       usePerformanceStore.getState().clearEmotion(id)
       usePerformanceStore.getState().clearListenerReaction(id)

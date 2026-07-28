@@ -250,6 +250,22 @@ describe('DialoguePerformanceCue application (18H §7)', () => {
     expect(perf.listenerReactions[KIRILL]).toBeUndefined()
     expect(perf.listenerReactions[ALINA]).toBeUndefined()
   })
+
+  it('empty options (consequence scenes): the speaker emotion still applies and end() clears it', async () => {
+    // StoryConsequenceController runs beginConversationCinematic({}) - the
+    // speaker resolves per line; the emotion must play AND must not leak
+    // past the scene (nobody is listed in options to be cleaned up by name).
+    const handle = beginConversationCinematic({})
+    useGameStore.setState({
+      activeDialogue: {
+        lines: [{ speaker: 'Соня Соколова', text: 'x', cue: { speakerEmotion: 'sad' } }],
+        index: 0,
+      },
+    })
+    expect(usePerformanceStore.getState().emotions[SONYA]).toBe('sad')
+    await handle.end()
+    expect(usePerformanceStore.getState().emotions[SONYA]).toBeUndefined()
+  })
 })
 
 describe('resettle (18H §2 - settle on the GATHERED group before the first line)', () => {
