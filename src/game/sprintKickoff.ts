@@ -28,12 +28,23 @@ export interface SprintKickoffContext {
   specialist?: KickoffSpecialist // present only when Ilya is really hired
 }
 
+// Deterministic per-sprint variety (18H, «не делать офисную жизнь чрезмерно
+// заскриптованной»): the kickoff plays every sprint, so the opener/closer
+// rotate by sprint number - same sprint always speaks the same words
+// (reload-safe), consecutive sprints don't sound like a recording.
+const OPENER_TAILS = [
+  'Разобрали доску — вот на чём фокус.',
+  'План на доске, пройдёмся по главному.',
+  'Коротко по приоритетам — начнём с главного.',
+]
+const CLOSERS = ['Погнали.', 'За работу. Вопросы — сразу ко мне.', 'Начинаем. Встретимся на статусе.']
+
 export function buildSprintKickoffDialogue(ctx: SprintKickoffContext): DialogueLine[] {
   const asPm = { speaker: ctx.pm.name, speakerRole: ctx.pm.role, portrait: ctx.pm.portrait }
   const lines: DialogueLine[] = [
     {
       ...asPm,
-      text: `Планёрка спринта ${ctx.sprintNumber}. Разобрали доску — вот на чём фокус.`,
+      text: `Планёрка спринта ${ctx.sprintNumber}. ${OPENER_TAILS[ctx.sprintNumber % OPENER_TAILS.length]}`,
       // 18H §7: the plan she is presenting is ON the board - the team's
       // attention belongs there, not on her face, for this one opening line.
       cue: { speakerEmotion: 'confident', listenerReaction: 'focused-listening', focusTarget: 'whiteboard' },
@@ -79,7 +90,7 @@ export function buildSprintKickoffDialogue(ctx: SprintKickoffContext): DialogueL
 
   lines.push({
     ...asPm,
-    text: 'Погнали.',
+    text: CLOSERS[ctx.sprintNumber % CLOSERS.length],
     cue: { speakerEmotion: 'confident', listenerReaction: 'nod' },
   })
   return lines

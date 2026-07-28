@@ -47,6 +47,21 @@ describe('buildSprintKickoffDialogue', () => {
     })
     expect(lines.find((l) => l.speaker === 'Кирилл Морозов')!.text).toContain('задач не досталось')
   })
+
+  // 18H: per-sprint variety must stay deterministic (reload-safe), and the
+  // «Планёрка спринта N» anchor must survive every opener variant.
+  it('rotates the opener/closer by sprint number, deterministically', () => {
+    const s2a = buildSprintKickoffDialogue(base)
+    const s2b = buildSprintKickoffDialogue(base)
+    expect(s2a.map((l) => l.text)).toEqual(s2b.map((l) => l.text)) // same sprint → same words
+    const s3 = buildSprintKickoffDialogue({ ...base, sprintNumber: 3 })
+    expect(s3[0].text).not.toBe(s2a[0].text)
+    expect(s3[s3.length - 1].text).not.toBe(s2a[s2a.length - 1].text)
+    for (const n of [1, 2, 3, 4, 5, 6]) {
+      const lines = buildSprintKickoffDialogue({ ...base, sprintNumber: n })
+      expect(lines[0].text).toContain(`Планёрка спринта ${n}.`)
+    }
+  })
 })
 
 // 18H §7: every line carries performance metadata matched to its own
