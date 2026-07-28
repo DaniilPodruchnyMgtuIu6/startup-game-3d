@@ -59,6 +59,7 @@ export function NpcAmbientConversationController() {
       store.dispatchTo(id, { type: 'TALK_END' })
       store.dispatchTo(id, { type: 'PERFORM_END' }) // a listener may be mid-'agree'
       usePerformanceStore.getState().clearGaze(id)
+      usePerformanceStore.getState().clearEmotion(id) // line emotions end with the talk
       resumePlanner(id)
     }
     moverRef.current = null
@@ -108,6 +109,10 @@ export function NpcAmbientConversationController() {
       const chars = useCharacterStore.getState()
       chars.dispatchTo(speaker, { type: 'TALK_START' })
       chars.dispatchTo(listener, { type: 'PERFORM_START', clip: 'agree' })
+      // 18H §7: the line's authored emotion plays on the speaker's body for the
+      // duration of the talk (cleared in release()) - story beats read worried,
+      // banter reads relaxed. Data-driven, never random.
+      if (line.emotion) usePerformanceStore.getState().setEmotion(speaker, line.emotion)
     }
     useNpcAmbientStore.getState().setLineIndex(0)
     applyLinePose(0)

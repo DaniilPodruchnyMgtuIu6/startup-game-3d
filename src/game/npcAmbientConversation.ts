@@ -8,10 +8,15 @@
 // NpcAmbientConversationController; the runtime state lives in npcAmbientStore.
 
 import type { NpcId } from './npcChatTypes'
+import type { CharacterEmotion } from '../character/performance/characterEmotion'
 
 export interface NpcAmbientLine {
   speaker: NpcId
   text: string
+  // 18H §7 (второй проход): эмоция говорящего на время реплики — тревожные
+  // сюжетные биты играют телом иначе, чем бытовая болтовня. Применяет и
+  // чистит NpcAmbientConversationController; на игровую математику не влияет.
+  emotion?: CharacterEmotion
 }
 
 export interface NpcAmbientConversation {
@@ -67,8 +72,8 @@ const STORY: PoolEntry[] = [
       host: 'kirill-morozov',
       hudSummary: 'Соня и Кирилл торопят с установкой СКУД, пока вход открыт.',
       lines: [
-        { speaker: 'sonya-sokolova', text: 'Если в ближайшие дни не поставим СКУД, к нам может войти кто угодно.' },
-        { speaker: 'kirill-morozov', text: 'Вход и правда открыт для любого. Давай не тянуть с этим.' },
+        { speaker: 'sonya-sokolova', text: 'Если в ближайшие дни не поставим СКУД, к нам может войти кто угодно.', emotion: 'concerned' },
+        { speaker: 'kirill-morozov', text: 'Вход и правда открыт для любого. Давай не тянуть с этим.', emotion: 'concerned' },
       ],
     },
     when: (c) => c.intrusionArmed,
@@ -84,8 +89,8 @@ const STORY: PoolEntry[] = [
       host: 'kirill-morozov',
       hudSummary: 'Алина и Кирилл вспомнили кражу у соседей из-за открытого входа.',
       lines: [
-        { speaker: 'alina-belova', text: 'Слышал, к соседям на этаже зашёл кто-то под видом курьера и вынес ноутбук прямо со стола?' },
-        { speaker: 'kirill-morozov', text: 'Ага. И на входе у них — никакого контроля доступа. У нас, между прочим, тоже.' },
+        { speaker: 'alina-belova', text: 'Слышал, к соседям на этаже зашёл кто-то под видом курьера и вынес ноутбук прямо со стола?', emotion: 'surprised' },
+        { speaker: 'kirill-morozov', text: 'Ага. И на входе у них — никакого контроля доступа. У нас, между прочим, тоже.', emotion: 'concerned' },
       ],
     },
     when: (c) => c.accessControlDecisionPending && !c.intrusionArmed,
@@ -100,8 +105,8 @@ const STORY: PoolEntry[] = [
       host: 'kirill-morozov',
       hudSummary: 'Илья и Кирилл согласовали восстановление сервера.',
       lines: [
-        { speaker: 'ilya-vlasov', text: 'Я собрал журналы до сбоя.' },
-        { speaker: 'kirill-morozov', text: 'Хорошо. Тогда я не буду повторно искать точку отказа.' },
+        { speaker: 'ilya-vlasov', text: 'Я собрал журналы до сбоя.', emotion: 'focused' },
+        { speaker: 'kirill-morozov', text: 'Хорошо. Тогда я не буду повторно искать точку отказа.', emotion: 'relieved' },
       ],
     },
     when: (c) => c.serverRecoveryActive,
@@ -116,8 +121,8 @@ const STORY: PoolEntry[] = [
       host: 'ilya-vlasov',
       hudSummary: 'Соня и Илья обсудили нарастающий риск безопасности.',
       lines: [
-        { speaker: 'sonya-sokolova', text: 'Насколько срочно нужно переключать команду?' },
-        { speaker: 'ilya-vlasov', text: 'Инцидента ещё нет. Но откладывать исправление дальше уже опасно.' },
+        { speaker: 'sonya-sokolova', text: 'Насколько срочно нужно переключать команду?', emotion: 'concerned' },
+        { speaker: 'ilya-vlasov', text: 'Инцидента ещё нет. Но откладывать исправление дальше уже опасно.', emotion: 'concerned' },
       ],
     },
     when: (c) => c.detectedHighRisk,
@@ -132,8 +137,8 @@ const STORY: PoolEntry[] = [
       host: 'kirill-morozov',
       hudSummary: 'Соня предупредила Кирилла о перегрузке спринта.',
       lines: [
-        { speaker: 'sonya-sokolova', text: 'У тебя снова больше десяти дней работы.' },
-        { speaker: 'kirill-morozov', text: 'Да. Если не отвлекусь на инфраструктуру, основную часть успею, но запас почти нулевой.' },
+        { speaker: 'sonya-sokolova', text: 'У тебя снова больше десяти дней работы.', emotion: 'concerned' },
+        { speaker: 'kirill-morozov', text: 'Да. Если не отвлекусь на инфраструктуру, основную часть успею, но запас почти нулевой.', emotion: 'focused' },
       ],
     },
     when: (c) => c.overloadedDev,
@@ -153,8 +158,8 @@ const GENERIC: PoolEntry[] = [
       host: 'kirill-morozov',
       hudSummary: 'Кирилл и Алина сверили контракт API формы бронирования.',
       lines: [
-        { speaker: 'alina-belova', text: 'Мне нужен точный формат ответа для формы бронирования.' },
-        { speaker: 'kirill-morozov', text: 'После обеда зафиксирую контракт. Не начинай обработку ошибок по старому варианту.' },
+        { speaker: 'alina-belova', text: 'Мне нужен точный формат ответа для формы бронирования.', emotion: 'focused' },
+        { speaker: 'kirill-morozov', text: 'После обеда зафиксирую контракт. Не начинай обработку ошибок по старому варианту.', emotion: 'confident' },
       ],
     },
     when: () => true,
@@ -168,8 +173,8 @@ const GENERIC: PoolEntry[] = [
       host: 'kirill-morozov',
       hudSummary: 'Команда обсудила первые экраны OfficeFlow.',
       lines: [
-        { speaker: 'alina-belova', text: 'Экран входа почти собран — жду только реальный ответ авторизации.' },
-        { speaker: 'kirill-morozov', text: 'Поднимаю заглушку сегодня, потом заменим на настоящий эндпоинт.' },
+        { speaker: 'alina-belova', text: 'Экран входа почти собран — жду только реальный ответ авторизации.', emotion: 'confident' },
+        { speaker: 'kirill-morozov', text: 'Поднимаю заглушку сегодня, потом заменим на настоящий эндпоинт.', emotion: 'confident' },
       ],
     },
     when: (c) => c.readiness < 40,
@@ -183,8 +188,8 @@ const GENERIC: PoolEntry[] = [
       host: 'kirill-morozov',
       hudSummary: 'Команда сверила готовность перед ревью.',
       lines: [
-        { speaker: 'kirill-morozov', text: 'Основные эндпоинты закрыты. Осталось причесать каталог переговорных.' },
-        { speaker: 'alina-belova', text: 'Тогда добью валидацию формы — и можно показывать.' },
+        { speaker: 'kirill-morozov', text: 'Основные эндпоинты закрыты. Осталось причесать каталог переговорных.', emotion: 'confident' },
+        { speaker: 'alina-belova', text: 'Тогда добью валидацию формы — и можно показывать.', emotion: 'relieved' },
       ],
     },
     when: (c) => c.readiness >= 70,
@@ -198,8 +203,8 @@ const GENERIC: PoolEntry[] = [
       host: 'kirill-morozov',
       hudSummary: 'Соня сверила статус задач с Кириллом.',
       lines: [
-        { speaker: 'sonya-sokolova', text: 'Как по плану на сегодня?' },
-        { speaker: 'kirill-morozov', text: 'Иду по доске сверху вниз. Ничего не блокирует, движемся.' },
+        { speaker: 'sonya-sokolova', text: 'Как по плану на сегодня?', emotion: 'neutral' },
+        { speaker: 'kirill-morozov', text: 'Иду по доске сверху вниз. Ничего не блокирует, движемся.', emotion: 'confident' },
       ],
     },
     when: () => true,
