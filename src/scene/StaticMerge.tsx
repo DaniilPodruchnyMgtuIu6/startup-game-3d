@@ -3,6 +3,7 @@ import {
   Group,
   Matrix4,
   Mesh,
+  MeshBasicMaterial,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
   type BufferGeometry,
@@ -37,6 +38,9 @@ function materialSignature(material: Material): string {
     m.emissiveIntensity ?? '',
   ].join('|')
 }
+
+// shared stub: the renderer drops invisible-material meshes before drawing
+const HIDDEN_MATERIAL = new MeshBasicMaterial({ visible: false })
 
 export function StaticMerge({ children }: { children: ReactNode }) {
   const source = useRef<Group>(null)
@@ -106,11 +110,27 @@ export function StaticMerge({ children }: { children: ReactNode }) {
         dst.add(mesh)
         merged.push(...meshes) // hide ONLY the meshes whose bucket really merged
       }
-      // hide the originals only after the merged copies exist - no flicker
-      for (const mesh of merged) mesh.visible = false
+      // "Hide" the originals via an invisible MATERIAL, not visible=false:
+      // the renderer skips invisible materials (no draw call), but the object
+      // itself keeps rendering its CHILDREN - and the hover outline
+      // (hoverOutline.ts) works by parenting a white shell to each furniture
+      // mesh. visible=false killed the outlines on every merged interactive
+      // piece («пропала белая обводка» live report); this keeps them alive.
+      for (const mesh of merged) {
+        mesh.userData.preMergeMaterial = mesh.material
+        mesh.material = HIDDEN_MATERIAL
+      }
     }, 0)
     return () => {
       clearTimeout(timer)
+      // restore original materials (HMR / room remount correctness)
+      src.traverse((object) => {
+        const mesh = object as Mesh
+        if (mesh.isMesh && mesh.userData.preMergeMaterial) {
+          mesh.material = mesh.userData.preMergeMaterial
+          delete mesh.userData.preMergeMaterial
+        }
+      })
       for (const child of [...dst.children]) {
         dst.remove(child)
         ;(child as Mesh).geometry?.dispose()

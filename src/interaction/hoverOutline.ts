@@ -31,8 +31,11 @@ export function attachHoverOutline(root: Object3D): () => void {
   root.userData.hasOutline = true
 
   const added: Mesh[] = []
-  root.traverse((object) => {
-    if (!(object instanceof Mesh)) return
+  root.traverse((obj) => {
+    // isMesh flag, not instanceof: survives dual three copies (vitest) and
+    // matches three's own duck-typing convention
+    const object = obj as Mesh
+    if (!object.isMesh) return
     if (object.userData.isHoverOutline) return
     if (isInvisible(object.material as Material)) return // interaction hitboxes etc.
 
