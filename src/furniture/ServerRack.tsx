@@ -93,8 +93,9 @@ export function ServerRack({ position = [0, 0, 0], rotation = [0, 0, 0], seed = 
           <meshStandardMaterial {...materials.metalFrame} />
         </mesh>
       ))}
-      {/* role plate on the rack front, label baked into a canvas texture */}
-      <mesh position={[0, HEIGHT - 0.08, DEPTH / 2 + 0.006]}>
+      {/* role plate on the rack front, label baked into a canvas texture;
+          noMerge: the texture/color swaps when the rack breaks */}
+      <mesh position={[0, HEIGHT - 0.08, DEPTH / 2 + 0.006]} userData={{ noMerge: true }}>
         <boxGeometry args={[WIDTH - 0.12, 0.1, 0.008]} />
         {plateTexture ? (
           <meshStandardMaterial map={plateTexture} roughness={0.6} metalness={0} />
@@ -111,7 +112,8 @@ export function ServerRack({ position = [0, 0, 0], rotation = [0, 0, 0], seed = 
               <boxGeometry args={[WIDTH - 0.04, UNIT_HEIGHT, 0.01]} />
               <meshStandardMaterial {...materials.metalFrame} />
             </mesh>
-            <mesh position={[WIDTH / 2 - 0.06, y, DEPTH / 2 + 0.012]}>
+            {/* noMerge: emissiveIntensity is animated per frame (status blink) */}
+            <mesh position={[WIDTH / 2 - 0.06, y, DEPTH / 2 + 0.012]} userData={{ noMerge: true }}>
               <sphereGeometry args={[0.008, 8, 8]} />
               <meshStandardMaterial
                 ref={(material) => {

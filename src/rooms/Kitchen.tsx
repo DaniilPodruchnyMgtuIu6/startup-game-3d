@@ -18,9 +18,9 @@ export function Kitchen() {
 
   return (
     <group position={center}>
-      {/* the DOOR partition animates - stays outside the merge */}
-      <GlassPartitionWithDoor axis="z" length={depth} position={[-width / 2, 0, 0]} />
       <StaticMerge>
+        {/* the doorway partition is fully static (open opening, no moving leaf) */}
+        <GlassPartitionWithDoor axis="z" length={depth} position={[-width / 2, 0, 0]} />
         <Wall axis="x" length={width} center={[0, 1.4, depth / 2]} height={2.8} thickness={0.2} material="paint" />
         <KitchenIsland position={[0, 0, -0.6]} />
         <CoffeeMachine

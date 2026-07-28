@@ -11,7 +11,9 @@ export function ServerIncidentMarker({ incidentId }: { incidentId: ServerInciden
 
   return (
     <group position={[0, 2.35, 0]}>
-      <mesh>
+      {/* noMerge: conditionally mounted - may exist during a mid-incident
+          reload while the room's StaticMerge runs */}
+      <mesh userData={{ noMerge: true }}>
         <boxGeometry args={[0.12, 0.12, 0.12]} />
         <meshStandardMaterial color="#ffb03a" emissive="#ff8a1e" emissiveIntensity={2} toneMapped={false} />
       </mesh>

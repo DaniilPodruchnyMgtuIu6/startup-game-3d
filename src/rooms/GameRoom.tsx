@@ -15,9 +15,9 @@ export function GameRoom() {
 
   return (
     <group position={center}>
-      {/* the DOOR partition animates - stays outside the merge */}
-      <GlassPartitionWithDoor axis="z" length={depth} position={[-width / 2, 0, 0]} />
       <StaticMerge>
+        {/* the doorway partition is fully static (open opening, no moving leaf) */}
+        <GlassPartitionWithDoor axis="z" length={depth} position={[-width / 2, 0, 0]} />
         {/* Turned lengthwise along Z at x=+0.6 (was lengthwise along X at
             z=-1): a walkability map of the mounted room showed NO horizontal
             placement leaves both end-stands on walkable cells - the bookshelf+

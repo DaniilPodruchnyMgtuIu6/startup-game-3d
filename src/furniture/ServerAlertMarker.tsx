@@ -57,7 +57,9 @@ export function ServerAlertMarker({ y = 2.35, size = 0.32 }: ServerAlertMarkerPr
 
   return (
     <group ref={ref} position={[0, y, 0]}>
-      <mesh renderOrder={999}>
+      {/* noMerge: billboarded + bobbing every frame (may be mounted mid-merge
+          on a reload during an incident) */}
+      <mesh renderOrder={999} userData={{ noMerge: true }}>
         <planeGeometry args={[size, size]} />
         {/* depthTest off so the marker reads clearly above the rack even when
             something would otherwise occlude it */}

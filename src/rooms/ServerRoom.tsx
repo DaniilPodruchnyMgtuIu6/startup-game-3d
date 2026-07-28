@@ -41,8 +41,10 @@ export function ServerRoom() {
 
   return (
     <group position={center}>
-      {/* racks stay OUT of the merge: LED materials and repair triggers are
-          live; the shell (floor, wall, door, cabling) is static */}
+      {/* the racks' chassis (body, rails, faceplates, patch cables) is as
+          static as the shell and joins the merge; everything live opts out
+          per mesh via noMerge: LEDs (per-frame emissive), the role plate
+          (texture swaps on break), alert/incident markers and triggers */}
       <StaticMerge>
         <ConcreteFloorPatch width={width} depth={depth} />
         <Wall
@@ -56,16 +58,16 @@ export function ServerRoom() {
         />
         <ServerRoomDoor position={[width / 2, 0, 0]} rotation={[0, Math.PI / 2, 0]} />
         <CableTray length={4.6} position={[0, 2.35, 0]} drops={RACK_X} dropLength={0.35} />
+        {RACK_X.map((x, i) => {
+          const incidentId = INCIDENT_BY_ROLE[ROLE_BY_SEED[i]]
+          return (
+            <group key={x} position={[x, 0, 0]}>
+              <ServerRack position={[0, 0, 0]} seed={i} onRepair={(target) => useCharacterStore.getState().clickServer(target, ROLE_BY_SEED[i])} />
+              {incidentId ? <ServerIncidentMarker incidentId={incidentId} /> : null}
+            </group>
+          )
+        })}
       </StaticMerge>
-      {RACK_X.map((x, i) => {
-        const incidentId = INCIDENT_BY_ROLE[ROLE_BY_SEED[i]]
-        return (
-          <group key={x} position={[x, 0, 0]}>
-            <ServerRack position={[0, 0, 0]} seed={i} onRepair={(target) => useCharacterStore.getState().clickServer(target, ROLE_BY_SEED[i])} />
-            {incidentId ? <ServerIncidentMarker incidentId={incidentId} /> : null}
-          </group>
-        )
-      })}
     </group>
   )
 }
