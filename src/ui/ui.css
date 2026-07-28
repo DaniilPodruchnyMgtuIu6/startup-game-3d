@@ -2433,3 +2433,30 @@ button.dialogue-choice {
   right: 6vw;
   transform: none;
 }
+
+/* Story video clip ("мультик") over the whole game - above HUD, bars and
+   dialogue (max UI layer is 90). Black letterbox behind the frame. */
+.video-cutscene {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.video-cutscene-player {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.video-cutscene-skip {
+  position: absolute;
+  right: 3vw;
+  bottom: 3vh;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  user-select: none;
+}

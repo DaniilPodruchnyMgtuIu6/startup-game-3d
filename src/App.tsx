@@ -29,6 +29,7 @@ import { MvpReleaseOverlay } from './ui/MvpReleaseOverlay'
 import { CampaignSuccessOverlay } from './ui/CampaignSuccessOverlay'
 import { NpcConversationPanel } from './ui/NpcConversationPanel'
 import { CinematicBars } from './ui/CinematicBars'
+import { VideoCutsceneOverlay } from './cutscenes/VideoCutsceneOverlay'
 import { useQualityStore, currentQuality, type QualityTier } from './scene/qualityStore'
 import { QualityMenu } from './ui/QualityMenu'
 import { useCutsceneStore } from './cutscenes/cutsceneStore'
@@ -316,6 +317,7 @@ export function App() {
       <MvpReleaseOverlay />
       <GameOverOverlay />
       <CampaignSuccessOverlay />
+      <VideoCutsceneOverlay />
     </>
   )
 }

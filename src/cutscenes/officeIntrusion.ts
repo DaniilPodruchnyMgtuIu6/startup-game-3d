@@ -7,6 +7,7 @@ import { useTeamStore } from '../game/teamStore'
 import { useAccessControlStore } from '../game/accessControlStore'
 import { hasSecuritySpecialist } from '../game/teamRules'
 import { playShot, attachPerLineShots } from '../game/cinematics/cinematicDirector'
+import { playVideoCutscene } from './videoCutscene'
 import type { CutsceneScript, Point } from './types'
 
 // 18F: while the outsider walks in, the camera keeps a medium shot glued to
@@ -52,11 +53,19 @@ export const officeIntrusionScene: CutsceneScript = async (director) => {
   const withIlya = useAccessControlStore.getState().intrusion.hadSecuritySpecialistAtIncident ?? hasSpecialist
 
   try {
-    await director.camera(CAMERA_TARGET, { position: CAMERA_POSITION, durationMs: 1000 })
-    director.spawnModeledActor('intruder', INTRUDER_SPAWN, intruder, Math.PI)
+    // 18H+: the break-in itself plays as a generated story clip («мультик»,
+    // Higgsfield). When it plays, the in-engine scene opens directly on the
+    // AFTERMATH - actors already at the confrontation spots; the walk-in
+    // staging below remains the full fallback (missing file, unsupported
+    // codec), so the game never depends on the video asset.
+    const clipPlayed = await playVideoCutscene(
+      withIlya ? '/cutscenes/office-intrusion-stopped.mp4' : '/cutscenes/office-intrusion-reached.mp4',
+    )
+    await director.camera(CAMERA_TARGET, { position: CAMERA_POSITION, durationMs: clipPlayed ? 500 : 1000 })
+    director.spawnModeledActor('intruder', clipPlayed ? (withIlya ? INTRUDER_STOP_EARLY : INTRUDER_WORKSTATION) : INTRUDER_SPAWN, intruder, Math.PI)
 
     if (withIlya) {
-      await trackIntruderWalk(director.walk('intruder', INTRUDER_STOP_EARLY))
+      if (!clipPlayed) await trackIntruderWalk(director.walk('intruder', INTRUDER_STOP_EARLY))
       await director.walk(ilyaVlasov.id, ILYA_INTERCEPT)
       director.face(ilyaVlasov.id, 'intruder')
       director.face('intruder', ilyaVlasov.id)
@@ -85,7 +94,7 @@ export const officeIntrusionScene: CutsceneScript = async (director) => {
       director.emotion(ilyaVlasov.id, null)
       director.emotion(femalePm.id, null)
     } else {
-      await trackIntruderWalk(director.walk('intruder', INTRUDER_WORKSTATION))
+      if (!clipPlayed) await trackIntruderWalk(director.walk('intruder', INTRUDER_WORKSTATION))
       // the violated workstation - the outsider reached a live screen
       await playShot('medium-close', 'intruder', { side: 1, durationMs: 900 })
       await director.walk(femalePm.id, SONYA_MARK_DEEP)

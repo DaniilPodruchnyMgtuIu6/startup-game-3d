@@ -13,6 +13,8 @@ Production-код ссылается только на approved/integrated. Се
 | portrait-kirill-worried | Higgsfield MCP / nano_banana_2 | assets/source/prompts/portraits-worried-team.md | integrated | Higgsfield generation (проект) | public/dialogue_pictures/kirill_morozov/kirill_worried.jpg |
 | portrait-alina-worried | Higgsfield MCP / nano_banana_2 | assets/source/prompts/portraits-worried-team.md | integrated | Higgsfield generation (проект) | public/dialogue_pictures/alina_belova/alina_worried.jpg |
 | portrait-ilya-worried | Higgsfield MCP / nano_banana_2 | assets/source/prompts/portraits-worried-team.md | integrated | Higgsfield generation (проект) | public/dialogue_pictures/ilya_vlasov/ilya_worried.jpg |
+| story-clip-intrusion-stopped | Higgsfield MCP / nano_banana_2 + kling3_0_turbo | assets/source/prompts/story-clips-office-intrusion.md | integrated | Higgsfield generation (проект) | public/cutscenes/office-intrusion-stopped.mp4 |
+| story-clip-intrusion-reached | Higgsfield MCP / nano_banana_2 + kling3_0_turbo | assets/source/prompts/story-clips-office-intrusion.md | integrated | Higgsfield generation (проект) | public/cutscenes/office-intrusion-reached.mp4 |
 | poster-officeflow | Higgsfield MCP / nano_banana_2 | assets/source/prompts/posters-sheet.md | integrated | Higgsfield generation (проект) | public/posters/officeflow.jpg |
 | poster-lock-screen | Higgsfield MCP / nano_banana_2 | assets/source/prompts/posters-sheet.md | integrated | Higgsfield generation (проект) | public/posters/lock_screen.jpg |
 | screen-officeflow-dashboard | Higgsfield MCP / nano_banana_2 | assets/source/prompts/officeflow-dashboard.md | integrated | Higgsfield generation (проект) | public/textures/officeflow_dashboard.jpg |
