@@ -8,6 +8,7 @@ import { CoffeeTable } from '../furniture/CoffeeTable'
 import { Plant } from '../furniture/Plant'
 import { useCharacterStore } from '../character/characterStore'
 import { ROOMS, roomCenter, roomSize } from '../scene/layout'
+import { StaticMerge } from '../scene/StaticMerge'
 
 // Feature 16 §7/§16: the exec chair is deeper than a standard chair and its
 // backrest reclines, so seating the player at the trigger's geometric centre
@@ -31,21 +32,24 @@ export function CeoOffice() {
 
   return (
     <group position={center}>
+      {/* the DOOR partition animates - stays outside the merge */}
       <GlassPartitionWithDoor axis="z" length={depth} position={[-width / 2, 0, 0]} />
-      <Wall axis="x" length={width} center={[0, 1.4, depth / 2]} height={2.8} thickness={0.2} material="paint" />
-      {/* Desk sits 1.2m off the back wall so there is a walkable corridor
-          behind the chair; the chair keeps the workstation-proven 0.2m gap to
-          the desk edge so the seated character doesn't clip the top. */}
-      <CeoDesk position={[0, 0, -0.85]} />
-      <CaptainChair position={[0, 0, -1.55]} onSelect={seatPlayerInExecChair} />
-      <Bookshelf position={[width / 2 - 0.4, 0, -1.8]} rotation={[0, -Math.PI / 2, 0]} />
-      <Sofa
-        position={[-1.6, 0, 2.15]}
-        rotation={[0, 59.7, 0]}
-        onSelect={(target) => useCharacterStore.getState().clickSofa(target)}
-      />
-      <CoffeeTable position={[-1.6, 0, 1.3]} />
-      <Plant position={[width / 2 - 0.6, 0, depth / 2 - 0.6]} />
+      <StaticMerge>
+        <Wall axis="x" length={width} center={[0, 1.4, depth / 2]} height={2.8} thickness={0.2} material="paint" />
+        {/* Desk sits 1.2m off the back wall so there is a walkable corridor
+            behind the chair; the chair keeps the workstation-proven 0.2m gap to
+            the desk edge so the seated character doesn't clip the top. */}
+        <CeoDesk position={[0, 0, -0.85]} />
+        <CaptainChair position={[0, 0, -1.55]} onSelect={seatPlayerInExecChair} />
+        <Bookshelf position={[width / 2 - 0.4, 0, -1.8]} rotation={[0, -Math.PI / 2, 0]} />
+        <Sofa
+          position={[-1.6, 0, 2.15]}
+          rotation={[0, 59.7, 0]}
+          onSelect={(target) => useCharacterStore.getState().clickSofa(target)}
+        />
+        <CoffeeTable position={[-1.6, 0, 1.3]} />
+        <Plant position={[width / 2 - 0.6, 0, depth / 2 - 0.6]} />
+      </StaticMerge>
     </group>
   )
 }

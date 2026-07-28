@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import {
   Group,
+  Matrix4,
   Mesh,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
@@ -48,8 +49,18 @@ export function StaticMerge({ children }: { children: ReactNode }) {
     // materials/textures resolve through suspense - merge on the next tick,
     // after the subtree has really rendered
     const timer = setTimeout(() => {
-      const buckets = new Map<string, { geometries: BufferGeometry[]; material: Material; cast: boolean; receive: boolean }>()
+      const buckets = new Map<
+        string,
+        { geometries: BufferGeometry[]; meshes: Mesh[]; material: Material; cast: boolean; receive: boolean }
+      >()
       src.updateWorldMatrix(true, true)
+      dst.updateWorldMatrix(true, false)
+      // bake into the TARGET group's LOCAL space - the wrappers live inside
+      // positioned room groups, and baking plain world coordinates applied
+      // the room transform twice (the furniture-exploded-outside regression;
+      // masked at first because OpenSpace/Building happen to sit at origin)
+      const intoTarget = new Matrix4().copy(dst.matrixWorld).invert()
+      const bake = new Matrix4()
       const merged: Mesh[] = []
       src.traverse((object) => {
         const mesh = object as Mesh
@@ -58,26 +69,42 @@ export function StaticMerge({ children }: { children: ReactNode }) {
         const key = materialSignature(mesh.material)
         let bucket = buckets.get(key)
         if (!bucket) {
-          bucket = { geometries: [], material: mesh.material, cast: false, receive: false }
+          bucket = { geometries: [], meshes: [], material: mesh.material, cast: false, receive: false }
           buckets.set(key, bucket)
         }
         const geometry = mesh.geometry.clone()
-        geometry.applyMatrix4(mesh.matrixWorld)
-        // drop attribute mismatches that break merging (uv2 on some, not others)
+        geometry.applyMatrix4(bake.multiplyMatrices(intoTarget, mesh.matrixWorld))
         bucket.geometries.push(geometry)
+        bucket.meshes.push(mesh)
         bucket.cast ||= mesh.castShadow
         bucket.receive ||= mesh.receiveShadow
-        merged.push(mesh)
       })
-      for (const { geometries, material, cast, receive } of buckets.values()) {
+      for (const { geometries, meshes, material, cast, receive } of buckets.values()) {
         if (!geometries.length) continue
-        const geometry = mergeGeometries(geometries, false)
-        if (!geometry) continue // attribute mismatch inside a bucket - skip it
+        // mergeGeometries demands identical attribute sets and consistent
+        // indexing across the bucket - normalize first (drop attributes not
+        // shared by every geometry, de-index when mixed) or THREE logs a
+        // console error and drops the bucket
+        let shared: Set<string> | null = null
+        for (const g of geometries) {
+          const names = new Set(Object.keys(g.attributes))
+          shared = shared ? new Set([...shared].filter((n) => names.has(n))) : names
+        }
+        for (const g of geometries) {
+          for (const name of Object.keys(g.attributes)) {
+            if (!shared!.has(name)) g.deleteAttribute(name)
+          }
+        }
+        const allIndexed = geometries.every((g) => g.index !== null)
+        const normalized = allIndexed ? geometries : geometries.map((g) => (g.index ? g.toNonIndexed() : g))
+        const geometry = mergeGeometries(normalized, false)
+        if (!geometry) continue // still incompatible - leave those originals visible
         for (const g of geometries) g.dispose()
         const mesh = new Mesh(geometry, material)
         mesh.castShadow = cast
         mesh.receiveShadow = receive
         dst.add(mesh)
+        merged.push(...meshes) // hide ONLY the meshes whose bucket really merged
       }
       // hide the originals only after the merged copies exist - no flicker
       for (const mesh of merged) mesh.visible = false

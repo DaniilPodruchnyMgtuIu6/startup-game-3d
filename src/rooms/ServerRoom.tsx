@@ -6,6 +6,7 @@ import { CableTray } from '../furniture/CableTray'
 import { useMaterials } from '../materials/MaterialsContext'
 import { cloneRepeated } from '../materials/cloneRepeated'
 import { ROOMS, roomCenter, roomSize } from '../scene/layout'
+import { StaticMerge } from '../scene/StaticMerge'
 import { useCharacterStore } from '../character/characterStore'
 import { ROLE_BY_SEED, type ServerRole } from '../game/serverIncidentsStore'
 import type { ServerIncidentId } from '../game/serverIncidentCatalog'
@@ -40,17 +41,22 @@ export function ServerRoom() {
 
   return (
     <group position={center}>
-      <ConcreteFloorPatch width={width} depth={depth} />
-      <Wall
-        axis="z"
-        length={depth}
-        center={[width / 2, 1.4, 0]}
-        height={2.8}
-        thickness={0.2}
-        material="paint"
-        doorway={{ offset: depth / 2, width: 0.9 }}
-      />
-      <ServerRoomDoor position={[width / 2, 0, 0]} rotation={[0, Math.PI / 2, 0]} />
+      {/* racks stay OUT of the merge: LED materials and repair triggers are
+          live; the shell (floor, wall, door, cabling) is static */}
+      <StaticMerge>
+        <ConcreteFloorPatch width={width} depth={depth} />
+        <Wall
+          axis="z"
+          length={depth}
+          center={[width / 2, 1.4, 0]}
+          height={2.8}
+          thickness={0.2}
+          material="paint"
+          doorway={{ offset: depth / 2, width: 0.9 }}
+        />
+        <ServerRoomDoor position={[width / 2, 0, 0]} rotation={[0, Math.PI / 2, 0]} />
+        <CableTray length={4.6} position={[0, 2.35, 0]} drops={RACK_X} dropLength={0.35} />
+      </StaticMerge>
       {RACK_X.map((x, i) => {
         const incidentId = INCIDENT_BY_ROLE[ROLE_BY_SEED[i]]
         return (
@@ -60,8 +66,6 @@ export function ServerRoom() {
           </group>
         )
       })}
-      {/* overhead cabling running along the rack row, dropping into each rack */}
-      <CableTray length={4.6} position={[0, 2.35, 0]} drops={RACK_X} dropLength={0.35} />
     </group>
   )
 }

@@ -7,6 +7,7 @@ import { Fridge } from '../furniture/Fridge'
 import { Plant } from '../furniture/Plant'
 import { useCharacterStore } from '../character/characterStore'
 import { ROOMS, roomCenter, roomSize } from '../scene/layout'
+import { StaticMerge } from '../scene/StaticMerge'
 
 const STOOL_X = [-0.7, 0, 0.7]
 
@@ -17,18 +18,21 @@ export function Kitchen() {
 
   return (
     <group position={center}>
+      {/* the DOOR partition animates - stays outside the merge */}
       <GlassPartitionWithDoor axis="z" length={depth} position={[-width / 2, 0, 0]} />
-      <Wall axis="x" length={width} center={[0, 1.4, depth / 2]} height={2.8} thickness={0.2} material="paint" />
-      <KitchenIsland position={[0, 0, -0.6]} />
-      <CoffeeMachine
-        position={[0.7, 0.9, -0.6]}
-        onSelect={(target) => useCharacterStore.getState().clickCoffeeMachine(target)}
-      />
-      {STOOL_X.map((x) => (
-        <BarStool key={x} position={[x, 0, 0.3]} />
-      ))}
-      <Fridge position={[width / 2 - 0.5, 0, depth / 2 - 0.5]} />
-      <Plant position={[-width / 2 + 0.6, 0, depth / 2 - 0.6]} />
+      <StaticMerge>
+        <Wall axis="x" length={width} center={[0, 1.4, depth / 2]} height={2.8} thickness={0.2} material="paint" />
+        <KitchenIsland position={[0, 0, -0.6]} />
+        <CoffeeMachine
+          position={[0.7, 0.9, -0.6]}
+          onSelect={(target) => useCharacterStore.getState().clickCoffeeMachine(target)}
+        />
+        {STOOL_X.map((x) => (
+          <BarStool key={x} position={[x, 0, 0.3]} />
+        ))}
+        <Fridge position={[width / 2 - 0.5, 0, depth / 2 - 0.5]} />
+        <Plant position={[-width / 2 + 0.6, 0, depth / 2 - 0.6]} />
+      </StaticMerge>
     </group>
   )
 }

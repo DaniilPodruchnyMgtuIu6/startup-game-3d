@@ -21,7 +21,8 @@ export function TVPanel({ position = [0, 0, 0], rotation = [0, 0, 0] }: TVPanelP
         <boxGeometry args={[WIDTH, HEIGHT, THICKNESS]} />
         <meshStandardMaterial {...materials.plasticBlack} />
       </mesh>
-      <mesh position={[0, 0, THICKNESS / 2 + 0.002]}>
+      {/* StaticMerge: the screen material swaps on the campaign outcome */}
+      <mesh position={[0, 0, THICKNESS / 2 + 0.002]} userData={{ noMerge: true }}>
         <boxGeometry args={[WIDTH - 0.04, HEIGHT - 0.04, 0.002]} />
         <meshStandardMaterial {...(failed ? materials.screenOff : materials.screenDashboard)} />
       </mesh>
