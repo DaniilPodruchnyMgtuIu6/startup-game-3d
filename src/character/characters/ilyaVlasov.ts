@@ -10,6 +10,7 @@ export const ilyaVlasov: CharacterDefinition = {
   id: 'npc-ilya-vlasov',
   displayName: 'Илья Власов',
   portrait: '/dialogue_pictures/ilya_vlasov/ilya_neutral.jpg',
+  portraitWorried: '/dialogue_pictures/ilya_vlasov/ilya_worried.jpg',
   persona: {
     name: 'Илья Власов',
     role: 'Специалист по информационной безопасности',

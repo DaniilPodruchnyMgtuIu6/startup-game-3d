@@ -44,12 +44,19 @@ import {
 // 18H §7 второй проход: cue.speakerEmotion по смыслу реплики — consequence-
 // сцены играют без pair/group, поэтому применяется только эмоция говорящего
 // (реакции слушателей на этом пути некому назначать, см. cinematicDirector).
+// Портрет в панели следует cue: негативная эмоция берёт worried-вариант
+// (Higgsfield, identity-locked к нейтральному портрету персонажа).
 type Cue = DialogueLine['cue']
+const NEGATIVE_EMOTIONS = new Set(['concerned', 'sad', 'surprised', 'angry-controlled'])
+function portraitFor(def: { portrait?: string; portraitWorried?: string }, cue?: Cue): string | undefined {
+  const emotion = cue?.speakerEmotion
+  return emotion && NEGATIVE_EMOTIONS.has(emotion) ? (def.portraitWorried ?? def.portrait) : def.portrait
+}
 const sonya = (text: string, cue?: Cue): DialogueLine => ({ speaker: femalePm.persona!.name, speakerRole: femalePm.persona!.role, portrait: femalePm.portraitWorried ?? femalePm.portrait, text, cue })
 const sonyaCalm = (text: string, cue?: Cue): DialogueLine => ({ speaker: femalePm.persona!.name, speakerRole: femalePm.persona!.role, portrait: femalePm.portrait, text, cue })
-const kirill = (text: string, cue?: Cue): DialogueLine => ({ speaker: kirillMorozov.persona!.name, speakerRole: kirillMorozov.persona!.role, portrait: kirillMorozov.portrait, text, cue })
-const alina = (text: string, cue?: Cue): DialogueLine => ({ speaker: alinaBelova.persona!.name, speakerRole: alinaBelova.persona!.role, portrait: alinaBelova.portrait, text, cue })
-const ilya = (text: string, cue?: Cue): DialogueLine => ({ speaker: ilyaVlasov.persona!.name, speakerRole: ilyaVlasov.persona!.role, portrait: ilyaVlasov.portrait, text, cue })
+const kirill = (text: string, cue?: Cue): DialogueLine => ({ speaker: kirillMorozov.persona!.name, speakerRole: kirillMorozov.persona!.role, portrait: portraitFor(kirillMorozov, cue), text, cue })
+const alina = (text: string, cue?: Cue): DialogueLine => ({ speaker: alinaBelova.persona!.name, speakerRole: alinaBelova.persona!.role, portrait: portraitFor(alinaBelova, cue), text, cue })
+const ilya = (text: string, cue?: Cue): DialogueLine => ({ speaker: ilyaVlasov.persona!.name, speakerRole: ilyaVlasov.persona!.role, portrait: portraitFor(ilyaVlasov, cue), text, cue })
 const auditor = (text: string, cue?: Cue): DialogueLine => ({ speaker: 'Аудитор', speakerRole: 'Внешний аудит', portrait: security1.portrait, text, cue })
 
 const LATE_DRILL_CHOICE_ID = 'run-late-restore-drill'

@@ -7,6 +7,7 @@ export const alinaBelova: CharacterDefinition = {
   id: 'npc-alina-belova',
   displayName: 'Алина Белова',
   portrait: '/dialogue_pictures/alina_belova/alina_neutral.jpg',
+  portraitWorried: '/dialogue_pictures/alina_belova/alina_worried.jpg',
   persona: {
     name: 'Алина Белова',
     role: 'Frontend-разработчик',

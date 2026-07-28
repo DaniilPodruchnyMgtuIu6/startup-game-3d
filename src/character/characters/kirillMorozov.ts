@@ -8,6 +8,7 @@ export const kirillMorozov: CharacterDefinition = {
   id: 'npc-kirill-morozov',
   displayName: 'Кирилл Морозов',
   portrait: '/dialogue_pictures/kirill_morozov/kirill_neutral.jpg',
+  portraitWorried: '/dialogue_pictures/kirill_morozov/kirill_worried.jpg',
   persona: {
     name: 'Кирилл Морозов',
     role: 'Backend-разработчик',

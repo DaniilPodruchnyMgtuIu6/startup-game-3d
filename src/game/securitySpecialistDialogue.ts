@@ -29,9 +29,12 @@ export const SECURITY_SPECIALIST_REPEAT_LINES: DialogueLine[] = [
 ]
 
 // Shown instead of the repeat line while there is an unacknowledged high/critical
-// risk observation (Feature 09).
+// risk observation (Feature 09). The worried portrait matches the concerned cue.
 export const SECURITY_SPECIALIST_RISK_ALERT_LINES: DialogueLine[] = [
-  asIlya('Я обнаружил риск, который стоит посмотреть на доске безопасности. Проблема пока не стала инцидентом, но откладывать её опасно.', { speakerEmotion: 'concerned', listenerReaction: 'concerned-listening' }),
+  {
+    ...asIlya('Я обнаружил риск, который стоит посмотреть на доске безопасности. Проблема пока не стала инцидентом, но откладывать её опасно.', { speakerEmotion: 'concerned', listenerReaction: 'concerned-listening' }),
+    portrait: ilyaVlasov.portraitWorried ?? ilyaVlasov.portrait,
+  },
 ]
 
 export const SECURITY_SPECIALIST_CLOSING_LABEL = 'Понятно.'
