@@ -150,16 +150,17 @@ export async function runPostAuditConversation(): Promise<void> {
         useSecurityStoryStore.getState().resolveSecurityStaffingDecision(decision)
       }
     }
+    let pickedChoiceId: string | undefined
     if (!decision) {
-      const pick = await choose(POST_AUDIT_CHOICES)
-      decision = mapPostAuditChoiceToStaffingDecision(pick) ?? 'decline-security-hire'
+      pickedChoiceId = await choose(POST_AUDIT_CHOICES)
+      decision = mapPostAuditChoiceToStaffingDecision(pickedChoiceId) ?? 'decline-security-hire'
       useSecurityStoryStore.getState().resolveSecurityStaffingDecision(decision)
       // Keep the story-decision record in sync when an old save takes the
       // legacy fork (the baseline scene never existed for it) - no re-apply.
       useStoryDecisionStore.getState().recordLegacyBaselineResolution(decision, currentMoment())
     }
 
-    await say(postAuditFinalLines(decision))
+    await say(postAuditFinalLines(decision, pickedChoiceId))
     useSecurityStoryStore.getState().markPostAuditConversationCompleted(currentMoment())
   } finally {
     await cinematic.end()

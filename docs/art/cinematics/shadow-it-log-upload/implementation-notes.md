@@ -1,0 +1,7 @@
+# Implementation notes — shadow-it-log-upload
+
+- Insert clip path: `public/cutscenes/shadow-it-log-upload-insert.mp4` — **сгенерирован и интегрирован**. Кейфрейм bc812154-7e8e-46e3-9755-ce83fcc88518 (nano_banana_2) → видео b4f0d5d7-c6d3-4071-b8b3-66d3dcfb48a9 (kling3_0_turbo), детали в `assets/source/prompts/story-clips-cyber-incidents-19.md`.
+- Fallback (`playInsert`) остаётся функциональным на случай недоступности файла/кодека.
+- Проверено живым браузером: `<video>` монтируется с правильным `src`.
+- Delayed-consequence сцена (`shadow-it-external-download`) теперь тоже имеет сгенерированный insert: `public/cutscenes/shadow-it-log-upload-consequence-insert.mp4` — кейфрейм 62af54c8-d482-4e3c-a267-6f3c3b651291 → видео 1c5ebd02-ebf4-4e3a-9c7b-7bee7b64c09e, детали в `assets/source/prompts/story-clips-cyber-incidents-19b-consequences.md`. Проигрывается через новую (Feature 19B) карту `CONSEQUENCE_INSERT_CLIP` в `cyberStoryInteraction.ts::runCyberConsequenceScene` — при отсутствии файла сцена остаётся dialogue-only, как и раньше. Проверено живым браузером через `window.__startupGameDev.scenes.playConsequenceNow('shadow-it-external-download')`.
+- `configure-secure-log-sharing` доступен в диалоге только если Илья нанят либо ранее выбран `security-first-priority:prioritize-central-logging` (Feature 17A) — читается напрямую из `useStoryDecisionStore` в `cyberStoryInteraction.ts::buildSceneContext`, без дублирования состояния.

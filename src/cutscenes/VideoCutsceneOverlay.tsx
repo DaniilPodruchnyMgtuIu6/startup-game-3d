@@ -8,6 +8,15 @@ import '../ui/ui.css'
 // stream), so a cutscene can never hang the game.
 
 const WATCHDOG_MS = 30_000
+// Some generated clips reach currentTime===duration (readyState HAVE_ENOUGH_
+// DATA, fully decoded) without the browser ever firing 'ended' - a known MP4
+// container-metadata quirk (moov duration/frame-count rounding), confirmed
+// live on one of the data-loss clips: every frame played, currentTime sat at
+// the exact duration, 'ended' just never came - only the 30s watchdog moved
+// the scene on, a long visible stall on a clip that finished playing in
+// under a second. Polling currentTime against duration catches this near-
+// instantly without waiting for the browser's own end signal.
+const END_EPSILON_S = 0.15
 
 export function VideoCutsceneOverlay() {
   const src = useVideoCutsceneStore((s) => s.src)
@@ -31,6 +40,10 @@ export function VideoCutsceneOverlay() {
         playsInline
         onEnded={() => finishVideoCutscene(true)}
         onError={() => finishVideoCutscene(false)}
+        onTimeUpdate={(e) => {
+          const v = e.currentTarget
+          if (Number.isFinite(v.duration) && v.duration - v.currentTime <= END_EPSILON_S) finishVideoCutscene(true)
+        }}
       />
       <div className="video-cutscene-skip">Пропустить ▸</div>
     </div>

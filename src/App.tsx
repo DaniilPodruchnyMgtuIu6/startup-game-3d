@@ -14,6 +14,7 @@ import { FinancePanel } from './ui/FinancePanel'
 import { TeamPanel } from './ui/TeamPanel'
 import { DailyReport } from './ui/DailyReport'
 import { PrototypeMock } from './ui/PrototypeMock'
+import { PosterViewer } from './ui/PosterViewer'
 import { SecurityStoryTrigger } from './game/securityStoryTrigger'
 import { SecurityFollowUpAuditTrigger } from './game/SecurityFollowUpAuditTrigger'
 import { OfficeIntrusionTrigger } from './game/OfficeIntrusionTrigger'
@@ -23,7 +24,8 @@ import { IntrusionResultOverlay } from './ui/IntrusionResultOverlay'
 import { ServerIncidentResultOverlay } from './ui/ServerIncidentResultOverlay'
 import { MinigameOverlay } from './game/minigames/MinigameOverlay'
 import { GameOutcomeCoordinator } from './game/GameOutcomeCoordinator'
-import { WorkdayFlowController } from './game/WorkdayFlowController'
+import { WorkdayFlowController, currentFlowContext } from './game/WorkdayFlowController'
+import { canAutoAdvanceWorkday } from './game/workdayFlow'
 import { GameOverOverlay } from './ui/GameOverOverlay'
 import { MvpReleaseOverlay } from './ui/MvpReleaseOverlay'
 import { CampaignSuccessOverlay } from './ui/CampaignSuccessOverlay'
@@ -33,6 +35,8 @@ import { VideoCutsceneOverlay } from './cutscenes/VideoCutsceneOverlay'
 import { useVideoCutsceneStore } from './cutscenes/videoCutscene'
 import { useQualityStore, currentQuality, type QualityTier } from './scene/qualityStore'
 import { QualityMenu } from './ui/QualityMenu'
+import { RestartButton } from './ui/RestartButton'
+import { ProductStatusHud } from './ui/ProductStatusHud'
 import { useCutsceneStore } from './cutscenes/cutsceneStore'
 import { isIntroReset } from './game/gameStore'
 import { useGameOutcomeStore } from './game/gameOutcomeStore'
@@ -52,6 +56,13 @@ import { reconcileRiskSignals } from './game/reconcileRiskSignals'
 import { reconcileAccessControlThreatAndProposal } from './game/reconcileAccessControl'
 import { reconcileServerIncidentThreatsAtStartup } from './game/reconcileServerIncidents'
 import { reconcileStoryDecisionsAtStartup, reconcileStoryConsequencesAtStartup } from './game/story/reconcileStoryDecisions'
+import { runStoryDecisionConversation } from './game/story/storyDecisionInteraction'
+import { useStoryConsequenceStore } from './game/story/storyConsequenceStore'
+import type { Level1StoryDecisionId } from './game/story/level1Timeline'
+import type { StoryConsequenceId } from './game/story/level1Checkpoints'
+import { reconcileCyberStoryAtStartup } from './game/story/reconcileCyberStory'
+import { cyberStoryDevScenes } from './game/story/cyberStoryDevLauncher'
+import { useCyberStoryStore } from './game/story/cyberStoryStore'
 import { useServerIncidentStore } from './game/serverIncidentStore'
 import { useRiskStore } from './game/riskStore'
 import { RISK_DOMAINS } from './game/riskCatalog'
@@ -85,6 +96,10 @@ reconcileStoryDecisionsAtStartup()
 // Feature 17C §15: data-loss checkpoints already passed by an old save are
 // skipped - the catastrophe never fires retroactively.
 reconcileStoryConsequencesAtStartup()
+// Feature 19: re-evaluate the three cyber-incident triggers against the
+// current save (self-gating - see reconcileCyberStory.ts for why no old-save
+// migration is needed).
+reconcileCyberStoryAtStartup()
 
 // The shared reset flag has now been consumed by every store's module-load
 // hydration; strip ?intro so a later manual reload keeps the new game's progress.
@@ -172,6 +187,23 @@ if (import.meta.env.DEV) {
   // Commit a campaign success from the current stats (the coordinator opens it).
   ;(window as unknown as { __triggerCampaignSuccess?: () => void }).__triggerCampaignSuccess = () =>
     forceRegisterSuccessForDev()
+  // Story testing: run one Level 1 decision scene (17B) directly, bypassing the
+  // marker/walk-up gate - the same runner the real controller uses, so choice
+  // effects and the story-decision store update exactly as in normal play.
+  // Ids: 'security-baseline-path' | 'developer-admin-access' | 'frontend-test-data'
+  // | 'security-first-priority' | 'backup-and-restore-strategy' |
+  // 'architecture-boundary' | 'suspicious-activity-disclosure' | 'release-risk-decision'
+  // (see src/game/story/level1Timeline.ts for the full list).
+  ;(window as unknown as { __startStoryDecision?: (id: Level1StoryDecisionId) => void }).__startStoryDecision = (
+    id: Level1StoryDecisionId,
+  ) => void runStoryDecisionConversation(id)
+  // Story testing: queue a Level 1 consequence scene (17C) - the already-mounted
+  // StoryConsequenceController picks it up on its next tick, same as a real
+  // checkpoint firing it. Ids: see src/game/story/level1Checkpoints.ts
+  // (StoryConsequenceId) - e.g. 'project-files-destroyed', 'admin-access-consequence'.
+  ;(window as unknown as { __queueStoryConsequence?: (id: StoryConsequenceId) => void }).__queueStoryConsequence = (
+    id: StoryConsequenceId,
+  ) => useStoryConsequenceStore.getState().queueConsequenceOnce(id)
   // Read-only risk inspector: signals + actual/detected score & level per domain.
   ;(window as unknown as { __getRiskState?: () => unknown }).__getRiskState = () => {
     const signals = useRiskStore.getState().signals
@@ -189,6 +221,31 @@ if (import.meta.env.DEV) {
         ]),
       ),
     }
+  }
+  // Feature 19 dev-only scene launcher - see scenes.md for the exact,
+  // verified commands. Never registered outside import.meta.env.DEV, so it is
+  // absent from the production bundle.
+  ;(window as unknown as { __startupGameDev?: { scenes: typeof cyberStoryDevScenes } }).__startupGameDev = {
+    scenes: cyberStoryDevScenes,
+  }
+  // Read-only cyber-story inspector: incident/consequence status + flags.
+  ;(window as unknown as { __getCyberStoryState?: () => unknown }).__getCyberStoryState = () => {
+    const s = useCyberStoryStore.getState()
+    return {
+      incidents: s.incidents,
+      scheduledConsequences: s.scheduledConsequences,
+      pendingConsequenceIds: s.pendingConsequenceIds,
+      runningConsequenceId: s.runningConsequenceId,
+      completedConsequenceIds: s.completedConsequenceIds,
+      flags: s.flags,
+    }
+  }
+  // Read-only Workday Flow inspector: the exact blocking flags
+  // canAutoAdvanceWorkday checks, so a stuck "nothing happens" day can be
+  // diagnosed from a live save without guessing.
+  ;(window as unknown as { __getWorkdayFlowState?: () => unknown }).__getWorkdayFlowState = () => {
+    const ctx = currentFlowContext()
+    return { ...ctx, canAdvance: canAutoAdvanceWorkday(ctx) }
   }
 }
 
@@ -309,11 +366,14 @@ export function App() {
       <WhiteboardPanel />
       <SprintHud />
       <QualityMenu />
+      <ProductStatusHud />
+      <RestartButton />
       <WorkdayFlowController />
       <SprintPhaseOverlay />
       <FinancePanel />
       <TeamPanel />
       <PrototypeMock />
+      <PosterViewer />
       <DailyReport />
       <AuditResultOverlay />
       <IntrusionResultOverlay />

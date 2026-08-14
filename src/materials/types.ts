@@ -30,6 +30,7 @@ export interface OfficeMaterials {
   // Printed wall posters (open-space decor).
   posterOfficeFlow: StandardMaterialProps
   posterLockScreen: StandardMaterialProps
+  posterCisoMap: StandardMaterialProps
   ledGreen: StandardMaterialProps
   ledAmber: StandardMaterialProps
   ledRed: StandardMaterialProps

@@ -6,6 +6,7 @@ import { useTeamStore } from '../game/teamStore'
 import { useServerIncidentStore } from '../game/serverIncidentStore'
 import { hasSecuritySpecialist } from '../game/teamRules'
 import { playShot, playInsert, attachPerLineShots, characterIdForSpeaker } from '../game/cinematics/cinematicDirector'
+import { playVideoCutscene } from './videoCutscene'
 import type { DialogueLine } from '../game/gameStore'
 import type { ServerIncidentId } from '../game/serverIncidentCatalog'
 import type { CutsceneDirector, CutsceneScript, Point } from './types'
@@ -52,7 +53,16 @@ async function runServerScene(director: CutsceneDirector, incidentId: ServerInci
     if (withIlya) director.emotion(ilyaVlasov.id, 'focused')
     // 18F Wave 3: the broken rack is the fact of the scene, then the camera
     // cuts to whoever speaks (racks stand in the server room, x≈-9.5).
-    await playInsert([-9.5, 1.1, 6.3], { side: -1, durationMs: 1300 })
+    // The gateway outage gets a generated clip (blinking red rack, cold
+    // alarm light) - the other two incidents keep the plain 3D insert so
+    // not every server scene repeats the same treatment. Falls back to the
+    // original insert if the file/codec is unavailable.
+    if (incidentId === 'gateway-outage') {
+      const rackClipPlayed = await playVideoCutscene('/cutscenes/server-gateway-outage.mp4')
+      if (!rackClipPlayed) await playInsert([-9.5, 1.1, 6.3], { side: -1, durationMs: 1300 })
+    } else {
+      await playInsert([-9.5, 1.1, 6.3], { side: -1, durationMs: 1300 })
+    }
     director.talk(femalePm.id, true)
     if (withIlya) director.talk(ilyaVlasov.id, true)
     director.talk(kirillMorozov.id, true)

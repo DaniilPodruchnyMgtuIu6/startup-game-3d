@@ -30,6 +30,7 @@ const BLOCKER_LABEL: Record<MvpReleaseBlockingReason, string> = {
   'story-release-decision-pending': 'Сначала примите решение о рисках выпуска с Соней',
   'hardening-in-progress': 'Идёт укрепление системы перед выпуском',
   'hidden-risk-blocked': 'Скрытый риск не позволяет отправить отчёт руководству',
+  'cyber-story-incident-pending': 'Есть незавершённый сюжетный киберинцидент',
 }
 
 const WARNING_LABEL: Record<MvpReleaseWarning, string> = {

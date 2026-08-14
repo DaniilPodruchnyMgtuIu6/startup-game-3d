@@ -6,6 +6,7 @@ import { useSecurityStoryStore } from './securityStoryStore'
 import { INITIAL_SPRINT_STATE, SPRINT_DAYS } from './sprintRules'
 import { INITIAL_SECURITY_BREACH } from './securityStoryRules'
 import { BASE_DAILY_COST, BASE_SPRINT_COST, INITIAL_BUDGET, calculateBalance, initialTransactions, sprintExpenseTotal } from './economyRules'
+import { useCyberStoryStore } from './story/cyberStoryStore'
 
 const balance = () => calculateBalance(useEconomyStore.getState().transactions)
 
@@ -21,6 +22,7 @@ describe('completeWorkday', () => {
       securityBreach: { ...INITIAL_SECURITY_BREACH },
       postAuditConversation: { status: 'locked', effectsApplied: false },
     })
+    useCyberStoryStore.getState().resetCyberStory()
     window.localStorage.clear()
   })
 
@@ -98,6 +100,32 @@ describe('completeWorkday', () => {
     expect(completeWorkday().completed).toBe(true)
     expect(useSprintStore.getState().day).toBe(2)
     expect(balance()).toBe(INITIAL_BUDGET - BASE_DAILY_COST)
+  })
+
+  it('a pending Feature 19 cyber-story incident blocks the day (no charge, no advance)', () => {
+    setSprint(1, 'active', true)
+    useCyberStoryStore.getState().unlockIncident('executive-phishing-request', { sprintNumber: 1, day: 1 })
+    const result = completeWorkday()
+    expect(result).toEqual({ completed: false, reason: 'required-cyber-story-incident' })
+    expect(useSprintStore.getState().day).toBe(1)
+    expect(balance()).toBe(INITIAL_BUDGET)
+  })
+
+  it('once the cyber incident is resolved the day advances normally', () => {
+    setSprint(1, 'active', true)
+    useCyberStoryStore.getState().unlockIncident('executive-phishing-request', { sprintNumber: 1, day: 1 })
+    useCyberStoryStore.getState().resolveIncident('executive-phishing-request', 'verify-through-known-channel', { sprintNumber: 1, day: 1 })
+    expect(completeWorkday().completed).toBe(true)
+    expect(useSprintStore.getState().day).toBe(2)
+  })
+
+  it('a pending Feature 19 delayed consequence blocks the day (no charge, no advance)', () => {
+    setSprint(1, 'active', true)
+    useCyberStoryStore.getState().queueConsequenceOnce('phishing-targeted-followup')
+    const result = completeWorkday()
+    expect(result).toEqual({ completed: false, reason: 'required-cyber-story-incident' })
+    expect(useSprintStore.getState().day).toBe(1)
+    expect(balance()).toBe(INITIAL_BUDGET)
   })
 
   it('moving from review to the next sprint does not charge', () => {

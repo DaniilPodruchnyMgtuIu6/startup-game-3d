@@ -70,6 +70,15 @@ function StorySceneMarker({ decisionId }: { decisionId: Level1StoryDecisionId })
   const approaching = useRef(false)
   const markerRef = useRef<Group>(null)
   const characterId = getSceneLeadCharacterId(decisionId)
+  // Reactive, not a one-off .getState() read: at mount the lead NPC's model
+  // may still be loading (Suspense, GLTF decode) and not yet in the store.
+  // A plain .getState() snapshot here would freeze that "not spawned yet"
+  // null forever, since nothing else in this component necessarily
+  // re-renders once the character actually appears - the marker would never
+  // come back even though the decision is genuinely available. Must be
+  // called unconditionally (before the `status !== 'available'` early
+  // return below) to keep hook order stable across renders.
+  const spawn = useCharacterStore((s) => s.characters[characterId]?.position)
 
   // If the controller unmounts mid-conversation (reset), roll the decision back
   // to available and hand control back - nothing stays locked.
@@ -108,7 +117,6 @@ function StorySceneMarker({ decisionId }: { decisionId: Level1StoryDecisionId })
   if (status !== 'available') return null
 
   const def = getStoryDecision(decisionId)
-  const spawn = useCharacterStore.getState().characters[characterId]?.position
   if (!spawn) return null // the lead NPC is not in the office (e.g. not hired yet)
   return (
     <group ref={markerRef} position={[spawn[0], 0, spawn[2]]}>

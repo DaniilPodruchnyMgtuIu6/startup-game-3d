@@ -36,6 +36,9 @@ import {
   isReleaseRiskDecisionPending,
 } from './story/storyEffectSelectors'
 import { useStoryConsequenceStore } from './story/storyConsequenceStore'
+import { isCyberStoryBlockingNow } from './story/cyberStorySelectors'
+import { isCyberConsequencePending } from './story/cyberStoryConsequences'
+import { getCyberStoryReleaseScoreAdjustment } from './story/cyberStoryEffectSelectors'
 
 // Feature 13 release use-case. Gathers live snapshots, re-checks readiness, and
 // (only on the player's confirmation) starts the final cutscene. The success
@@ -123,6 +126,9 @@ export function gatherReleaseReadinessSnapshot(): MvpReleaseReadinessSnapshot {
         Object.values(useServerIncidentStore.getState().incidents).some((s) =>
           ['pending', 'running', 'recovery-required', 'recovering'].includes(s.status),
         )),
+    // Feature 19: a mandatory cyber-story incident (available/running) or its
+    // delayed consequence (pending/running) blocks release.
+    cyberStoryIncidentPending: isCyberStoryBlockingNow() || isCyberConsequencePending(),
   }
 }
 
@@ -157,7 +163,7 @@ export function buildCampaignSuccessSnapshot(moment: StoryMoment): CampaignSucce
     leadershipComplaint: audit.leadershipComplaint,
     shutdownRecommendation: audit.shutdownRecommendation,
     accessControlActive,
-    storyScorePenalty: getStoryReleaseScoreAdjustment(),
+    storyScorePenalty: getStoryReleaseScoreAdjustment() + getCyberStoryReleaseScoreAdjustment(),
     actualRiskLevels,
     balance,
   })

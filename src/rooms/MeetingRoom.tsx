@@ -3,7 +3,6 @@ import { GlassPartitionWithDoor } from '../furniture/GlassPartitionWithDoor'
 import { MeetingTable } from '../furniture/MeetingTable'
 import { Chair } from '../furniture/Chair'
 import { TVPanel } from '../furniture/TVPanel'
-import { TrackLight } from '../furniture/TrackLight'
 import { useCharacterStore } from '../character/characterStore'
 import type { TriggerTarget } from '../interaction/triggerPayload'
 import { ROOMS, roomCenter, roomSize } from '../scene/layout'
@@ -36,7 +35,6 @@ export function MeetingRoom() {
           <Chair key={`s-${x}`} position={[x, 0, 1.1]} rotation={[0, Math.PI, 0]} color="#2c3e50" onSelect={onSeat} />
         ))}
         <TVPanel position={[-width / 2 + 0.42, 1.6, 0]} rotation={[0, Math.PI / 2, 0]} />
-        <TrackLight position={[0, 2.7, -1]} withSpot />
       </StaticMerge>
     </group>
   )

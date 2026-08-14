@@ -26,6 +26,7 @@ import { useCutsceneStore } from '../cutscenes/cutsceneStore'
 import { INITIAL_SECURITY_BREACH } from './securityStoryRules'
 import { initialTransactions, calculateBalance } from './economyRules'
 import { initialTaskStates } from './productRules'
+import { useCyberStoryStore } from './story/cyberStoryStore'
 
 const out = () => useGameOutcomeStore.getState()
 
@@ -48,6 +49,7 @@ function releaseReady() {
   useCutsceneStore.setState({ activeSceneId: null })
   useGameStore.setState({ tasks: [], activeDialogue: null, activeChoice: null })
   useGameOutcomeStore.getState().resetGameOutcome()
+  useCyberStoryStore.getState().resetCyberStory()
   window.localStorage.clear()
 }
 
@@ -67,6 +69,40 @@ describe('release readiness gating', () => {
     useServerIncidentStore.setState({ incidents: { ...useServerIncidentStore.getState().incidents, 'auth-account-incident': { incidentId: 'auth-account-incident', status: 'recovering', recoveryProgressDays: 1, effectsApplied: true } } })
     expect(getMvpReleaseReadiness().blockingReasons).toContain('server-incident-unresolved')
     useServerIncidentStore.setState({ incidents: { ...useServerIncidentStore.getState().incidents, 'auth-account-incident': { incidentId: 'auth-account-incident', status: 'resolved', recoveryProgressDays: 2, effectsApplied: true } } })
+    expect(getMvpReleaseReadiness().ready).toBe(true)
+  })
+
+  // Feature 19 regression: MVP release used to ignore a cyber-story incident
+  // that was merely unlocked/available (marker showing, unclicked) or an
+  // already-resolved incident's delayed consequence still awaiting the
+  // player - a save could ship MVP with a mandatory marker still on the map.
+  it('blocks release while a cyber-story incident is available but not yet resolved', () => {
+    useCyberStoryStore.getState().unlockIncident('executive-phishing-request', { sprintNumber: 4, day: 5 })
+    const r = getMvpReleaseReadiness()
+    expect(r.ready).toBe(false)
+    expect(r.blockingReasons).toContain('cyber-story-incident-pending')
+  })
+
+  it('allows release again once that incident is resolved', () => {
+    useCyberStoryStore.getState().unlockIncident('executive-phishing-request', { sprintNumber: 4, day: 5 })
+    useCyberStoryStore.getState().resolveIncident('executive-phishing-request', 'verify-through-known-channel', { sprintNumber: 4, day: 5 })
+    expect(getMvpReleaseReadiness().ready).toBe(true)
+  })
+
+  it('blocks release while a landed delayed consequence is still pending/running', () => {
+    useCyberStoryStore.getState().unlockIncident('executive-phishing-request', { sprintNumber: 4, day: 5 })
+    useCyberStoryStore.getState().resolveIncident('executive-phishing-request', 'send-requested-data', { sprintNumber: 4, day: 5 })
+    useCyberStoryStore.getState().queueConsequenceOnce('phishing-targeted-followup')
+    const r = getMvpReleaseReadiness()
+    expect(r.ready).toBe(false)
+    expect(r.blockingReasons).toContain('cyber-story-incident-pending')
+  })
+
+  it('allows release again once the delayed consequence has completed', () => {
+    useCyberStoryStore.getState().unlockIncident('executive-phishing-request', { sprintNumber: 4, day: 5 })
+    useCyberStoryStore.getState().resolveIncident('executive-phishing-request', 'send-requested-data', { sprintNumber: 4, day: 5 })
+    useCyberStoryStore.getState().queueConsequenceOnce('phishing-targeted-followup')
+    useCyberStoryStore.getState().completeConsequence('phishing-targeted-followup')
     expect(getMvpReleaseReadiness().ready).toBe(true)
   })
 })

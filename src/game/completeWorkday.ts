@@ -21,6 +21,8 @@ import { useStoryWorkStore, type ApplyStoryWorkdayResult } from './story/storyWo
 import { applyStoryFollowUpsForWorkday } from './story/storyFollowUps'
 import { getStoryDetectionDelayReductionDays } from './story/storyEffectSelectors'
 import { evaluateStoryCheckpoints, isStoryConsequencePending } from './story/storyConsequences'
+import { isCyberStoryBlockingNow } from './story/cyberStorySelectors'
+import { isCyberConsequencePending, evaluateCyberStoryConsequences } from './story/cyberStoryConsequences'
 import { isOfficeIntrusionBlocking, canUnlockAccessControlProposal, shouldEscalateAccessControl } from './accessControlRules'
 import { accessControlNotImplementedSignals } from './riskSignals'
 import { riskMomentAt } from './riskContext'
@@ -43,6 +45,7 @@ export interface CompleteWorkdayResult {
     | 'invalid-sprint-state'
     | 'required-story-conversation'
     | 'required-story-decision'
+    | 'required-cyber-story-incident'
     | 'required-follow-up-audit'
     | 'required-office-intrusion'
     | 'required-server-incident'
@@ -87,6 +90,16 @@ export function completeWorkday(): CompleteWorkdayResult {
   // A pending Feature 17C consequence scene must be held before the next day.
   if (isStoryConsequencePending()) {
     return { completed: false, reason: 'required-story-decision' }
+  }
+  // A mandatory Feature 19 cyber-story incident must be resolved before the
+  // day can end. Adapted event order: Feature 17 decisions/consequences keep
+  // priority over Feature 19 (see docs/qa/19-cyber-story-test-matrix.md).
+  if (isCyberStoryBlockingNow()) {
+    return { completed: false, reason: 'required-cyber-story-incident' }
+  }
+  // A pending Feature 19 delayed consequence must be held before the next day.
+  if (isCyberConsequencePending()) {
+    return { completed: false, reason: 'required-cyber-story-incident' }
   }
   // A pending/running follow-up audit must be resolved before the next day.
   if (isFollowUpAuditBlocking(useSecurityAuditStore.getState().followUpAudit)) {
@@ -188,6 +201,11 @@ export function completeWorkday(): CompleteWorkdayResult {
   //      threat reconciliation of the day (§13); the queued mandatory scenes
   //      surface behind the daily report and block the next day until held.
   evaluateStoryCheckpoints({ sprintNumber, day, completedWorkdayIndex })
+
+  // 11c. Feature 19: move any scheduled cyber-story consequence whose due
+  // workday has arrived into the mandatory play queue - same "after every
+  // reconciliation of the day" placement as 17C's checkpoints.
+  evaluateCyberStoryConsequences(completedWorkdayIndex)
 
   // 12. surface the day's report to the player (does not re-run any calc)
   useProductStore.getState().showReport(productResult.record)

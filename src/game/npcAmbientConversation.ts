@@ -203,7 +203,7 @@ const GENERIC: PoolEntry[] = [
       host: 'kirill-morozov',
       hudSummary: 'Соня сверила статус задач с Кириллом.',
       lines: [
-        { speaker: 'sonya-sokolova', text: 'Как по плану на сегодня?', emotion: 'neutral' },
+        { speaker: 'sonya-sokolova', text: 'Что по плану на сегодня?', emotion: 'neutral' },
         { speaker: 'kirill-morozov', text: 'Иду по доске сверху вниз. Ничего не блокирует, движемся.', emotion: 'confident' },
       ],
     },

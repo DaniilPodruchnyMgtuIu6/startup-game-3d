@@ -5,14 +5,15 @@ import { OpenSpace } from './OpenSpace'
 import { WHITEBOARD_POSITION } from '../scene/whiteboardSpot'
 
 describe('OpenSpace', () => {
-  it('renders 4 desk clusters, a lounge, plants, the whiteboard and ceiling fixtures', async () => {
+  it('renders 4 desk clusters, a lounge, plants and the whiteboard', async () => {
     const renderer = await ReactThreeTestRenderer.create(
       <StubMaterialsProvider>
         <OpenSpace />
       </StubMaterialsProvider>,
     )
     expect(renderer.scene.findAllByType('Mesh').length).toBeGreaterThan(100)
-    expect(renderer.scene.findAllByType('SpotLight').length).toBe(1)
+    // no ceiling track lights - removed on player feedback (cluttered the top-down view)
+    expect(renderer.scene.findAllByType('SpotLight').length).toBe(0)
     // exactly one whiteboard, at the shared spot (its face is the 1.5×1.0 panel)
     const boards = renderer.scene.findAllByType('Mesh').filter((m) => {
       const geo = (m.instance as unknown as { geometry?: { parameters?: { width?: number; height?: number; depth?: number } } }).geometry

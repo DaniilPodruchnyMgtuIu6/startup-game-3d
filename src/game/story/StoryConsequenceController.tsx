@@ -15,6 +15,7 @@ import { buildConsequenceScript, applyConsequenceEffects } from './storyConseque
 import type { StoryConsequenceId } from './level1Checkpoints'
 import { beginConversationCinematic, playInsert, playShot } from '../cinematics/cinematicDirector'
 import { femalePm } from '../../character/characters/femalePm'
+import { playVideoCutscene } from '../../cutscenes/videoCutscene'
 
 // Feature 17C: plays the queued mandatory consequence scenes. Respects the
 // общий event priority (§13): the scene opens only when the daily report,
@@ -101,8 +102,13 @@ async function runConsequenceScene(id: StoryConsequenceId): Promise<void> {
       await say(script.reaction(choiceId))
     }
     if (id === 'project-files-destroyed') {
-      // slow pull-back over the office - negative space, no words (§18F)
-      await playShot('dolly-out', femalePm.id, { side: 1, durationMs: 3000 })
+      // live feedback: the old wordless camera pull-back read as unclear -
+      // a generated story clip closes the beat instead (empty office at
+      // dawn, a monitor showing the broken/empty repository - the same
+      // "мультик" treatment as office-intrusion). Falls back to the
+      // original pull-back if the clip can't play (missing file, no codec).
+      const clipPlayed = await playVideoCutscene('/cutscenes/data-loss-aftermath.mp4')
+      if (!clipPlayed) await playShot('dolly-out', femalePm.id, { side: 1, durationMs: 3000 })
     }
   } finally {
     await cinematic.end()

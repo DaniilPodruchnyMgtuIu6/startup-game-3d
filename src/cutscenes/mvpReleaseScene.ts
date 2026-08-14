@@ -13,6 +13,7 @@ import { finalizeMvpReleaseSuccess } from '../game/releaseOfficeFlowMvp'
 import type { DialogueLine } from '../game/gameStore'
 import { WHITEBOARD_POSITION } from '../scene/whiteboardSpot'
 import { playShot, attachPerLineShots, characterIdForSpeaker } from '../game/cinematics/cinematicDirector'
+import { playVideoCutscene } from './videoCutscene'
 import type { CutsceneDirector, CutsceneScript, Point } from './types'
 
 // Feature 13 final scene: the team presents OfficeFlow at the whiteboard (now in
@@ -132,7 +133,11 @@ export const officeFlowMvpReleaseScene: CutsceneScript = async (director: Cutsce
     if (hasIlya) director.perform(ilyaVlasov.id, 'celebrate')
     await playShot('wide', femalePm.id, { side: -1, durationMs: 1200 })
     await director.wait(2000)
-    await playShot('establishing', femalePm.id, { side: -1, durationMs: 2600 })
+    // Live-feedback pass: the wordless pull-back reads better as a generated
+    // triumphant closing shot (sunlit office, green success dashboards);
+    // falls back to the original establishing pull-back if unavailable.
+    const releaseClipPlayed = await playVideoCutscene('/cutscenes/mvp-release-launch.mp4')
+    if (!releaseClipPlayed) await playShot('establishing', femalePm.id, { side: -1, durationMs: 2600 })
     director.perform(femalePm.id, null)
     director.perform(kirillMorozov.id, null)
     director.perform(alinaBelova.id, null)

@@ -37,13 +37,21 @@ export function subjectOf(characterId: string): SubjectPose | undefined {
 // Fly the cutscene camera to a shot, safety-clamped. Usable from cutscene
 // scripts (the camera rig is already active there) and from the conversation
 // cinematic below.
+// Both awaited camera moves below are bounded by withReadyTimeout for the
+// same reason beginConversationCinematic's `ready`/`resettle` already are
+// (see that function's comment): camera-controls' convergence promise can
+// take far longer than the shot's own durationMs under a throttled/headless
+// tab, so an unbounded await here could hang a scripted scene indefinitely.
+// The camera still ends up at the target either way - this only bounds how
+// long a caller waits for it before moving on.
+
 export async function playShot(type: CinematicShotType, characterId: string, opts: { partnerId?: string; side?: 1 | -1; durationMs?: number } = {}): Promise<void> {
   const subject = subjectOf(characterId)
   if (!subject) return
   const partner = opts.partnerId ? subjectOf(opts.partnerId) : undefined
   const frame = computeShot(type, subject, { partner, side: opts.side, durationMs: opts.durationMs })
   const safe = makeShotSafe(frame)
-  await flyTo(safe.target, safe.position, safe.durationMs)
+  await withReadyTimeout(flyTo(safe.target, safe.position, safe.durationMs))
 }
 
 // An insert shot of a PROP (unlocked monitor, whiteboard, server rack): the
@@ -51,7 +59,7 @@ export async function playShot(type: CinematicShotType, characterId: string, opt
 export async function playInsert(propPoint: [number, number, number], opts: { side?: 1 | -1; durationMs?: number } = {}): Promise<void> {
   const frame = computeShot('insert', { position: propPoint, rotationY: 0 }, { side: opts.side, durationMs: opts.durationMs ?? 1000 })
   const safe = makeShotSafe(frame)
-  await flyTo(safe.target, safe.position, safe.durationMs)
+  await withReadyTimeout(flyTo(safe.target, safe.position, safe.durationMs))
 }
 
 // Display name (as dialogue lines carry it) -> characterId, built from the

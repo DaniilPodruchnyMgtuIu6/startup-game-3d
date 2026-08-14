@@ -26,6 +26,7 @@ export const STUB_MATERIALS: OfficeMaterials = {
   screenDashboard: procedural.screenEmissive,
   posterOfficeFlow: { color: '#274b8f', roughness: 0.85, metalness: 0 },
   posterLockScreen: { color: '#e8a13c', roughness: 0.85, metalness: 0 },
+  posterCisoMap: { color: '#2a3a55', roughness: 0.85, metalness: 0 },
   ledGreen: procedural.ledGreen,
   ledAmber: procedural.ledAmber,
   ledRed: procedural.ledRed,

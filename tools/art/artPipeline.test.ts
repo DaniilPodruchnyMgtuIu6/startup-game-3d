@@ -20,7 +20,7 @@ const SRC_FILES = walk(join(ROOT, 'src')).filter((f) => /\.(ts|tsx|css)$/.test(f
 describe('approved production assets exist (18A §8)', () => {
   it('every asset path referenced from src/ exists under public/', () => {
     const referenced = new Set<string>()
-    const re = /['"`](\/(?:dialogue_pictures|posters|textures|character|hdri)\/[^'"`]+?\.(?:jpg|jpeg|png|glb|hdr))['"`]/g
+    const re = /['"`](\/(?:dialogue_pictures|posters|documents|textures|character|hdri)\/[^'"`]+?\.(?:jpg|jpeg|png|glb|hdr))['"`]/g
     for (const file of SRC_FILES) {
       const source = readFileSync(file, 'utf8')
       for (const m of source.matchAll(re)) referenced.add(m[1])

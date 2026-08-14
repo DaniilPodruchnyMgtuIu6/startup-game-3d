@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { Vector3, type Group } from 'three'
 import { Desk } from './Desk'
 import { Chair } from './Chair'
@@ -22,6 +22,16 @@ const OCCUPIED_RADIUS = 0.4
 // fully settled into 'working') so it doesn't flick on a beat late.
 const SEATED_STATES = new Set(['sittingDown', 'working'])
 
+function measureChair(group: Group): [number, number] {
+  group.updateWorldMatrix(true, false)
+  const v = group.localToWorld(new Vector3(...CHAIR_LOCAL))
+  return [v.x, v.z]
+}
+
+function nearChair(chair: [number, number], x: number, z: number): boolean {
+  return Math.abs(x - chair[0]) <= OCCUPIED_RADIUS && Math.abs(z - chair[1]) <= OCCUPIED_RADIUS
+}
+
 // The screen should read as "on" while someone is seated (or actively
 // settling into) this specific desk, OR while a scripted scene has marked it
 // left-unlocked despite nobody being there - two independent facts, checked
@@ -32,26 +42,39 @@ const SEATED_STATES = new Set(['sittingDown', 'working'])
 // same pattern InteractionTrigger already uses for its own world-space
 // target) resolves the real position through however many ancestors exist.
 function useIsOn(group: React.RefObject<Group | null>): boolean {
-  const [chairWorld, setChairWorld] = useState<Vector3 | null>(null)
+  const chairRef = useRef<[number, number] | null>(null)
+  const [chair, setChair] = useState<[number, number] | null>(null)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!group.current) return
-    group.current.updateWorldMatrix(true, false)
-    setChairWorld(group.current.localToWorld(new Vector3(...CHAIR_LOCAL)))
+    const next = measureChair(group.current)
+    chairRef.current = next
+    setChair((prev) => (prev && prev[0] === next[0] && prev[1] === next[1] ? prev : next))
   }, [group])
 
-  return useCharacterStore((s) => {
-    if (!chairWorld) return false
-    const near = (x: number, z: number) =>
-      Math.abs(x - chairWorld.x) <= OCCUPIED_RADIUS && Math.abs(z - chairWorld.z) <= OCCUPIED_RADIUS
+  // Own slice: a scripted unlock must always re-render this monitor. Folding it
+  // into a boolean occupancy selector with Object.is meant a remounted Monitor
+  // could stay dark when the seat was already unlocked and nobody is sitting.
+  const unlockedScreens = useCharacterStore((s) => s.unlockedScreens)
+
+  const occupied = useCharacterStore((s) => {
+    const c = chairRef.current
+    if (!c) return false
     for (const entity of Object.values(s.characters)) {
-      if (SEATED_STATES.has(entity.state.kind) && near(entity.position[0], entity.position[2])) return true
-    }
-    for (const [x, , z] of s.unlockedScreens) {
-      if (near(x, z)) return true
+      if (SEATED_STATES.has(entity.state.kind) && nearChair(c, entity.position[0], entity.position[2])) {
+        return true
+      }
     }
     return false
   })
+
+  if (chair) {
+    for (const [x, , z] of unlockedScreens) {
+      if (nearChair(chair, x, z)) return true
+    }
+  }
+
+  return occupied
 }
 
 export function Workstation({

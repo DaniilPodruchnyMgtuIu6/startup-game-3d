@@ -41,6 +41,11 @@ export type MvpReleaseBlockingReason =
   | 'story-release-decision-pending'
   | 'hardening-in-progress'
   | 'hidden-risk-blocked'
+  // Feature 19: a mandatory cyber-story incident (available/running) or its
+  // delayed consequence (pending/running) must be resolved before release -
+  // otherwise a player could ship MVP with an unclicked mandatory marker
+  // still on the map.
+  | 'cyber-story-incident-pending'
 
 export type MvpReleaseWarning =
   | 'security-specialist-not-hired'
@@ -84,6 +89,8 @@ export interface MvpReleaseReadinessSnapshot {
   storyReleaseDecisionPending?: boolean
   storyHardeningDaysLeft?: number
   storyHiddenRiskBlocked?: boolean
+  // Feature 19 (default-safe for pre-19 saves)
+  cyberStoryIncidentPending?: boolean
   // warning inputs
   securitySpecialistHired: boolean
   accessControlActive: boolean
@@ -158,6 +165,9 @@ export function evaluateMvpReleaseReadiness(snapshot: MvpReleaseReadinessSnapsho
   if (snapshot.storyReleaseDecisionPending) blockingReasons.push('story-release-decision-pending')
   if ((snapshot.storyHardeningDaysLeft ?? 0) > 0) blockingReasons.push('hardening-in-progress')
   if (snapshot.storyHiddenRiskBlocked) blockingReasons.push('hidden-risk-blocked')
+
+  // Feature 19: a pending cyber-story incident/consequence blocks release.
+  if (snapshot.cyberStoryIncidentPending) blockingReasons.push('cyber-story-incident-pending')
 
   const warnings: MvpReleaseWarning[] = []
   if (!snapshot.securitySpecialistHired) warnings.push('security-specialist-not-hired')

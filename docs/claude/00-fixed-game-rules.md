@@ -931,3 +931,112 @@ Generated assets проходят approval, оптимизацию и регис
 Обычная офисная жизнь расширяется короткими ambient activities: кофе, пинг-понг, подтягивания и другие бытовые действия. Они выбираются существующим planner по доступности, cooldown и recent history, не двигают игровой день, не влияют на баланс и всегда уступают работе и сюжету.
 
 Higgsfield может использоваться для motion references, pose sequences и совместимых animation assets. Итоговый production clip обязан работать на реальном skeleton, не содержать scale drift и пройти регистрацию и проверку.
+
+Три дополнительные сюжетные сцены кибербезопасности
+
+После Feature 18H Level 1 дополняется тремя детерминированными сюжетными сценами по разным аспектам безопасности:
+
+executive-phishing-request — фишинг, impersonation и проверка срочного запроса другим каналом;
+
+supply-chain-update — риск обновления сторонней зависимости перед демонстрацией;
+
+shadow-it-log-upload — чувствительные данные и секреты в логах, передаваемых через личное облако.
+
+Эти сцены не связаны с физическим проникновением и не дублируют office-intrusion.
+
+У каждой сцены есть немедленная цена или выгода, фиксированный выбор, отложенное последствие и изменённые будущие реплики. DeepSeek не определяет варианты и последствия.
+
+Higgsfield используется для коротких сюжетных вставок, storyboard и keyframes. Отсутствие generated video не блокирует прохождение: каждая сцена имеет полноценный внутриигровой fallback.
+
+Сцены используют существующие Story Decision Core, Workday Flow, ledger, risk domains и coordinator. Новые суммы, effort и modifiers хранятся в src/game/balance/.
+
+В корне проекта создаётся scenes.md с реально проверенными dev-командами запуска:
+
+executive-phishing-request;
+
+supply-chain-update;
+
+shadow-it-log-upload;
+
+office-intrusion.
+
+Dev-launcher отсутствует в production bundle, поддерживает visual-only и full-effects режимы и не обходит production handlers и идемпотентность.
+
+Ещё три сюжетные сцены кибербезопасности — Feature 19B
+
+После успешной реализации Feature 19A Level 1 дополняется ещё тремя детерминированными сюжетными сценами:
+
+secret-committed-to-repository — секрет, удалённый из актуального файла, но оставшийся в истории Git;
+
+mfa-fatigue-attack — серия push-подтверждений входа, случайное принятие и активная неизвестная сессия;
+
+external-ai-data-disclosure — отправка исходного кода и логов внешнему AI-помощнику через личный аккаунт.
+
+Эти сцены не повторяют фишинг, supply-chain, Shadow IT с личным облаком и физическое проникновение.
+
+Каждая сцена содержит три решения с разным компромиссом между скоростью, бюджетом, удобством и безопасностью.
+
+Для secret-committed-to-repository различаются:
+
+удаление секрета новым коммитом;
+
+переписывание истории;
+
+отзыв credential и настройка secrets management.
+
+Удаление строки из актуальной версии не считается отзывом credential. Потенциально раскрытый ключ остаётся скомпрометированным, пока не выполнена rotation.
+
+Для mfa-fatigue-attack различаются:
+
+только смена пароля;
+
+отзыв всех сессий и расследование;
+
+внедрение phishing-resistant authentication.
+
+Смена пароля не должна автоматически завершать уже выданную неизвестную сессию, если фактическая система проекта не гарантирует это явно.
+
+Для external-ai-data-disclosure различаются:
+
+неограниченное использование внешних AI tools;
+
+полный запрет;
+
+контролируемый AI gateway с masking, allowlist и logging.
+
+Сюжет не утверждает без доказательств, что внешний сервис обучил модель на данных команды. Риск формулируется как потеря контроля над хранением, обработкой и повторным использованием переданной информации.
+
+Разрешены ограниченные явные связи с Feature 19A:
+
+результат phishing-сцены может усилить MFA fatigue;
+
+раскрытая сессия может один раз усилить CI/supply-chain consequence;
+
+secure log sharing может уменьшить объём данных в AI prompt;
+
+central logging помогает быстрее обнаружить использование старого credential.
+
+Не создаётся универсальная система автоматического комбинирования всех киберрисков.
+
+Higgsfield используется для коротких inserts, storyboard и keyframes. Выбор и последствия остаются в production 3D-системах. Каждая сцена имеет fallback без generated video.
+
+Существующий корневой scenes.md расширяется, а не заменяется. После Feature 19B он содержит проверенные dev-команды для семи сцен:
+
+executive-phishing-request;
+
+supply-chain-update;
+
+shadow-it-log-upload;
+
+secret-committed-to-repository;
+
+mfa-fatigue-attack;
+
+external-ai-data-disclosure;
+
+office-intrusion.
+
+Для каждой новой сцены документируются prepare, visual-only, full-effects, каждый choice, delayed consequence и reset.
+
+Dev-launcher остаётся только development/test-инструментом, использует настоящие handlers, не обходит ledger/risk state и отсутствует в production bundle.
+

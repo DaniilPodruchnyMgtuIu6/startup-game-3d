@@ -294,6 +294,18 @@ Cinematic production сюжетных сцен
 
 18A–18G
 
+19A
+
+Три сюжетных киберинцидента и dev-launcher сцен
+
+17A–18H
+
+19B
+
+Три дополнительных киберинцидента: secrets, MFA fatigue и Shadow AI
+
+19A
+
 Правило перехода к следующей фиче
 
 Следующая фича не начинается, пока текущая не соответствует всем условиям:
@@ -314,7 +326,7 @@ production-сборка проходит;
 
 На текущем этапе Claude Code нужно передать только:
 
-18h-group-scenes-ambient-office-life-and-scale-calibration.md
+19-cybersecurity-story-incidents-and-scene-launcher.md
 
 Feature 17: обязательное дробление
 
@@ -349,3 +361,45 @@ Feature 18 выполняется строго последовательно:
 18h-group-scenes-ambient-office-life-and-scale-calibration.md.
 
 Каждая часть требует отдельного подтверждения пользователя. Claude Code не должен менять персонажей, анимации, офис и все сюжетные сцены в одной итерации.
+
+Feature 19: сюжетные киберинциденты
+
+Feature 19 выполняется двумя отдельными последовательными частями.
+
+Feature 19A
+
+Файл:
+
+19-cybersecurity-story-incidents-and-scene-launcher.md.
+
+Она добавляет:
+
+фишинговый запрос от имени руководства;
+
+риск обновления сторонней зависимости;
+
+передачу логов через личное облако;
+
+dev-only launcher;
+
+корневой scenes.md с командами этих сцен и office-intrusion.
+
+Feature 19B
+
+Файл:
+
+19b-additional-cybersecurity-story-incidents.md.
+
+Она добавляет:
+
+секрет, оставшийся в истории Git;
+
+MFA fatigue и активную чужую сессию;
+
+передачу кода и логов внешнему AI-сервису;
+
+расширение существующего scenes.md до семи сцен.
+
+Feature 19B нельзя реализовывать до успешной проверки и подтверждения Feature 19A.
+
+Обе части не добавляют новые физические проникновения и не дублируют office-intrusion.

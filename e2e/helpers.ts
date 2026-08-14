@@ -70,6 +70,26 @@ export async function seedCampaign(page: Page, opts: SeedOptions = {}): Promise<
         postAuditConversation: { status: 'completed', staffingDecision: opts.withIlya ? 'approve-security-hire' : 'decline-security-hire', completedAt: { sprintNumber: 3, day: 1 }, effectsApplied: true },
         hasIntroducedSecuritySpecialist: !!opts.withIlya,
       }))
+      // Feature 19: pre-resolve every cyber-story incident so a mid-campaign
+      // seed used by unrelated (non-Feature-19) e2e tests never trips one of
+      // their triggers by accident - e.g. executive-phishing-request becomes
+      // eligible as soon as both developers are hired and day > 1, which a
+      // generic sprintNumber:2/day:2 seed satisfies. A resolved record loaded
+      // from storage never re-applies its choice's effects (normalizeRecord
+      // only restores status), so this does not touch budget/risk elsewhere.
+      // The same pattern already resolves securityBreach/postAuditConversation
+      // above for the same reason. Tests that DO want to exercise a cyber-story
+      // scene use the dedicated cyberStoryScenes.spec.ts / unit tests instead.
+      localStorage.setItem('startup-office-cyber-story', JSON.stringify({
+        incidents: {
+          'executive-phishing-request': { incidentId: 'executive-phishing-request', status: 'resolved', selectedChoiceId: 'verify-through-known-channel', effectsApplied: true },
+          'supply-chain-update': { incidentId: 'supply-chain-update', status: 'resolved', selectedChoiceId: 'keep-current-version', effectsApplied: true },
+          'shadow-it-log-upload': { incidentId: 'shadow-it-log-upload', status: 'resolved', selectedChoiceId: 'sanitize-logs-manually', effectsApplied: true },
+          'secret-committed-to-repository': { incidentId: 'secret-committed-to-repository', status: 'resolved', selectedChoiceId: 'remove-secret-in-new-commit', effectsApplied: true },
+          'mfa-fatigue-attack': { incidentId: 'mfa-fatigue-attack', status: 'resolved', selectedChoiceId: 'change-password-only', effectsApplied: true },
+          'external-ai-data-disclosure': { incidentId: 'external-ai-data-disclosure', status: 'resolved', selectedChoiceId: 'ban-external-ai-tools', effectsApplied: true },
+        },
+      }))
       if (opts.allTasksDone) {
         localStorage.setItem('startup-office-product', JSON.stringify({
           taskStates: taskIds.map((taskId: string) => ({ taskId, status: 'done', progressDays: 99, completedAt: { sprintNumber: 3, day: 1 } })),

@@ -33,6 +33,8 @@ import { hasCompletedCoreMvp } from '../game/productRules'
 import { getCurrentObjective } from '../game/currentObjective'
 import { useStoryDecisionStore } from '../game/story/storyDecisionStore'
 import { getActiveBlockingDecision } from '../game/story/storyDecisionSelectors'
+import { useCyberStoryStore } from '../game/story/cyberStoryStore'
+import { getActiveBlockingCyberIncident } from '../game/story/cyberStorySelectors'
 import { useStoryConsequenceStore } from '../game/story/storyConsequenceStore'
 import { LEVEL1_TIMELINE_BALANCE } from '../game/balance/timelineBalance'
 import { useCinematicStore } from '../game/cinematics/cinematicDirector'
@@ -94,6 +96,11 @@ export function SprintHud() {
   // Feature 17A: a pending mandatory story decision becomes the current goal.
   useStoryDecisionStore((s) => s.activeDecisionId)
   const storyDecision = getActiveBlockingDecision()
+  // Feature 19: same pattern as the story decision above - subscribe to the
+  // incident records so the HUD re-renders when one becomes available, then
+  // read the derived blocking incident through the selector.
+  useCyberStoryStore((s) => s.incidents)
+  const cyberIncident = getActiveBlockingCyberIncident()
   // Feature 17C §7: the countdown of the open data-loss window.
   const finalWarningShownAt = useStoryConsequenceStore((s) => s.finalWarningShownAtWorkdayIndex)
   const dataLossResolutionStatus = useStoryConsequenceStore((s) => s.checkpoints['data-loss-resolution'].status)
@@ -110,6 +117,7 @@ export function SprintHud() {
     sprintPhase,
     outcomeBlocking,
     storyDecisionText: storyDecision ? `${storyDecision.objectiveTitle}. ${storyDecision.objectiveDescription}` : undefined,
+    cyberStoryText: cyberIncident ? `${cyberIncident.objectiveTitle}. ${cyberIncident.objectiveDescription}` : undefined,
     dataLossDaysLeft:
       finalWarningShownAt !== undefined && dataLossResolutionStatus === 'pending'
         ? Math.max(

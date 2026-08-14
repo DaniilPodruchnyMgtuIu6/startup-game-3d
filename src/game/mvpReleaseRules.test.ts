@@ -108,6 +108,17 @@ describe('readiness — incidents', () => {
   it('occurred incidents warn', () => expect(evalR({ serverIncidentsOccurred: true }).warnings).toContain('server-incidents-occurred'))
 })
 
+describe('readiness — cyber story (Feature 19)', () => {
+  it('a pending/available cyber-story incident or delayed consequence blocks release', () => {
+    expect(evalR({ cyberStoryIncidentPending: true }).blockingReasons).toContain('cyber-story-incident-pending')
+    expect(evalR({ cyberStoryIncidentPending: true }).ready).toBe(false)
+  })
+  it('no pending cyber-story incident is allowed (also the default-safe undefined for pre-19 saves)', () => {
+    expect(evalR({ cyberStoryIncidentPending: false }).ready).toBe(true)
+    expect(evalR({ cyberStoryIncidentPending: undefined }).ready).toBe(true)
+  })
+})
+
 describe('readiness — UI + warnings', () => {
   it('cutscene blocks', () => expect(evalR({ cutsceneRunning: true }).blockingReasons).toContain('cutscene-running'))
   it('minigame blocks', () => expect(evalR({ serverMinigameOpen: true }).blockingReasons).toContain('server-minigame-open'))

@@ -52,18 +52,33 @@ export function postAuditIntroLines(branch: PostAuditDialogueBranch): DialogueLi
   return NEUTRAL
 }
 
-// Exactly two staffing decisions - no external consultant / contractor option.
+// Exactly two staffing decisions (SecurityStaffingDecision stays a 2-value
+// type - see securityStoryRules.ts) - no external consultant / contractor
+// option. The third option here is a firmer phrasing of the same decline: it
+// still maps to 'decline-security-hire', it just says out loud that the
+// player is also opting out of chasing the audit findings at all, so the
+// timeline consequence (repeat audits, escalating fines) is a stated choice
+// instead of something the player backs into by inaction.
 export const POST_AUDIT_CHOICES: ChoiceOption[] = [
   { id: 'approve-security-hire', label: 'Открываем вакансию. Нанимаем безопасника.' },
   { id: 'decline-security-hire', label: 'Нет. Пока справимся своими силами.' },
+  { id: 'decline-security-investment', label: 'Нет. Ни безопасника, ни новых аудитов — закрывать замечания не будем.' },
 ]
 
-export function postAuditFinalLines(decision: SecurityStaffingDecision): DialogueLine[] {
+export function postAuditFinalLines(decision: SecurityStaffingDecision, choiceId?: string): DialogueLine[] {
   if (decision === 'approve-security-hire') {
     return [
       asSonya(
         'Хорошо. Я подготовлю требования к вакансии. Но учтите: безопасник будет просить время разработчиков на исправления, а его зарплата увеличит наши постоянные расходы.',
         { speakerEmotion: 'relieved', listenerReaction: 'nod' },
+      ),
+    ]
+  }
+  if (choiceId === 'decline-security-investment') {
+    return [
+      asSonya(
+        'Значит, будем справляться сами — и, по сути, никак. Замечания останутся открытыми, повторные проверки продолжатся по графику, а штрафы за них никуда не денутся. Это осознанный риск, я его зафиксирую.',
+        { speakerEmotion: 'sad', listenerReaction: 'controlled-frustration' },
       ),
     ]
   }

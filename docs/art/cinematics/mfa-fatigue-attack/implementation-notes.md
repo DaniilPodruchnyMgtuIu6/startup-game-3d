@@ -1,0 +1,8 @@
+# Implementation notes — mfa-fatigue-attack
+
+- Insert clip: `public/cutscenes/mfa-fatigue-attack-insert.mp4` — **сгенерирован и интегрирован**. Кейфрейм 6f1cb427-0bf2-4037-a5df-9860ea014cbc (nano_banana_2) → видео fb14f8d2-b65f-49bb-b7bc-d9d4ab8dcd99 (kling3_0_turbo), детали в `assets/source/prompts/story-clips-cyber-incidents-19b.md`. Fallback (`playInsert`) остаётся полностью функциональным на случай недоступности файла/кодека.
+- Камера: переиспользован `beginConversationCinematic({pairA: PLAYER_ID, pairB: characterId})`.
+- `change-password-only` НЕ отзывает уже активную неизвестную сессию — реализовано через отдельный домен `UnknownSessionState` (`'none' | 'active' | 'revoked'`), а не boolean; покрыто `cyberStoryHandlers.test.ts`.
+- Связь с Feature 19A: если `executive-phishing-request` уже была решена через `escalate-phishing-to-security`, identity-access impact от `change-password-only` вдвое меньше — реализовано явным селектором `hasStrongPhishingDefense(flags)` в `cyberStoryLinkedEffects.ts`, покрыто отдельным тестом.
+- Один ограниченный, явный линк к supply-chain: завершённое последствие `hijacked-session-activity` добавляет ограниченный cost-модификатор к будущим GATEWAY/DATABASE серверным инцидентам (`getCyberStoryIncidentCostModifierRub`) — не генерическая система комбинирования рисков, один явный `if`.
+- Проверено живым браузером (`npm run dev`, dev launcher, Playwright-скрипт вне репозитория): полный диалог + выбор `revoke-sessions-and-investigate` → `status === 'resolved'`, `flags.unknownSessionState === 'revoked'`, 0 console errors. Insert-клип отдельно подтверждён: `<video>` монтируется с правильным `src`, `readyState: 0→4`, `error: null`.

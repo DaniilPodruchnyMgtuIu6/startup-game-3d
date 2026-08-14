@@ -8,6 +8,8 @@ import { useSprintStore } from '../game/sprintStore'
 import { useSecurityStoryStore } from '../game/securityStoryStore'
 import { mapCutsceneChoiceToSecurityDecision, type SecurityBreachDecision } from '../game/securityStoryRules'
 import { playShot, playInsert, attachPerLineShots } from '../game/cinematics/cinematicDirector'
+import { execChairSeatTarget } from '../rooms/CeoOffice'
+import { playVideoCutscene } from './videoCutscene'
 import type { CutsceneScript, Point } from './types'
 
 // Preloaded at module load so the guards' GLTFs are already cached by the
@@ -35,14 +37,15 @@ const GUARD1_DESK_MARK: Point = [-1.2, 0, 4.9]
 const GUARD2_SPAWN: Point = [-5, 0, 6]
 const GUARD2_DESK_MARK: Point = [-2.8, 0, 5.4]
 
-const PLAYER_SEAT: Point = [9, 0, -7.53]
+// Same seat the click-to-sit path uses (was a stale [9,0,-7.53] behind the chair).
+const { point: PLAYER_SEAT, facing: PLAYER_SEAT_FACING } = execChairSeatTarget()
 // 18D: where the player rises to face the auditors - beside his chair, a
 // personal-space gap from both guard marks so the models never interpenetrate
-const PLAYER_STAND_MARK: Point = [9.0, 0, -7.35]
-const OFFICE_CAMERA_TARGET: Point = [9, 1.3, -7.53]
-const OFFICE_CAMERA_POSITION: Point = [12.5, 1.6, -6]
-const GUARD1_OFFICE_MARK: Point = [7.2, 0, -6.5]
-const GUARD2_OFFICE_MARK: Point = [8.8, 0, -6.5]
+const PLAYER_STAND_MARK: Point = [PLAYER_SEAT[0], 0, PLAYER_SEAT[2] + 0.18]
+const OFFICE_CAMERA_TARGET: Point = [PLAYER_SEAT[0], 1.3, PLAYER_SEAT[2]]
+const OFFICE_CAMERA_POSITION: Point = [PLAYER_SEAT[0] + 3.5, 1.6, PLAYER_SEAT[2] + 1.53]
+const GUARD1_OFFICE_MARK: Point = [PLAYER_SEAT[0] - 1.8, 0, PLAYER_STAND_MARK[2] + 0.85]
+const GUARD2_OFFICE_MARK: Point = [PLAYER_SEAT[0] - 0.2, 0, PLAYER_STAND_MARK[2] + 0.85]
 
 const AUDIT_ROLE = 'Аудит безопасности'
 const PLAYER_ROLE = 'Руководитель отдела'
@@ -119,14 +122,21 @@ async function runScene(director: Parameters<CutsceneScript>[0], { PLAYER_SHOCKE
   // Feature 16 §8: keep the opening tight — a short camera move, no dead pause.
   await director.camera(PM_DESK_CAMERA_TARGET, { position: PM_DESK_CAMERA_POSITION, durationMs: 700 })
   await director.sit(femalePm.id, { point: PM_SEAT, facing: 0 }, 'workstation')
+  // Mark BEFORE she stands: the unlocked-left-on fact is about the desk, not
+  // about who's currently sitting. Copy the point so later choreography can't
+  // alias-mutate the stored unlock.
+  useCharacterStore.getState().markScreenUnlocked([PM_SEAT[0], PM_SEAT[1], PM_SEAT[2]])
   await director.wait(250)
   // She's leaving without locking - the monitor must stay lit even though
   // she's no longer sitting there, which is the entire point of the scene.
-  useCharacterStore.getState().markScreenUnlocked(PM_SEAT)
   await director.walk(femalePm.id, PM_AWAY_POINT)
 
   // 18D §4 (тревога): INSERT of the fact of the scene - the unlocked monitor.
-  await playInsert([-1.9, 0.75, 4.75], { side: -1 })
+  // Live-feedback pass: a generated clip (empty desk, glowing unlocked screen)
+  // reads better than the static insert; falls back to the original 3D insert
+  // if the file/codec is unavailable.
+  const monitorClipPlayed = await playVideoCutscene('/cutscenes/security-breach-unlocked-monitor.mp4')
+  if (!monitorClipPlayed) await playInsert([-1.9, 0.75, 4.75], { side: -1 })
 
   // Feature 16 §8: the guards are on urgent business — spawn them and give them
   // a faster-than-normal pace so they reach the office in ~4-6s, not ~15s.
@@ -155,7 +165,12 @@ async function runScene(director: Parameters<CutsceneScript>[0], { PLAYER_SHOCKE
   director.look('guard1', false)
   director.look('guard2', false)
 
-  await director.sit(PLAYER_ID, { point: PLAYER_SEAT, facing: 0 }, 'seat')
+  // This walk is entirely off-camera (the office establishing shot doesn't
+  // cut in until after the `sit` below) - snapping the player to the seat
+  // first turns the sit into a same-spot transition instead of a real walk
+  // across the office, saving the scene several idle seconds nobody sees.
+  useCharacterStore.getState().setTransform(PLAYER_ID, PLAYER_SEAT, PLAYER_SEAT_FACING)
+  await director.sit(PLAYER_ID, { point: PLAYER_SEAT, facing: PLAYER_SEAT_FACING }, 'seat')
 
   // brief establishing of the office (the only high-ish angle allowed, §3)
   await director.camera(OFFICE_CAMERA_TARGET, { position: OFFICE_CAMERA_POSITION, durationMs: 700 })

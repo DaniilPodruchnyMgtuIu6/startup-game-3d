@@ -19,6 +19,7 @@ import { MeetPmController } from '../game/MeetPmController'
 import { PostAuditConversationController } from '../game/PostAuditConversationController'
 import { Level1StoryDecisionController } from '../game/story/Level1StoryDecisionController'
 import { StoryConsequenceController } from '../game/story/StoryConsequenceController'
+import { CyberStoryController } from '../game/story/CyberStoryController'
 import { SecuritySpecialistController } from '../game/SecuritySpecialistController'
 import { FreeNpcChatController } from '../game/FreeNpcChatController'
 import { NpcAmbientConversationController } from '../game/NpcAmbientConversationController'
@@ -61,6 +62,7 @@ export function Office({
         <PostAuditConversationController />
         <Level1StoryDecisionController />
         <StoryConsequenceController />
+        <CyberStoryController />
         <SecuritySpecialistController />
         <FreeNpcChatController />
         <NpcAmbientConversationController />

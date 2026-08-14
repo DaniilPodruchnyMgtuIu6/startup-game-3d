@@ -11,6 +11,7 @@ import { createServerIncidentTransaction, createServerDowntimeTransaction } from
 import { serverIncidentOccurredSignals, serverIncidentRecoveredSignals } from './riskSignals'
 import { getStoryIncidentCostModifierRub, getStoryRecoveryEffortExtraDays, isQuietInvestigationOpen } from './story/storyEffectSelectors'
 import { applyStoryIncidentConsequences } from './story/storyConsequences'
+import { getCyberStoryIncidentCostModifierRub } from './story/cyberStoryEffectSelectors'
 import { riskMomentAt } from './riskContext'
 import { getServerIncident, type ServerIncidentDefinition, type ServerIncidentId } from './serverIncidentCatalog'
 import type { BoardTask } from './tasks'
@@ -183,7 +184,11 @@ export const useServerIncidentStore = create<ServerIncidentStore>()((set, get) =
       const def = getServerIncident(incidentId)!
       if (state.status !== 'pending' && state.status !== 'running') return { resolved: false }
       const hadSpecialist = state.hadSecuritySpecialistAtIncident ?? hasSecuritySpecialist(useTeamStore.getState().hires)
-      const immediateCost = getServerIncidentImmediateCost(incidentId, hadSpecialist, getStoryIncidentCostModifierRub(incidentId))
+      const immediateCost = getServerIncidentImmediateCost(
+        incidentId,
+        hadSpecialist,
+        getStoryIncidentCostModifierRub(incidentId) + getCyberStoryIncidentCostModifierRub(incidentId),
+      )
       const downtimeCost = getServerDowntimeCost(incidentId)
 
       if (state.effectsApplied) {

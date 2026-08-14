@@ -66,14 +66,25 @@ button.ghost:hover {
   color: #ff8a76;
 }
 
+/* Slides in via the independent `translate` property (CSS Transforms L2),
+   NOT `transform` - .dialogue-panel centers itself with
+   `transform: translateX(-50%)` (and the --left/--right cinematic variants
+   set `transform: none`). Animating `transform` here would REPLACE that for
+   the animation's 0.25s duration, snapping the panel to its un-centered
+   `left: 50%` position (right off-screen) for a visible flash on every open
+   before it jumped back once the animation ended - confirmed live via a
+   screenshot caught mid-animation. `translate` composes with `transform`
+   instead of overriding it, so each variant's own positioning is preserved
+   throughout. Same reasoning applies to .intro-card (no transform of its
+   own to clobber, so this is a no-op change for it beyond the property). */
 @keyframes card-in {
   from {
     opacity: 0;
-    transform: translateY(14px);
+    translate: 0 14px;
   }
   to {
     opacity: 1;
-    transform: none;
+    translate: 0 0;
   }
 }
 
@@ -166,7 +177,7 @@ button.primary:hover {
   bottom: 28px;
   transform: translateX(-50%);
   width: min(760px, calc(100vw - 48px));
-  min-height: 200px;
+  min-height: 150px;
   display: flex;
   overflow: hidden;
   background: linear-gradient(160deg, #232f3e, #1a2430);
@@ -178,12 +189,21 @@ button.primary:hover {
   animation: card-in 0.25s ease-out;
 }
 
+/* Fills the full height of the panel (align-self:stretch, inherited from the
+   base rule) so the portrait always runs the whole left edge top-to-bottom -
+   a small fixed-height box here (tried once) left an ugly gap of empty
+   gradient above it whenever a line ran to two sentences (live report:
+   "картинка очень маленькая и не растянута по левой стороне"). min-height
+   is the floor that stops a very short one-line reply from squeezing the
+   crop into an over-zoomed near-square - it only ever makes the box TALLER,
+   so it can never reintroduce the old advance-button-clipping class of bug. */
 .dialogue-panel .card-picture {
-  width: 190px;
+  width: 170px;
+  min-height: 190px;
 }
 
 .dialogue-panel .card-body {
-  padding: 20px 24px 18px;
+  padding: 16px 22px 14px;
 }
 
 .dialogue-panel button.primary {
@@ -212,12 +232,22 @@ button.primary:hover {
   flex-wrap: wrap;
   gap: 12px;
   margin-top: auto;
-  align-items: center;
+  /* stretch (not center): every button in the row takes the height of the
+     tallest one (the longest label+hint) instead of each hugging its own
+     text - otherwise a short button sits noticeably shorter than its
+     sibling with a two-line hint ("одна кнопка выше другой"). */
+  align-items: stretch;
   justify-content: center;
 }
 
 .dialogue-choices button.primary {
   margin-top: 0;
+  /* Overrides the earlier .dialogue-panel button.primary { align-self:
+     flex-start } (meant for the line-mode "Далее" button) - without this,
+     that rule wins on equal specificity and every choice button ignores
+     .dialogue-choices' own align-items: stretch, back to each hugging its
+     own text height. */
+  align-self: stretch;
 }
 
 /* No portrait/line text precedes the choice row, so the panel shouldn't
@@ -241,6 +271,7 @@ button.dialogue-choice {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  justify-content: center;
   gap: 4px;
   max-width: 320px;
   text-align: left;
@@ -374,7 +405,7 @@ button.dialogue-choice {
   cursor: pointer;
   color: #fff;
   font-family: inherit;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -382,37 +413,37 @@ button.dialogue-choice {
 .npc-marker--story {
   flex-direction: column;
   gap: 1px;
-  padding: 4px 10px;
-  border-radius: 10px;
+  padding: 3px 8px;
+  border-radius: 8px;
   background: #e0912b;
   animation: indicator-pulse 1.4s ease-in-out infinite;
 }
 .npc-marker--story .npc-marker-icon {
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 800;
   line-height: 1;
 }
 .npc-marker-label {
-  font-size: 10px;
+  font-size: 8.5px;
   font-weight: 600;
   letter-spacing: 0.02em;
 }
 .npc-marker--chat {
   position: relative;
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: #3573dd;
 }
 .npc-marker--chat .npc-marker-icon {
-  font-size: 18px;
-  line-height: 40px;
+  font-size: 14px;
+  line-height: 30px;
 }
 .npc-marker-spark {
   position: absolute;
-  top: -3px;
-  right: -3px;
-  font-size: 12px;
+  top: -2px;
+  right: -2px;
+  font-size: 9px;
 }
 
 /* Name + role tag over an NPC's head. */
@@ -422,42 +453,53 @@ button.dialogue-choice {
   flex-direction: column;
   align-items: center;
   gap: 1px;
-  padding: 3px 9px;
-  border-radius: 8px;
+  padding: 2px 7px;
+  border-radius: 6px;
   background: rgba(10, 16, 24, 0.82);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
   white-space: nowrap;
   user-select: none;
   font-family: inherit;
 }
 .npc-tag-name {
   color: #eef4fb;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
   line-height: 1.2;
 }
 .npc-tag-role {
   color: #8fa3b8;
-  font-size: 10px;
+  font-size: 8.5px;
   line-height: 1.2;
 }
 
 /* Feature 16 §8/§9: a colleague's speech bubble during an NPC↔NPC conversation.
-   Deliberately light with a tail so the player reads speech, not a name label. */
+   Deliberately light with a tail so the player reads speech, not a name label.
+   FIXED width (not max-width) + flex-centered min-height, live feedback:
+   "разной формы, что-то выше, что-то шире" - a plain block box shrink-wraps to
+   its text, so a short line drew a tiny narrow box and a long one a wide,
+   multi-row one right next to it. Every bubble now has the same silhouette
+   (same width, same padding, same floor height); only genuinely long lines
+   grow past the floor, same as normal caption wrapping - never truncated. */
 .npc-bubble {
   transform: translateY(-100%);
   position: relative;
-  max-width: 230px;
-  padding: 8px 12px;
-  border-radius: 12px;
+  box-sizing: border-box;
+  width: 210px;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 10px;
   background: #f4f8fd;
   color: #16202c;
-  font-size: 12.5px;
-  line-height: 1.34;
+  font-size: 11px;
+  line-height: 1.3;
   font-weight: 500;
   text-align: center;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.38);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.32);
   white-space: normal;
   user-select: none;
   font-family: inherit;
@@ -467,11 +509,11 @@ button.dialogue-choice {
   content: '';
   position: absolute;
   left: 50%;
-  bottom: -6px;
+  bottom: -5px;
   transform: translateX(-50%);
-  border-left: 7px solid transparent;
-  border-right: 7px solid transparent;
-  border-top: 7px solid #f4f8fd;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid #f4f8fd;
 }
 @keyframes bubble-pop {
   from {
@@ -1694,6 +1736,27 @@ button.dialogue-choice {
   text-align: left;
 }
 
+/* Poster viewer - fullscreen zoom for a clicked wall poster */
+.poster-viewer {
+  position: relative;
+  width: min(1400px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  background: #141d29;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  padding: 16px;
+  animation: card-in 0.35s ease-out;
+  display: flex;
+}
+.poster-viewer-image {
+  display: block;
+  width: 100%;
+  max-height: calc(100vh - 80px);
+  object-fit: contain;
+  border-radius: 8px;
+}
+
 /* Prototype mock */
 .prototype {
   position: relative;
@@ -2409,9 +2472,14 @@ button.dialogue-choice {
   max-width: min(760px, 72vw);
 }
 .dialogue-panel--cinematic .card-picture {
-  width: 84px;
-  height: 84px;
-  align-self: flex-end;
+  /* Narrower than the base 170px (this bar is meant to read as compact), but
+     otherwise inherits the base .card-picture rule's align-self: stretch +
+     object-fit: cover - the photo fills the panel's actual (content-driven,
+     min-height: 0) height, same as the non-cinematic dialogue. A fixed
+     height here (tried once) pinned the photo to a small square that didn't
+     reach the top of a taller multi-line panel - live report: "картинки в
+     диалоговых окнах не растянулись по высоте, выглядят криво". */
+  width: 110px;
 }
 .dialogue-panel--cinematic .dialogue-text {
   font-size: 14px;
@@ -2459,4 +2527,111 @@ button.dialogue-choice {
   font-size: 14px;
   letter-spacing: 0.04em;
   user-select: none;
+}
+
+/* Restart control (bottom-left, out of the way of the primary HUD row) */
+.restart-button {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  z-index: 30;
+  font-family: inherit;
+  font-size: 13px;
+  color: #dbe4f0;
+  background: rgba(22, 31, 42, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.restart-button:hover {
+  background: rgba(34, 46, 62, 0.92);
+}
+
+/* Product & risk status HUD (top-right, below the quality menu) */
+.product-hud {
+  position: fixed;
+  top: 76px;
+  right: 16px;
+  z-index: 29;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: 260px;
+}
+.product-hud-readiness {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(22, 31, 42, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  font: 500 13px system-ui, sans-serif;
+  color: #dbe4f0;
+}
+.product-hud-readiness-label {
+  font-weight: 700;
+}
+.product-hud-readiness-value {
+  color: #4c8ef7;
+  font-weight: 700;
+}
+.product-hud-readiness-tasks {
+  color: #a9b8c9;
+  font-size: 12px;
+}
+.product-hud-risks {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+.product-hud-chip {
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: rgba(22, 31, 42, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left-width: 3px;
+  text-align: right;
+  transition: box-shadow 0.3s, background 0.3s;
+}
+.product-hud-chip--controlled {
+  border-left-color: #4caf6e;
+}
+.product-hud-chip--low {
+  border-left-color: #6f8fb8;
+}
+.product-hud-chip--elevated {
+  border-left-color: #e6c15a;
+}
+.product-hud-chip--high {
+  border-left-color: #e6906a;
+}
+.product-hud-chip--critical {
+  border-left-color: #dd4c4c;
+}
+.product-hud-chip-domain {
+  display: block;
+  font: 600 11px system-ui, sans-serif;
+  color: #cdd8e4;
+}
+.product-hud-chip-level {
+  display: block;
+  font: 600 12px system-ui, sans-serif;
+  color: #e8edf4;
+}
+.product-hud-chip--pulse {
+  animation: product-hud-pulse 2.2s ease-out;
+}
+@keyframes product-hud-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55);
+    background: rgba(60, 75, 95, 0.95);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+    background: rgba(22, 31, 42, 0.82);
+  }
 }

@@ -15,6 +15,7 @@ import { useCharacterStore } from '../character/characterStore'
 import { useNpcAmbientStore } from './npcAmbientStore'
 import { hasSecuritySpecialist } from './teamRules'
 import { isStoryDecisionPendingFor } from './story/storyDecisionSelectors'
+import { isCyberStoryPendingFor } from './story/cyberStorySelectors'
 import type { NpcId } from './npcChatTypes'
 
 // Pure eligibility for opening an OPTIONAL free chat. A pending mandatory story
@@ -70,6 +71,8 @@ export function npcRequiredInteractionPending(npcId: NpcId): boolean {
   // Feature 17A §7: a pending mandatory story decision hides this colleague's
   // optional DeepSeek marker - the story scene must be held first.
   if (isStoryDecisionPendingFor(npcId)) return true
+  // Feature 19: a pending mandatory cyber-story incident does the same.
+  if (isCyberStoryPendingFor(npcId)) return true
   if (npcId === 'sonya-sokolova') {
     if (useGameStore.getState().phase === 'meetPm') return true
     const status = useSecurityStoryStore.getState().postAuditConversation.status

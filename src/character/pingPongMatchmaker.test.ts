@@ -133,6 +133,37 @@ describe('usePingPongMatchmaker (18H §17)', () => {
     }
   })
 
+  it('redirects a still-walking straggler when the arrival timeout fires, instead of leaving it to self-transition into an orphaned performing state (§17 regression)', async () => {
+    vi.useFakeTimers()
+    try {
+      useCharacterStore.getState().spawnCharacter('npc-a', SIDE_A.point, 0)
+      useCharacterStore.getState().spawnCharacter('npc-b', SIDE_B.point, 0)
+      renderHook(() => usePingPongMatchmaker(seq(0.1, 0.5)))
+      await vi.advanceTimersByTimeAsync(5000) // CHECK_INTERVAL_MS - both start walking
+
+      // npc-a arrives quickly; npc-b is a slow walker that never gets its
+      // WAYPOINT_REACHED before the arrival timeout gives up on the rally.
+      useCharacterStore.getState().dispatchTo('npc-a', { type: 'WAYPOINT_REACHED' })
+      expect(useCharacterStore.getState().characters['npc-a'].state.kind).toBe('performing')
+      expect(useCharacterStore.getState().characters['npc-b'].state.kind).toBe('walking')
+
+      await vi.advanceTimersByTimeAsync(22000) // ARRIVAL_TIMEOUT_MS - finish() gives up
+      expect(useCharacterStore.getState().characters['npc-a'].state.kind).toBe('idle') // PERFORM_END
+      expect(usePingPongRallyStore.getState().participants).toBeNull()
+      expect(isTargetFree(SIDE_A, 'npc-x')).toBe(true)
+      expect(isTargetFree(SIDE_B, 'npc-x')).toBe(true)
+
+      // npc-b's stale "walk then perform pingPongRally" goal must have been
+      // replaced (CLICK_FLOOR) - when it finally "arrives" it lands on
+      // idle, NOT performing. Before the fix this dispatch would have put
+      // it into 'performing' forever, with no ball and nobody left to end it.
+      useCharacterStore.getState().dispatchTo('npc-b', { type: 'WAYPOINT_REACHED' })
+      expect(useCharacterStore.getState().characters['npc-b'].state.kind).toBe('idle')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('skips the check outside free play (does not touch idle NPCs mid-cutscene)', async () => {
     vi.useFakeTimers()
     try {

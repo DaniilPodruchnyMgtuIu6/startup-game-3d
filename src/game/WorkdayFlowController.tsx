@@ -19,6 +19,9 @@ import { useStoryDecisionStore } from './story/storyDecisionStore'
 import { isStoryDecisionBlockingNow } from './story/storyDecisionSelectors'
 import { useStoryConsequenceStore } from './story/storyConsequenceStore'
 import { isStoryConsequencePending } from './story/storyConsequences'
+import { useCyberStoryStore } from './story/cyberStoryStore'
+import { isCyberStoryBlockingNow } from './story/cyberStorySelectors'
+import { isCyberConsequencePending } from './story/cyberStoryConsequences'
 import { completeWorkday, canCompleteCurrentWorkday } from './completeWorkday'
 import {
   canAutoAdvanceWorkday,
@@ -166,7 +169,11 @@ export function currentFlowContext(): WorkdayFlowContext {
       // Feature 17A §7: a pending mandatory story decision pauses the flow too.
       isStoryDecisionBlockingNow() ||
       // Feature 17C: an unheld consequence scene pauses it as well.
-      isStoryConsequencePending(),
+      isStoryConsequencePending() ||
+      // Feature 19: a pending cyber-story incident or its delayed consequence
+      // pauses the flow the same way.
+      isCyberStoryBlockingNow() ||
+      isCyberConsequencePending(),
     followUpAuditBlocking: isFollowUpAuditBlocking(useSecurityAuditStore.getState().followUpAudit),
     officeIntrusionBlocking: isOfficeIntrusionBlocking(useAccessControlStore.getState().intrusion),
     serverIncidentBlocking: anyServerIncidentBlocking(Object.values(useServerIncidentStore.getState().incidents)),
@@ -208,6 +215,9 @@ export function WorkdayFlowController() {
   useStoryDecisionStore((s) => s.activeDecisionId)
   useStoryConsequenceStore((s) => s.pendingConsequenceIds)
   useStoryConsequenceStore((s) => s.runningConsequenceId)
+  useCyberStoryStore((s) => s.activeIncidentId)
+  useCyberStoryStore((s) => s.pendingConsequenceIds)
+  useCyberStoryStore((s) => s.runningConsequenceId)
   useSecurityAuditStore((s) => s.followUpAudit)
   useAccessControlStore((s) => s.intrusion)
   useServerIncidentStore((s) => s.incidents)

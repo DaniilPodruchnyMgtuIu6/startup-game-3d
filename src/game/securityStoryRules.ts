@@ -212,7 +212,11 @@ export function canStartPostAuditConversation(ctx: PostAuditConversationContext)
 
 export function mapPostAuditChoiceToStaffingDecision(choiceId: string): SecurityStaffingDecision | undefined {
   if (choiceId === 'approve-security-hire') return 'approve-security-hire'
-  if (choiceId === 'decline-security-hire') return 'decline-security-hire'
+  // 'decline-security-investment' is the same underlying decision as
+  // 'decline-security-hire' (SecurityStaffingDecision has exactly two
+  // values) - a blunter dialogue phrasing that also declares "and we won't
+  // chase the findings either", not a third mechanic.
+  if (choiceId === 'decline-security-hire' || choiceId === 'decline-security-investment') return 'decline-security-hire'
   return undefined
 }
 

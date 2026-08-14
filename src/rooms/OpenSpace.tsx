@@ -4,14 +4,12 @@ import { Workstation } from '../furniture/Workstation'
 import { Plant } from '../furniture/Plant'
 import { Sofa } from '../furniture/Sofa'
 import { CoffeeTable } from '../furniture/CoffeeTable'
-import { TrackLight } from '../furniture/TrackLight'
-import { AcousticCeilingPanel } from '../furniture/AcousticCeilingPanel'
 import { Whiteboard } from '../furniture/Whiteboard'
 import { WallPoster } from '../furniture/WallPoster'
 import { AuditPapers } from '../furniture/AuditPapers'
 import { PlanningMarker } from '../furniture/PlanningMarker'
-import { useSecurityStoryStore } from '../game/securityStoryStore'
 import { useSecurityAuditStore } from '../game/securityAuditStore'
+import { usePosterViewerStore } from '../game/posterViewerStore'
 import { useCharacterStore, PLAYER_ID } from '../character/characterStore'
 import { useGameStore } from '../game/gameStore'
 import { useSprintStore } from '../game/sprintStore'
@@ -113,9 +111,7 @@ const PLANT_POSITIONS: [number, number][] = [
 export function OpenSpace() {
   const center = roomCenter(ROOMS.openSpace)
   // 18E §5: environmental storytelling, deterministic from persisted stores.
-  // The lock-screen памятка appears only after the security training beat;
-  // audit paperwork piles onto Sonya's desk while a corrective plan is open.
-  const trainingIntroduced = useSecurityStoryStore((s) => s.securityBreach.status === 'completed')
+  // Audit paperwork piles onto Sonya's desk while a corrective plan is open.
   const auditPlanOpen = useSecurityAuditStore((s) =>
     ['scheduled', 'pending', 'running', 'critical-escalation'].includes(s.followUpAudit.status),
   )
@@ -131,17 +127,9 @@ export function OpenSpace() {
           <WorkstationCluster key={i} center={c} />
         ))}
         <CoffeeTable position={[0.1, 0, 0]} rotation={[0, Math.PI / 2, 0]} />
-        <WallPoster position={[-5.85, 1.55, 6.35]} rotation={[0, Math.PI / 2, 0]} variant="officeFlow" />
         {PLANT_POSITIONS.map(([x, z], i) => (
           <Plant key={i} position={[x, 0, z]} />
         ))}
-        <TrackLight position={[-3, 2.7, -4]} withSpot />
-        <TrackLight position={[3, 2.7, -4]} />
-        <TrackLight position={[-3, 2.7, 4]} />
-        <TrackLight position={[3, 2.7, 4]} />
-        <AcousticCeilingPanel position={[-1.5, 2.65, -1.5]} />
-        <AcousticCeilingPanel position={[1.5, 2.65, 1.5]} />
-        <AcousticCeilingPanel position={[-1.5, 2.65, 1.5]} rotation={[0, Math.PI / 2, 0]} />
       </StaticMerge>
       <Sofa
         position={[-1, 0, 0]}
@@ -149,9 +137,18 @@ export function OpenSpace() {
         onSelect={(target) => useCharacterStore.getState().clickSofa(target)}
       />
       <OpenSpaceWhiteboard />
-      {trainingIntroduced ? (
-        <WallPoster position={[-5.85, 1.55, 7.25]} rotation={[0, Math.PI / 2, 0]} variant="lockScreen" />
-      ) : null}
+      {/* Interactive - kept outside StaticMerge (hover outline + click need a
+          real per-object mesh, not a batched draw call). Click opens the full
+          scan fullscreen so the small print is actually readable. Hangs where
+          the officeFlow/lockScreen posters used to be - those moved to the
+          game room (see GameRoom.tsx). */}
+      <WallPoster
+        position={[-5.85, 1.55, 6.8]}
+        rotation={[0, Math.PI / 2, 0]}
+        variant="cisoMap"
+        label="Карта знаний CISO"
+        onSelect={() => usePosterViewerStore.getState().openPosterViewer('/documents/ciso_competency_map_full.jpg')}
+      />
       {auditPlanOpen ? <AuditPapers position={[-1.55, 0.7, 4.55]} rotation={[0, 0.35, 0]} /> : null}
     </group>
   )

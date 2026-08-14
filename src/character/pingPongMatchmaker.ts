@@ -6,6 +6,7 @@
 // already uses, on top of the existing claim registry and characterMachine.
 import { useEffect, useRef } from 'react'
 import { useCharacterStore, PLAYER_ID } from './characterStore'
+import { nearestWalkable } from './grid'
 import { useGameStore } from '../game/gameStore'
 import { useGameOutcomeStore } from '../game/gameOutcomeStore'
 import { getInteractions, isTargetFree, claimTarget, releaseClaims, targetKey } from '../interaction/interactionRegistry'
@@ -18,8 +19,11 @@ const CHECK_INTERVAL_MS = 5000
 const MATCH_CHANCE_PER_CHECK = 0.3
 // Navigation-failure guard (one participant gets pulled into a story scene,
 // hire change, etc. mid-walk) - not a sync mechanism, same role as
-// meetingSlots.ts's GATHER_TIMEOUT_MS.
-const ARRIVAL_TIMEOUT_MS = 15000
+// meetingSlots.ts's GATHER_TIMEOUT_MS. Some walk paces clamp to the 0.8 m/s
+// floor and a detour around desks can add real distance, so this is generous
+// rather than tight - even so, a still-walking straggler must be handled
+// below, not just a synchronously-'performing' one (see finish()).
+const ARRIVAL_TIMEOUT_MS = 22000
 
 export function shuffledPairFrom(ids: string[], rng: () => number): [string, string] | null {
   if (ids.length < 2) return null
@@ -47,13 +51,33 @@ export function usePingPongMatchmaker(rng: () => number = Math.random): void {
       activeRef.current = true
       let finished = false
       let unsubscribeLive: (() => void) | null = null
+      // A participant still WALKING when the rally ends (arrival timeout, or
+      // the other side left early) must be redirected off its pending
+      // 'perform pingPongRally' arrival goal - otherwise it reaches the table
+      // on its own later, self-transitions into 'performing' via arrive()
+      // (characterMachine.ts) with nobody left subscribed to notice, and gets
+      // stuck there forever (usePingPongRallyStore.participants stays null,
+      // so RallyBall never mounts - the live report "мячик не появляется,
+      // просто смотрят по сторонам с ракетками", useCharacterPerformance's
+      // side===-1 solo-sway branch). CLICK_FLOOR to its own position is the
+      // same "cancel current action" idiom used elsewhere (e.g.
+      // postAuditInteraction.ts's beginApproachToSonya) - it always replaces
+      // the character's state regardless of what it was doing.
+      const cancelStrayWalk = (id: string) => {
+        const entity = useCharacterStore.getState().characters[id]
+        const state = entity?.state
+        if (state?.kind !== 'walking' || state.onArrive.kind !== 'perform' || state.onArrive.clip !== 'pingPongRally') return
+        useCharacterStore.getState().dispatchTo(id, { type: 'CLICK_FLOOR', point: nearestWalkable(entity!.position) })
+      }
       const finish = () => {
         if (finished) return
         finished = true
         unsubscribeLive?.()
         const latest = useCharacterStore.getState()
         if (latest.characters[a]?.state.kind === 'performing') latest.dispatchTo(a, { type: 'PERFORM_END' })
+        else cancelStrayWalk(a)
         if (latest.characters[b]?.state.kind === 'performing') latest.dispatchTo(b, { type: 'PERFORM_END' })
+        else cancelStrayWalk(b)
         releasePairActivity(a, b)
         usePerformanceStore.getState().clearGaze(a, b)
         usePingPongRallyStore.getState().end()

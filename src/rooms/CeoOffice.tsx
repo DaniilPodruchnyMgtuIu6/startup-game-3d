@@ -15,7 +15,24 @@ import { StaticMerge } from '../scene/StaticMerge'
 // lands them too far back (reads as sitting crooked / into the backrest). Seat
 // them slightly forward on the cushion toward the desk instead — a dedicated,
 // correct seat anchor with no visible clipping.
-const EXEC_SEAT_FORWARD = 0.12
+export const EXEC_CHAIR_LOCAL: [number, number, number] = [0, 0, -1.55]
+export const EXEC_CHAIR_FACING = 0
+export const EXEC_SEAT_FORWARD = 0.12
+
+/** World seat used by both click-to-sit and cutscenes (security-breach). */
+export function execChairSeatTarget(): { point: [number, number, number]; facing: number } {
+  const [cx, , cz] = roomCenter(ROOMS.ceoOffice)
+  const x = cx + EXEC_CHAIR_LOCAL[0]
+  const z = cz + EXEC_CHAIR_LOCAL[2]
+  return {
+    point: [
+      x + Math.sin(EXEC_CHAIR_FACING) * EXEC_SEAT_FORWARD,
+      0,
+      z + Math.cos(EXEC_CHAIR_FACING) * EXEC_SEAT_FORWARD,
+    ],
+    facing: EXEC_CHAIR_FACING,
+  }
+}
 
 function seatPlayerInExecChair(target: { point: [number, number, number]; facing: number }) {
   const [x, , z] = target.point
@@ -40,7 +57,7 @@ export function CeoOffice() {
             behind the chair; the chair keeps the workstation-proven 0.2m gap to
             the desk edge so the seated character doesn't clip the top. */}
         <CeoDesk position={[0, 0, -0.85]} />
-        <CaptainChair position={[0, 0, -1.55]} onSelect={seatPlayerInExecChair} />
+        <CaptainChair position={EXEC_CHAIR_LOCAL} onSelect={seatPlayerInExecChair} />
         <Bookshelf position={[width / 2 - 0.4, 0, -1.8]} rotation={[0, -Math.PI / 2, 0]} />
         <Sofa
           position={[-1.6, 0, 2.15]}

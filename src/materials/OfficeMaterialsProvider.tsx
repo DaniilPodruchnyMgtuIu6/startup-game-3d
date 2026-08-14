@@ -31,6 +31,7 @@ export function OfficeMaterialsProvider({ children }: { children: ReactNode }) {
     dashboard: '/textures/officeflow_dashboard.jpg',
     posterOfficeFlow: '/posters/officeflow.jpg',
     posterLockScreen: '/posters/lock_screen.jpg',
+    posterCisoMap: '/posters/ciso_competency_map.jpg',
   })
   // 18H beauty pass (live feedback «хочу качественную прорисовку мебели»):
   // the two flat-color materials that dominate every frame get real surfaces.
@@ -51,6 +52,7 @@ export function OfficeMaterialsProvider({ children }: { children: ReactNode }) {
     artTex.dashboard.colorSpace = SRGBColorSpace
     artTex.posterOfficeFlow.colorSpace = SRGBColorSpace
     artTex.posterLockScreen.colorSpace = SRGBColorSpace
+    artTex.posterCisoMap.colorSpace = SRGBColorSpace
     surfaceTex.oakDesk.colorSpace = SRGBColorSpace
     surfaceTex.chairWeave.colorSpace = SRGBColorSpace
     surfaceTex.wallPlaster.colorSpace = SRGBColorSpace
@@ -100,6 +102,7 @@ export function OfficeMaterialsProvider({ children }: { children: ReactNode }) {
       },
       posterOfficeFlow: { map: artTex.posterOfficeFlow, roughness: 0.85, metalness: 0 },
       posterLockScreen: { map: artTex.posterLockScreen, roughness: 0.85, metalness: 0 },
+      posterCisoMap: { map: artTex.posterCisoMap, roughness: 0.85, metalness: 0 },
       ledGreen: procedural.ledGreen,
       ledAmber: procedural.ledAmber,
       ledRed: procedural.ledRed,

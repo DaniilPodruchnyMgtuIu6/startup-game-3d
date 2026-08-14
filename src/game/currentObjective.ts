@@ -9,6 +9,12 @@ export interface ObjectiveContext {
   // Feature 17A: the objective text of the pending mandatory story decision
   // (undefined when none is pending). Takes priority over everything below.
   storyDecisionText?: string
+  // Feature 19: the objective text of the pending mandatory cyber-incident
+  // scene. These block day completion the same way a story decision does
+  // (see WorkdayFlowController's requiredStoryPending) but previously had no
+  // HUD text of their own - the player only had a small in-world "!" marker
+  // to spot, which read as "the game is stuck" when missed.
+  cyberStoryText?: string
   // Feature 17C §7: workdays left to remove the critical project-loss risk
   // after the final warning (undefined when the window is not open).
   dataLossDaysLeft?: number
@@ -37,6 +43,10 @@ export function getCurrentObjective(ctx: ObjectiveContext): Objective | null {
 
   // Feature 17A §7: a mandatory story decision is THE current goal.
   if (ctx.storyDecisionText) return { id: 'resolve-story-dialogue', text: ctx.storyDecisionText, target: 'sonya' }
+  // Feature 19: a mandatory cyber-incident scene is next in line - same
+  // priority tier as a story decision (Event priority never lets two of
+  // these be pending on the same day).
+  if (ctx.cyberStoryText) return { id: 'resolve-cyber-story-scene', text: ctx.cyberStoryText, target: 'sonya' }
   // Feature 17C §7: the open data-loss window is the loudest warning.
   if (ctx.dataLossDaysLeft !== undefined)
     return {
